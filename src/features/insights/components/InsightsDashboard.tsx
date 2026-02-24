@@ -1,6 +1,12 @@
 'use client'
 
-import type { InsightsData, TopHook, TopCTA, FormatPerformance, WeeklyTrend } from '../services/insights-service'
+import dynamic from 'next/dynamic'
+import type { InsightsData, TopHook, TopCTA, FormatPerformance } from '../services/insights-service'
+
+const WeeklyTrendsChart = dynamic(
+  () => import('./WeeklyTrendsChart').then((m) => ({ default: m.WeeklyTrendsChart })),
+  { ssr: false, loading: () => <div className="h-[540px] animate-pulse bg-gray-100 rounded-2xl" /> }
+)
 
 // ============================================
 // Props
@@ -221,54 +227,6 @@ function FormatPerformanceCard({ formats }: { formats: FormatPerformance[] }) {
   )
 }
 
-function WeeklyTrendsCard({ trends }: { trends: WeeklyTrend[] }) {
-  return (
-    <SectionCard
-      title="Tendencias Semanales"
-      subtitle="Metricas promedio por semana de campana (ultimas semanas con datos)"
-    >
-      {trends.length === 0 ? (
-        <EmptyState message="No hay datos suficientes. Registra metricas de publicaciones primero." />
-      ) : (
-        <div className="space-y-3">
-          {trends.slice(0, 8).map((t, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-border bg-background p-3"
-            >
-              <p className="text-xs font-semibold text-foreground mb-2">
-                Semana del {formatWeek(t.week_start)}
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <TrendStat label="Imp. prom." value={Math.round(t.avg_impressions).toLocaleString()} />
-                <TrendStat label="Com. prom." value={t.avg_comments.toFixed(1)} />
-                <TrendStat
-                  label="Engagement"
-                  value={`${t.avg_engagement_rate.toFixed(2)}%`}
-                />
-                <TrendStat label="Leads total" value={String(t.total_leads)} />
-              </div>
-            </div>
-          ))}
-          {trends.length > 8 && (
-            <p className="text-xs text-foreground-secondary text-center">
-              Mostrando las 8 semanas mas recientes con datos
-            </p>
-          )}
-        </div>
-      )}
-    </SectionCard>
-  )
-}
-
-function TrendStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[10px] text-foreground-secondary uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-semibold text-foreground">{value}</p>
-    </div>
-  )
-}
 
 function OverviewCard({
   totalCampaigns,
@@ -343,8 +301,13 @@ export function InsightsDashboard({ data }: InsightsDashboardProps) {
       {/* Format Performance */}
       <FormatPerformanceCard formats={data.formatPerformance} />
 
-      {/* Weekly Trends */}
-      <WeeklyTrendsCard trends={data.weeklyTrends} />
+      {/* Weekly Trends — Recharts */}
+      <SectionCard
+        title="Tendencias Semanales"
+        subtitle="Metricas promedio por semana de campana"
+      >
+        <WeeklyTrendsChart trends={data.weeklyTrends} />
+      </SectionCard>
     </div>
   )
 }

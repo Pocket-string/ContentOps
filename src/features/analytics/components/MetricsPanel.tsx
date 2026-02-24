@@ -1,8 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { WeekComparisonBar } from './WeekComparisonBar'
+
+const MetricsMiniChart = dynamic(
+  () => import('./MetricsMiniChart').then((m) => ({ default: m.MetricsMiniChart })),
+  { ssr: false, loading: () => <div className="h-[200px] animate-pulse bg-gray-100 rounded-xl" /> }
+)
 
 // ---- Types ----
 
@@ -22,7 +29,7 @@ interface Learning {
 }
 export interface MetricsPanelProps {
   campaignId: string; weekStart: string; topicTitle: string | null
-  postMetrics: PostMetric[]; summary: Summary; learnings: Learning[]
+  postMetrics: PostMetric[]; summary: Summary; previousSummary?: Summary | null; learnings: Learning[]
   onSaveMetrics: (fd: FormData) => Promise<{ success?: true; error?: string }>
   onCreateLearning: (fd: FormData) => Promise<{ success?: true; error?: string }>
   onDeleteLearning: (id: string) => Promise<{ success?: true; error?: string }>
@@ -78,7 +85,7 @@ function StatCard({ icon, label, total, avg }: { icon: React.ReactNode; label: s
 
 // ---- Main Component ----
 
-export function MetricsPanel({ postMetrics, summary, learnings, onSaveMetrics, onCreateLearning, onDeleteLearning }: MetricsPanelProps) {
+export function MetricsPanel({ postMetrics, summary, previousSummary, learnings, onSaveMetrics, onCreateLearning, onDeleteLearning }: MetricsPanelProps) {
   const [metricsState, setMetricsState] = useState<Record<number, DayState>>(
     Object.fromEntries(postMetrics.map((pm) => [pm.dayOfWeek, { impressions: pm.impressions, comments: pm.comments, saves: pm.saves, shares: pm.shares, leads: pm.leads, notes: pm.notes ?? '' }]))
   )
@@ -121,7 +128,6 @@ export function MetricsPanel({ postMetrics, summary, learnings, onSaveMetrics, o
     setDeleteConfirmId(null)
   }
 
-  const maxImp = Math.max(...postMetrics.map((pm) => pm.impressions), 1)
   const engLabel = summary.totalImpressions === 0 ? 'N/A' : `${summary.engagementRate.toFixed(1)}%`
 
   return (
@@ -159,23 +165,11 @@ export function MetricsPanel({ postMetrics, summary, learnings, onSaveMetrics, o
           ))}
         </div>
 
-        {/* Pure CSS bar chart */}
-        <div className="space-y-2" role="img" aria-label="Grafico de impresiones por dia">
-          <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">Impresiones por dia</p>
-          {postMetrics.map((pm) => {
-            const stage = STAGE_META[pm.funnelStage] ?? FALLBACK_STAGE
-            const pct = (pm.impressions / maxImp) * 100
-            return (
-              <div key={pm.dayOfWeek} className="flex items-center gap-3">
-                <span className="text-xs text-foreground-secondary w-10 shrink-0 font-medium">{pm.dayLabel.slice(0, 3)}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 ${stage.barColor}`} style={{ width: `${Math.max(pct, 2)}%` }} aria-label={`${pm.dayLabel}: ${fmt(pm.impressions)}`} />
-                </div>
-                <span className="text-xs text-foreground-muted w-16 text-right shrink-0">{fmt(pm.impressions)}</span>
-              </div>
-            )
-          })}
-          <div className="flex flex-wrap gap-3 pt-1">
+        {/* Recharts bar chart */}
+        <div>
+          <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide mb-2">Impresiones por dia</p>
+          <MetricsMiniChart postMetrics={postMetrics} />
+          <div className="flex flex-wrap gap-3 pt-2">
             {[['bg-blue-400', 'TOFU'], ['bg-purple-400', 'MOFU'], ['bg-green-400', 'BOFU']].map(([bg, lbl]) => (
               <span key={lbl} className="flex items-center gap-1.5 text-xs text-foreground-muted">
                 <span className={`w-2.5 h-2.5 rounded-full ${bg} inline-block`} aria-hidden="true" />{lbl}
@@ -184,6 +178,9 @@ export function MetricsPanel({ postMetrics, summary, learnings, onSaveMetrics, o
           </div>
         </div>
       </section>
+
+      {/* ===== SECTION 1b: Week-over-Week Comparison ===== */}
+      <WeekComparisonBar current={summary} previous={previousSummary ?? null} />
 
       {/* ===== SECTION 2: Metrics per Post ===== */}
       <section className="bg-surface border border-border rounded-2xl shadow-card p-6 space-y-4" aria-labelledby="metrics-form-heading">

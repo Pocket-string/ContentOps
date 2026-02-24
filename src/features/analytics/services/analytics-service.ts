@@ -306,6 +306,87 @@ export async function getWeeklySummary(
 }
 
 // ============================================
+// Week-over-Week Comparison
+// ============================================
+
+/**
+ * Summary shape without postMetrics (for comparison only).
+ */
+export interface ComparisonSummary {
+  totalImpressions: number
+  totalComments: number
+  totalSaves: number
+  totalShares: number
+  totalLeads: number
+  avgImpressions: number
+  avgComments: number
+  avgSaves: number
+  avgShares: number
+  avgLeads: number
+  engagementRate: number
+}
+
+/**
+ * Get the weekly summary of the previous campaign in the same workspace.
+ *
+ * Finds the campaign with the most recent week_start strictly before
+ * the current campaign's week_start, then computes its summary.
+ */
+export async function getPreviousCampaignSummary(
+  workspaceId: string,
+  currentCampaignId: string,
+  currentWeekStart: string
+): Promise<ServiceResult<ComparisonSummary | null>> {
+  try {
+    const supabase = await createClient()
+
+    const { data: prevCampaigns, error } = await supabase
+      .from('campaigns')
+      .select('id')
+      .eq('workspace_id', workspaceId)
+      .neq('id', currentCampaignId)
+      .lt('week_start', currentWeekStart)
+      .order('week_start', { ascending: false })
+      .limit(1)
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    if (!prevCampaigns || prevCampaigns.length === 0) {
+      return { data: null }
+    }
+
+    const prevId = (prevCampaigns[0] as { id: string }).id
+    const summaryResult = await getWeeklySummary(prevId)
+
+    if (summaryResult.error || !summaryResult.data) {
+      return { data: null }
+    }
+
+    const s = summaryResult.data
+    return {
+      data: {
+        totalImpressions: s.totalImpressions,
+        totalComments: s.totalComments,
+        totalSaves: s.totalSaves,
+        totalShares: s.totalShares,
+        totalLeads: s.totalLeads,
+        avgImpressions: s.avgImpressions,
+        avgComments: s.avgComments,
+        avgSaves: s.avgSaves,
+        avgShares: s.avgShares,
+        avgLeads: s.avgLeads,
+        engagementRate: s.engagementRate,
+      },
+    }
+  } catch (err) {
+    console.error('[analytics-service] getPreviousCampaignSummary unexpected error', err)
+    return { data: null }
+  }
+}
+
+// ============================================
 // Learnings
 // ============================================
 

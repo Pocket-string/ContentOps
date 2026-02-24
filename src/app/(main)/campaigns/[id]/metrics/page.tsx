@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getCampaignById } from '@/features/campaigns/services/campaign-service'
-import { getMetricsByCampaign, getWeeklySummary, getLearningsByCampaign } from '@/features/analytics/services/analytics-service'
+import { getMetricsByCampaign, getWeeklySummary, getLearningsByCampaign, getPreviousCampaignSummary } from '@/features/analytics/services/analytics-service'
 import { MetricsClient } from './client'
 
 export const metadata = { title: 'Metricas | ContentOps' }
@@ -20,10 +20,11 @@ export default async function MetricsPage({ params }: Props) {
 
   const campaign = campaignResult.data
 
-  const [metricsResult, summaryResult, learningsResult] = await Promise.all([
+  const [metricsResult, summaryResult, learningsResult, prevSummaryResult] = await Promise.all([
     getMetricsByCampaign(campaignId),
     getWeeklySummary(campaignId),
     getLearningsByCampaign(campaignId),
+    getPreviousCampaignSummary(campaign.workspace_id, campaignId, campaign.week_start),
   ])
 
   const defaultSummary = {
@@ -49,6 +50,7 @@ export default async function MetricsPage({ params }: Props) {
         topicTitle={campaign.topics?.title ?? null}
         postMetrics={metricsResult.data ?? []}
         summary={summaryResult.data ?? defaultSummary}
+        previousSummary={prevSummaryResult.data ?? null}
         learnings={learningsResult.data ?? []}
       />
     </div>

@@ -1,1 +1,5 @@
 export { MetricsPanel } from './MetricsPanel'
+export { WeekComparisonBar } from './WeekComparisonBar'
+export type { WeekComparisonBarProps } from './WeekComparisonBar'
+export { MetricsMiniChart } from './MetricsMiniChart'
+export type { MetricsMiniChartProps } from './MetricsMiniChart'

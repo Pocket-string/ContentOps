@@ -43,6 +43,7 @@ interface Props {
   topicTitle: string | null
   postMetrics: PostMetricRow[]
   summary: Summary
+  previousSummary: Summary | null
   learnings: Learning[]
 }
 
@@ -52,6 +53,7 @@ export function MetricsClient({
   topicTitle,
   postMetrics,
   summary,
+  previousSummary,
   learnings,
 }: Props) {
   async function handleSaveMetrics(formData: FormData) {
@@ -102,6 +104,7 @@ export function MetricsClient({
         topicTitle={topicTitle}
         postMetrics={postMetrics}
         summary={summary}
+        previousSummary={previousSummary}
         learnings={learnings}
         onSaveMetrics={handleSaveMetrics}
         onCreateLearning={handleCreateLearning}
