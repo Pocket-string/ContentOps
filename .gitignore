@@ -1,0 +1,71 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+yarn.lock
+package-lock.json
+
+# Testing
+/coverage
+/test-results/
+/playwright-report/
+/e2e/.auth/
+
+# Next.js
+/.next/
+/out/
+*.rsc
+
+# Production
+/build
+/dist
+
+# Environment — NEVER commit secrets
+.env
+.env.*
+!.env.example
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+*.pem
+
+# Claude Code / MCP
+.claude/skills/**/node_modules
+.claude/plugins
+*.mcp.json
+!example.mcp.json
+settings.local.json
+
+# Playwright MCP logs
+.playwright-mcp/
+
+# Windows artifacts
+nul
+
+# Build info
+tsconfig.tsbuildinfo
+
+# Supabase local
+supabase/.branches
+supabase/.temp
