@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { RecipeValidator } from './RecipeValidator'
+import { RecipeValidator, runChecks } from './RecipeValidator'
+import { QAScoreCard } from '@/features/qa/components/QAScoreCard'
+import { CopyPromptButton } from '@/shared/components/copy-prompt-button'
+import { buildCopyPrompt } from '@/features/prompts/templates/copy-template'
+import { parseCopyVariants } from '@/features/import/parsers/copy-parser'
 import { CriticPanel } from './CriticPanel'
 import type {
   Post,
@@ -353,6 +357,8 @@ export function PostEditor({
   const [scoreNotes, setScoreNotes] = useState('')
   const [isSavingScore, setIsSavingScore] = useState(false)
   const [error, setError] = useState('')
+  const [importText, setImportText] = useState('')
+  const [importPreview, setImportPreview] = useState<ReturnType<typeof parseCopyVariants> | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
   const [copyReview, setCopyReview] = useState<CopyReview | null>(null)
 
@@ -772,16 +778,27 @@ export function PostEditor({
                         Genera con IA o escribe directamente en el editor
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerate}
-                      isLoading={isGenerating}
-                      leftIcon={<SparklesIcon className="w-4 h-4" />}
-                      aria-label={`Generar contenido para ${VARIANT_LABELS[activeVariant]}`}
-                    >
-                      Generar con AI
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerate}
+                        isLoading={isGenerating}
+                        leftIcon={<SparklesIcon className="w-4 h-4" />}
+                        aria-label={`Generar contenido para ${VARIANT_LABELS[activeVariant]}`}
+                      >
+                        Generar con AI
+                      </Button>
+                      <CopyPromptButton
+                        getPrompt={() => buildCopyPrompt({
+                          topic: topicTitle ?? '',
+                          keyword,
+                          funnelStage: post.funnel_stage,
+                          objective: post.objective ?? undefined,
+                        })}
+                        label="Copiar Prompt"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -846,6 +863,15 @@ export function PostEditor({
                   >
                     Generar con AI
                   </Button>
+                  <CopyPromptButton
+                    getPrompt={() => buildCopyPrompt({
+                      topic: topicTitle ?? '',
+                      keyword,
+                      funnelStage: post.funnel_stage,
+                      objective: post.objective ?? undefined,
+                    })}
+                    label="Copiar Prompt"
+                  />
                 </div>
 
                 {/* AI Review badge */}
@@ -856,6 +882,52 @@ export function PostEditor({
                     summary={copyReview.one_line_summary}
                   />
                 )}
+
+                {/* Import from ChatGPT */}
+                <details className="border-t border-border pt-3">
+                  <summary className="text-xs text-foreground-muted cursor-pointer hover:text-foreground">
+                    Importar desde ChatGPT
+                  </summary>
+                  <div className="mt-3 space-y-2">
+                    <textarea
+                      value={importText}
+                      onChange={(e) => { setImportText(e.target.value); setImportPreview(null) }}
+                      rows={5}
+                      placeholder="Pega aqui las variantes generadas en ChatGPT..."
+                      className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent-500 resize-y"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImportPreview(parseCopyVariants(importText))}
+                      disabled={!importText.trim()}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface text-foreground hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Analizar texto
+                    </button>
+                    {importPreview && (
+                      <div className="space-y-2">
+                        {importPreview.errors.map((err, i) => (
+                          <p key={i} className="text-xs text-red-500">{err}</p>
+                        ))}
+                        {importPreview.variants.map((v, i) => (
+                          <div key={i} className="rounded-lg border border-border p-2 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-foreground">{v.variant}</span>
+                              <button
+                                type="button"
+                                onClick={() => { setEditContent(v.content); setImportText(''); setImportPreview(null) }}
+                                className="text-xs text-accent-600 hover:underline"
+                              >
+                                Usar esta version
+                              </button>
+                            </div>
+                            <p className="text-xs text-foreground-muted line-clamp-2">{v.hook}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </details>
 
                 {/* 6. AI Iteration panel */}
                 <div className="border-t border-border pt-4 space-y-3">
@@ -1052,6 +1124,11 @@ export function PostEditor({
                 )}
               </div>
             </div>
+
+            {/* QA Score Card */}
+            {editContent.trim() && (
+              <QAScoreCard checks={runChecks(editContent, keyword)} label="Copy QA" />
+            )}
 
             {/* Recipe Validator */}
             <RecipeValidator content={editContent} keyword={keyword} />

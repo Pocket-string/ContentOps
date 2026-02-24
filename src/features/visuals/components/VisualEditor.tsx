@@ -14,6 +14,11 @@ import {
 } from '../constants/brand-rules'
 import type { VisualVersion, VisualStatus } from '@/shared/types/content-ops'
 import { VisualCriticPanel } from './VisualCriticPanel'
+import { VisualValidator, runVisualChecks } from './VisualValidator'
+import { QAScoreCard } from '@/features/qa/components/QAScoreCard'
+import { CopyPromptButton } from '@/shared/components/copy-prompt-button'
+import { buildVisualJsonPrompt } from '@/features/prompts/templates/visual-json-template'
+import { parseVisualJson } from '@/features/import/parsers/visual-parser'
 import { AIReviewBadge } from '@/shared/components/ai-review-badge'
 import type { VisualReview } from '@/shared/types/ai-review'
 import { updateNanoBananaAction } from '../actions/visual-actions'
@@ -209,6 +214,9 @@ export function VisualEditor({
   const [nbQaNotes, setNbQaNotes] = useState('')
   const [nbCustomReason, setNbCustomReason] = useState('')
   const [isSavingNB, setIsSavingNB] = useState(false)
+  // Import bridge state
+  const [importJsonText, setImportJsonText] = useState('')
+  const [importError, setImportError] = useState('')
 
   const selectedVisual = visuals.find((v) => v.id === selectedVisualId) ?? null
   const sortedVisuals = sortedNewestFirst(visuals)
@@ -428,6 +436,53 @@ export function VisualEditor({
               </div>
             </div>
 
+            {/* 2b. Import JSON from external AI */}
+            <details className="bg-surface border border-border rounded-2xl shadow-card">
+              <summary className="px-5 py-3 cursor-pointer text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors">
+                Importar JSON externo (ChatGPT / otro)
+              </summary>
+              <div className="px-5 pb-5 pt-2 space-y-3">
+                <p className="text-xs text-foreground-muted">
+                  Pega el JSON generado por ChatGPT u otra herramienta. Se validara la estructura automaticamente.
+                </p>
+                <textarea
+                  value={importJsonText}
+                  onChange={(e) => { setImportJsonText(e.target.value); setImportError('') }}
+                  rows={10}
+                  placeholder='Pega aqui el JSON generado externamente...'
+                  spellCheck={false}
+                  className={`${TEXTAREA_BASE} font-mono resize-y border-border hover:border-border-dark`}
+                />
+                {importError && (
+                  <div role="alert" className="rounded-xl bg-error-50 border border-error-500 p-3">
+                    <p className="text-sm text-error-700">{importError}</p>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!importJsonText.trim()}
+                  onClick={() => {
+                    const result = parseVisualJson(importJsonText)
+                    if (result.errors.length > 0) {
+                      setImportError(result.errors.join('. '))
+                      return
+                    }
+                    if (result.data) {
+                      const formatted = JSON.stringify(result.data, null, 2)
+                      handleJsonChange(formatted)
+                      setImportJsonText('')
+                      setImportError('')
+                      setSuccessMsg('JSON importado correctamente')
+                      setTimeout(() => setSuccessMsg(''), 3000)
+                    }
+                  }}
+                >
+                  Validar e Importar
+                </Button>
+              </div>
+            </details>
+
             {/* 3. AI Generation */}
             <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
               <h2 className="text-sm font-semibold text-foreground">Generar con IA</h2>
@@ -444,7 +499,20 @@ export function VisualEditor({
                   className={`${TEXTAREA_BASE} border-border hover:border-border-dark resize-none`}
                 />
               </div>
-              <Button variant="secondary" size="sm" onClick={handleGenerate} isLoading={isGenerating} leftIcon={<SparklesIcon />}>Generar Prompt Visual</Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={handleGenerate} isLoading={isGenerating} leftIcon={<SparklesIcon />}>Generar Prompt Visual</Button>
+                <CopyPromptButton
+                  getPrompt={() => buildVisualJsonPrompt({
+                    postContent: postContent,
+                    funnelStage: funnelStage,
+                    format: format,
+                    topicTitle: topicTitle,
+                    keyword: keyword,
+                    additionalInstructions: additionalInstructions,
+                  })}
+                  label="Copiar Prompt"
+                />
+              </div>
               {visualReview && (
                 <AIReviewBadge
                   score={visualReview.coherence_score}
@@ -631,7 +699,15 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 5. VisualCritic AI */}
+            {/* 5. Visual Validator (deterministic rules) */}
+            {selectedVisualId && selectedVisual?.prompt_json && Object.keys(selectedVisual.prompt_json).length > 0 && (
+              <>
+                <QAScoreCard checks={runVisualChecks(selectedVisual.prompt_json, format)} label="Visual QA" />
+                <VisualValidator promptJson={selectedVisual.prompt_json} format={format} />
+              </>
+            )}
+
+            {/* 6. VisualCritic AI */}
             {selectedVisualId && (
               <VisualCriticPanel
                 visualVersionId={selectedVisualId}

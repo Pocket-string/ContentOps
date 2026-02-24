@@ -30,7 +30,7 @@ function XIcon({ className }: { className?: string }) {
   )
 }
 
-function runChecks(content: string, keyword?: string): CheckResult[] {
+export function runChecks(content: string, keyword?: string): CheckResult[] {
   const checks: CheckResult[] = []
   const trimmed = content.trim()
 
@@ -120,6 +120,22 @@ function runChecks(content: string, keyword?: string): CheckResult[] {
     passed: mobileReadable,
     severity: 'warning',
     detail: mobileReadable ? 'Todos los parrafos son legibles en movil' : 'Algun parrafo supera 280 caracteres',
+  })
+
+  // 9. Estructura D/G/P/I — 4 bloques: Hook (Detener) + Contexto (Ganar) + Provocacion (Provocar) + CTA (Iniciar)
+  const hasHookBlock = firstLine.length > 0 && firstLine.length <= 120
+  const hasCtaBlock = hasCta
+  const blockCount = paragraphs.length
+  const hasEnoughBlocks = blockCount >= 4
+  const dgpiPassed = hasHookBlock && hasCtaBlock && hasEnoughBlocks
+  checks.push({
+    id: 'dgpi-structure',
+    label: 'Estructura D/G/P/I',
+    passed: dgpiPassed,
+    severity: 'warning',
+    detail: dgpiPassed
+      ? 'Estructura completa: Hook + Contexto + Provocacion + CTA'
+      : `${blockCount} bloques detectados (minimo 4). ${!hasHookBlock ? 'Falta hook claro. ' : ''}${!hasCtaBlock ? 'Falta CTA al final.' : ''}`,
   })
 
   return checks

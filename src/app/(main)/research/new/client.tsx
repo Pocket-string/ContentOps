@@ -1,15 +1,23 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ResearchForm } from '@/features/research/components/ResearchForm'
+import { DeepResearchPanel } from '@/features/research/components/DeepResearchPanel'
 import { createResearchAction } from '@/features/research/actions/research-actions'
 
 interface Props {
   allTags: string[]
 }
 
+const TABS = [
+  { id: 'ai' as const, label: 'Investigacion AI' },
+  { id: 'manual' as const, label: 'Manual' },
+]
+
 export function ResearchNewClient({ allTags }: Props) {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai')
 
   async function handleSubmit(data: {
     title: string
@@ -47,10 +55,36 @@ export function ResearchNewClient({ allTags }: Props) {
   }
 
   return (
-    <ResearchForm
-      allTags={allTags}
-      onSubmit={handleSubmit}
-      onSuccess={() => router.push('/research')}
-    />
+    <div className="space-y-4">
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1" role="tablist">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'bg-surface text-foreground shadow-sm'
+                : 'text-foreground-muted hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'ai' ? (
+        <DeepResearchPanel />
+      ) : (
+        <ResearchForm
+          allTags={allTags}
+          onSubmit={handleSubmit}
+          onSuccess={() => router.push('/research')}
+        />
+      )}
+    </div>
   )
 }
