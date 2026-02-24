@@ -1,14 +1,7 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
-
-// OpenRouter provider (OpenAI-compatible)
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const iteratedCopySchema = z.object({
@@ -79,8 +72,8 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    const result = await generateObject({
-      model: openrouter('google/gemini-2.0-flash-001'),
+    const result = await generateObjectWithFallback({
+      task: 'iterate',
       schema: iteratedCopySchema,
       system: `Eres un editor experto de copy para LinkedIn en el sector O&M fotovoltaico.
 Tu trabajo es iterar sobre un post existente aplicando el feedback del usuario.

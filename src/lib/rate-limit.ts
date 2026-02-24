@@ -32,4 +32,5 @@ export function createRateLimiter({ maxRequests, windowMs }: RateLimiterConfig) 
 }
 
 export const aiRateLimiter = createRateLimiter({ maxRequests: 10, windowMs: 60_000 })
+export const imageRateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60_000 })
 export const exportRateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60_000 })

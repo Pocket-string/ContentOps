@@ -501,7 +501,7 @@ Mejora continua basada en datos + tracking de tokens.
 
 ---
 
-## FASE 0: Performance + Deploy (URGENTE)
+## FASE 0: Performance + Deploy ✅ COMPLETADO
 
 ### Problema Detectado
 
@@ -554,57 +554,64 @@ La app consume demasiados recursos corriendo localmente. Hay 3 causas principale
    }
    ```
 
-### Solucion Definitiva: Deploy a Vercel
+### Solucion Definitiva: Deploy a Dokploy (VPS) ✅ COMPLETADO
 
-**Impacto**: Critico | **Esfuerzo**: Medio (primer deploy ~30 min, luego automatico)
+**Impacto**: Critico | **Esfuerzo**: Medio | **Completado**: 2026-02-24
 
-Con 8 GB de RAM, correr el dev server localmente siempre sera ajustado. La solucion real es **deploy a Vercel** y usar la app desde el navegador.
+Con 8 GB de RAM, correr el dev server localmente siempre sera ajustado. La solucion real es **deploy a Dokploy** (self-hosted PaaS) y usar la app desde el navegador.
 
-**Ventajas**:
+**Ventajas vs Vercel**:
 - **0 RAM local** — solo necesitas un tab del navegador (~200 MB vs ~1.5 GB del dev server)
 - **Acceso desde cualquier dispositivo** — celular, tablet, otra PC
-- **HTTPS nativo** — requerido para GPT Actions / webhooks futuros
-- **Environment Variables seguras** — API keys en Vercel dashboard, no en archivos locales
-- **Preview deploys** — cada branch tiene su propia URL
-- **Edge Runtime** — middleware corre en el edge, no en tu PC
+- **HTTPS nativo** — Let's Encrypt automatico via Traefik
+- **Sin limites de serverless** — Docker container corriendo 24/7
+- **Sin costos de hosting adicionales** — ya pagamos el VPS (72.60.143.251)
+- **Auto-deploy** — push a main → deploy automatico
+- **Control total** — acceso al servidor, logs, containers
 
-**Implementacion**:
-1. Push codigo a GitHub (repo privado)
-2. Conectar repo a Vercel
-3. Configurar env vars en Vercel dashboard (todas las del `.env.local`)
-4. Deploy automatico en cada push a main
-5. Dominio: `contentops-bitalize.vercel.app` (o custom domain)
+**Infraestructura desplegada**:
+
+| Componente | Valor |
+|------------|-------|
+| **URL produccion** | https://contentops.jonadata.cloud |
+| **GitHub repo** | https://github.com/Pocket-string/ContentOps.git |
+| **Branch** | `main` (auto-deploy on push) |
+| **Dokploy Panel** | https://dokploy.jonadata.cloud |
+| **App ID** | `T5h12sWPliBOeXYVLC75h` |
+| **Build** | Dockerfile multi-stage (node:20-alpine) |
+| **Output** | Next.js standalone (~44 MB) |
+| **SSL** | Let's Encrypt via Traefik |
+| **DNS** | Cloudflare (Proxied + Full strict SSL) |
+
+**Archivos creados/modificados**:
+- `Dockerfile` — Multi-stage build (base → deps → builder → runner)
+- `.dockerignore` — Excluye node_modules, .next, .env, docs, e2e
+- `next.config.ts` — `output: 'standalone'`, desactivado mcpServer, CSP actualizado
+- `.env.example` — Actualizado con GOOGLE_AI_API_KEY, OPENAI_API_KEY
+- `.gitignore` — Agregado .playwright-mcp/, nul, tsconfig.tsbuildinfo
+
+**Env vars configuradas en Dokploy**:
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (build args)
+- `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_AI_API_KEY`, `OPENAI_API_KEY`, `NODE_ENV=production`
 
 **Flujo de desarrollo post-deploy**:
 ```
 Desarrollo local (solo cuando editas codigo):
-  pnpm run dev → prueba cambios → git push → Vercel deploys automatico
+  pnpm run dev → prueba cambios → git push → Dokploy auto-deploy (~3 min)
 
 Uso diario (crear contenido):
-  Abrir https://contentops-bitalize.vercel.app → usar la app → 0 recursos locales
+  Abrir https://contentops.jonadata.cloud → usar la app → 0 recursos locales
 ```
-
-**CSP Update necesaria** en `next.config.ts`:
-```typescript
-// Agregar dominios de Gemini y OpenAI al connect-src
-"connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://api.openai.com"
-```
-
-**Archivos a modificar**:
-- `next.config.ts` — desactivar mcpServer, agregar CSP para APIs AI
-- `package.json` — script `dev` sin `--turbopack` (opcional)
-- Crear repo GitHub + conectar Vercel
-- Configurar env vars en Vercel dashboard
 
 ---
 
 ## Sprints de Ejecucion (Revisados)
 
-### Sprint 0: Performance + Deploy (Fase 0) — URGENTE
-- Optimizar next.config.ts (desactivar mcpServer)
-- Deploy a Vercel
-- Configurar env vars en Vercel dashboard
-- **Resultado**: App accesible sin consumir RAM local
+### Sprint 0: Performance + Deploy (Fase 0) — ✅ COMPLETADO (2026-02-24)
+- ~~Optimizar next.config.ts (desactivar mcpServer)~~ ✅
+- ~~Deploy a Dokploy (Docker + standalone)~~ ✅
+- ~~Configurar env vars + dominio + SSL~~ ✅
+- **Resultado**: App en https://contentops.jonadata.cloud — 0 RAM local
 
 ### Sprint A: Core (Fases 1 + 2) — CRITICO
 - Gemini SDK + OpenAI SDK + AI Router

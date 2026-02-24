@@ -1,14 +1,8 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { weeklyBriefSchema } from '@/shared/types/content-ops'
-
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
 const conceptOutputSchema = z.object({
   concepts: z.array(z.object({
@@ -60,8 +54,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { post_content, funnel_stage, topic, keyword, weekly_brief } = parsed.data
 
-    const result = await generateObject({
-      model: openrouter('google/gemini-2.0-flash-001'),
+    const result = await generateObjectWithFallback({
+      task: 'generate-visual-concepts',
       schema: conceptOutputSchema,
       system: `Eres un director creativo experto en contenido visual para LinkedIn en el sector de O&M fotovoltaico (Bitalize).
 

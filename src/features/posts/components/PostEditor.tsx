@@ -17,6 +17,8 @@ import type {
   WeeklyBrief,
 } from '@/shared/types/content-ops'
 import { POST_VARIANTS, POST_STATUSES, WEEKLY_PLAN } from '@/shared/types/content-ops'
+import { AIReviewBadge } from '@/shared/components/ai-review-badge'
+import type { CopyReview } from '@/shared/types/ai-review'
 
 // ============================================
 // Types
@@ -352,6 +354,7 @@ export function PostEditor({
   const [isSavingScore, setIsSavingScore] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [copyReview, setCopyReview] = useState<CopyReview | null>(null)
 
   // --- Objective state ---
   const [objective, setObjective] = useState(post.objective ?? '')
@@ -511,8 +514,9 @@ export function PostEditor({
         setError(errJson.error ?? 'Error al generar el contenido')
         return
       }
-      const successJson = json as { data: { variants: Array<{ variant: PostVariant; content: string; structured_content?: Record<string, unknown> }> } }
+      const successJson = json as { data: { variants: Array<{ variant: PostVariant; content: string; structured_content?: Record<string, unknown> }> }; review?: CopyReview }
       const variants = successJson.data?.variants ?? []
+      setCopyReview(successJson.review ?? null)
       // Save all 3 variants
       for (const v of variants) {
         const formData = new FormData()
@@ -843,6 +847,15 @@ export function PostEditor({
                     Generar con AI
                   </Button>
                 </div>
+
+                {/* AI Review badge */}
+                {copyReview && (
+                  <AIReviewBadge
+                    score={copyReview.overall_score}
+                    recommendation={copyReview.recommendation}
+                    summary={copyReview.one_line_summary}
+                  />
+                )}
 
                 {/* 6. AI Iteration panel */}
                 <div className="border-t border-border pt-4 space-y-3">

@@ -1,14 +1,7 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
-
-// OpenRouter provider (OpenAI-compatible)
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
 // Shared visual prompt schema (mirrors generate-visual-json output)
 const visualPromptSchema = z.object({
@@ -93,8 +86,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { current_prompt_json, feedback } = parsed.data
 
-    const result = await generateObject({
-      model: openrouter('google/gemini-2.0-flash-001'),
+    const result = await generateObjectWithFallback({
+      task: 'iterate-visual',
       schema: iterateOutputSchema,
       system: `Eres un director de arte experto que itera sobre prompts visuales para LinkedIn de la marca Bitalize (O&M fotovoltaico).
 

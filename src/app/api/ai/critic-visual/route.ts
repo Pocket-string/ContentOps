@@ -1,14 +1,7 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
-
-// OpenRouter provider (OpenAI-compatible)
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const criticOutputSchema = z.object({
@@ -66,8 +59,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { prompt_json, post_content, concept_type, format } = parsed.data
 
-    const result = await generateObject({
-      model: openrouter('google/gemini-2.0-flash-001'),
+    const result = await generateObjectWithFallback({
+      task: 'critic-visual',
       schema: criticOutputSchema,
       system: `Eres un critico experto de QA visual para contenido LinkedIn de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 

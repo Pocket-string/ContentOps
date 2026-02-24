@@ -1,5 +1,3 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
@@ -7,12 +5,8 @@ import { getWorkspaceId } from '@/lib/workspace'
 import { weeklyBriefSchema, structuredContentSchema } from '@/shared/types/content-ops'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import { getTopPatterns } from '@/features/patterns/services/pattern-service'
-
-// OpenRouter provider (OpenAI-compatible)
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+import { generateObjectWithFallback } from '@/shared/lib/ai-router'
+import { reviewCopy } from '@/shared/lib/ai-reviewer'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const generatedCopySchema = z.object({
@@ -105,8 +99,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief } = parsed.data
 
-    const result = await generateObject({
-      model: openrouter('google/gemini-2.0-flash-001'),
+    const result = await generateObjectWithFallback({
+      task: 'generate-copy',
       schema: generatedCopySchema,
       system: `Eres un experto en copywriting para LinkedIn especializado en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 
@@ -166,7 +160,15 @@ Para cada variante, ademas del content, hook y cta, incluye un objeto "structure
 - hashtags: Array de 3-5 hashtags relevantes`,
     })
 
-    return Response.json({ data: result.object })
+    // 6. ChatGPT review (optional — runs on first variant, non-blocking on failure)
+    const firstVariant = result.object.variants[0]
+    const review = await reviewCopy(
+      firstVariant.content,
+      firstVariant.variant,
+      parsed.data.funnel_stage
+    )
+
+    return Response.json({ data: result.object, review })
   } catch (error) {
     console.error('[generate-copy] AI error:', error)
     return Response.json(

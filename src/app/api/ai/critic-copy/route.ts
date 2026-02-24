@@ -1,15 +1,8 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { weeklyBriefSchema } from '@/shared/types/content-ops'
-
-// OpenRouter provider (OpenAI-compatible)
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const criticOutputSchema = z.object({
@@ -74,8 +67,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { content, variant, funnel_stage, weekly_brief, keyword } = parsed.data
 
-    const result = await generateObject({
-      model: openrouter('google/gemini-2.0-flash-001'),
+    const result = await generateObjectWithFallback({
+      task: 'critic-copy',
       schema: criticOutputSchema,
       system: `Eres un critico experto de copy LinkedIn para O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 

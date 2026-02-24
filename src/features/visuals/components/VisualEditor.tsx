@@ -14,7 +14,10 @@ import {
 } from '../constants/brand-rules'
 import type { VisualVersion, VisualStatus } from '@/shared/types/content-ops'
 import { VisualCriticPanel } from './VisualCriticPanel'
+import { AIReviewBadge } from '@/shared/components/ai-review-badge'
+import type { VisualReview } from '@/shared/types/ai-review'
 import { updateNanoBananaAction } from '../actions/visual-actions'
+import { ImageGenerator } from './ImageGenerator'
 
 // ============================================
 // Types
@@ -199,6 +202,7 @@ export function VisualEditor({
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [visualReview, setVisualReview] = useState<VisualReview | null>(null)
   // Nano Banana Pro state
   const [nbRunId, setNbRunId] = useState('')
   const [nbIterationReason, setNbIterationReason] = useState('')
@@ -260,8 +264,9 @@ export function VisualEditor({
       })
       const json: unknown = await res.json()
       if (!res.ok) { setError((json as { error?: string }).error ?? 'Error al generar'); return }
-      const data = (json as { data: Record<string, unknown> }).data
-      setJsonText(JSON.stringify(data, null, 2)); setJsonError('')
+      const resp = json as { data: Record<string, unknown>; review?: VisualReview }
+      setJsonText(JSON.stringify(resp.data, null, 2)); setJsonError('')
+      setVisualReview(resp.review ?? null)
     } catch { setError('Error de red al generar el prompt visual') }
     finally { setIsGenerating(false) }
   }, [postContent, funnelStage, format, topicTitle, keyword, additionalInstructions])
@@ -440,6 +445,13 @@ export function VisualEditor({
                 />
               </div>
               <Button variant="secondary" size="sm" onClick={handleGenerate} isLoading={isGenerating} leftIcon={<SparklesIcon />}>Generar Prompt Visual</Button>
+              {visualReview && (
+                <AIReviewBadge
+                  score={visualReview.coherence_score}
+                  recommendation={visualReview.recommendation}
+                  summary={visualReview.one_line_summary}
+                />
+              )}
             </div>
 
             {/* 4. AI Iteration */}
@@ -563,18 +575,23 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 3. Image Upload */}
+            {/* 3. Image Generation */}
             {selectedVisualId && (
-              <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
-                <h2 className="text-sm font-semibold text-foreground">Imagen generada</h2>
-                {selectedVisual?.image_url && (
-                  <div className="rounded-xl overflow-hidden border border-border bg-gray-50 aspect-square">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={selectedVisual.image_url} alt="Visual generado" className="w-full h-full object-cover" />
+              <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
+                <ImageGenerator
+                  visualVersionId={selectedVisualId}
+                  promptJson={selectedVisual?.prompt_json ?? {}}
+                  format={format}
+                  currentImageUrl={selectedVisual?.image_url ?? null}
+                  onImageGenerated={(url) => setImageUrl(url)}
+                />
+                <details className="mt-3 text-xs text-foreground-muted">
+                  <summary className="cursor-pointer hover:text-foreground">URL manual (avanzado)</summary>
+                  <div className="mt-2 space-y-2">
+                    <Input label="URL de imagen" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://supabase.../storage/v1/..." type="url" />
+                    <Button variant="outline" size="sm" onClick={handleSaveImageUrl} isLoading={isSavingImage} disabled={!imageUrl.trim()} leftIcon={<SaveIcon />} className="w-full">Guardar URL</Button>
                   </div>
-                )}
-                <Input label="URL de imagen" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://supabase.../storage/v1/..." hint="Sube la imagen a Supabase Storage y pega la URL publica aqui" type="url" />
-                <Button variant="outline" size="sm" onClick={handleSaveImageUrl} isLoading={isSavingImage} disabled={!imageUrl.trim()} leftIcon={<SaveIcon />} className="w-full">Guardar URL</Button>
+                </details>
               </div>
             )}
 

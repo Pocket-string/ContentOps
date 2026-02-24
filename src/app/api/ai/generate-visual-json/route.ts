@@ -1,17 +1,11 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
 import { weeklyBriefSchema } from '@/shared/types/content-ops'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
-
-// OpenRouter provider (OpenAI-compatible)
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+import { generateObjectWithFallback } from '@/shared/lib/ai-router'
+import { reviewVisualJson } from '@/shared/lib/ai-reviewer'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const visualPromptSchema = z.object({
@@ -130,8 +124,8 @@ export async function POST(request: Request): Promise<Response> {
     const { post_content, funnel_stage, format, topic, keyword, additional_instructions, weekly_brief } =
       parsed.data
 
-    const result = await generateObject({
-      model: openrouter('google/gemini-2.0-flash-001'),
+    const result = await generateObjectWithFallback({
+      task: 'generate-visual-json',
       schema: visualPromptSchema,
       system: `Eres un director de arte experto en contenido visual para LinkedIn especializado en la marca Bitalize, empresa de O&M fotovoltaico (operaciones y mantenimiento de plantas solares).
 
@@ -186,7 +180,13 @@ ${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer pers
 El JSON debe describir con precisión todos los elementos visuales para que un diseñador pueda crear la imagen sin ambiguedades. El visual debe complementar el mensaje del post y reforzar la propuesta de valor de Bitalize en O&M fotovoltaico.`,
     })
 
-    return Response.json({ data: result.object })
+    // 6. ChatGPT review (optional — non-blocking on failure)
+    const review = await reviewVisualJson(
+      result.object as unknown as Record<string, unknown>,
+      parsed.data.post_content
+    )
+
+    return Response.json({ data: result.object, review })
   } catch (error) {
     console.error('[generate-visual-json] AI error:', error)
     return Response.json(
