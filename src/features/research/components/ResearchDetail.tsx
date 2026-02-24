@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { ResearchReport } from '@/shared/types/content-ops'
+import { CopyPromptButton } from '@/shared/components/copy-prompt-button'
+import { buildResearchPromptTemplate } from '@/features/prompts/templates/research-template'
 
 // -----------------------------------------------------------------------
 // AI Synthesis typed shape
@@ -482,14 +484,24 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
               <h2 className="text-sm font-semibold text-foreground-secondary uppercase tracking-wider">
                 Sintesis AI
               </h2>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleSynthesis}
-                isLoading={isSynthesizing}
-              >
-                {synthesis ? 'Regenerar Sintesis' : 'Generar Sintesis'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSynthesis}
+                  isLoading={isSynthesizing}
+                >
+                  {synthesis ? 'Regenerar Sintesis' : 'Generar Sintesis'}
+                </Button>
+                <CopyPromptButton
+                  getPrompt={() => buildResearchPromptTemplate({
+                    tema: research.title,
+                    buyerPersona: research.buyer_persona ?? undefined,
+                    region: research.market_region ?? undefined,
+                  })}
+                  label="Copiar Prompt Perplexity"
+                />
+              </div>
             </div>
 
             {/* Synthesis error */}
