@@ -1,7 +1,7 @@
 'use client'
 
 import { CampaignBuilder } from '@/features/campaigns/components'
-import { updateCampaignStatusAction, updateBriefAction } from '@/features/campaigns/actions/campaign-actions'
+import { updateCampaignStatusAction, updateBriefAction, updateCampaignAction } from '@/features/campaigns/actions/campaign-actions'
 import type { Campaign, WeeklyBrief, PublishingPlan } from '@/shared/types/content-ops'
 import type { PostWithVersions } from '@/features/campaigns/services/campaign-service'
 
@@ -39,12 +39,22 @@ export function CampaignBuilderClient({ campaign, posts }: Props) {
     }
   }
 
+  async function handleKeywordChange(keyword: string) {
+    const fd = new FormData()
+    fd.set('keyword', keyword)
+    const result = await updateCampaignAction(campaign.id, fd)
+    if ('error' in result) {
+      return { error: result.error }
+    }
+  }
+
   return (
     <CampaignBuilder
       campaign={campaign}
       posts={posts}
       onStatusChange={handleStatusChange}
       onBriefSave={handleBriefSave}
+      onKeywordChange={handleKeywordChange}
     />
   )
 }

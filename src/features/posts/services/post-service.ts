@@ -389,6 +389,9 @@ export async function updatePostObjective(
 
 /**
  * Update the day_of_week for a post (move it to another day).
+ *
+ * If the target day already has a post in the same campaign, the two posts
+ * swap days atomically via a deferred constraint transaction (SQL RPC).
  */
 export async function updatePostDayOfWeek(
   postId: string,
@@ -397,15 +400,64 @@ export async function updatePostDayOfWeek(
   try {
     const supabase = await createClient()
 
-    const { data: row, error } = await supabase
+    // Step 1: Fetch current post to get campaign_id and current day
+    const { data: currentPost, error: fetchErr } = await supabase
       .from('posts')
-      .update({ day_of_week: dayOfWeek })
+      .select('id, campaign_id, day_of_week')
       .eq('id', postId)
-      .select()
       .single()
 
-    if (error) {
-      return { error: error.message }
+    if (fetchErr || !currentPost) {
+      return { error: fetchErr?.message ?? 'Post no encontrado' }
+    }
+
+    if (currentPost.day_of_week === dayOfWeek) {
+      // No change needed
+      const { data: row } = await supabase.from('posts').select('*').eq('id', postId).single()
+      const parsed = postSchema.safeParse(row)
+      return parsed.success ? { data: parsed.data } : { error: 'Error al parsear post' }
+    }
+
+    // Step 2: Check if target day is occupied
+    const { data: targetPost } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('campaign_id', currentPost.campaign_id)
+      .eq('day_of_week', dayOfWeek)
+      .maybeSingle()
+
+    if (targetPost) {
+      // Swap: use SQL transaction to swap both days atomically
+      const { error: swapErr } = await supabase.rpc('swap_post_days', {
+        post_a_id: currentPost.id,
+        post_b_id: targetPost.id,
+      })
+
+      if (swapErr) {
+        console.error('[post-service] swap_post_days RPC error', swapErr)
+        return { error: 'Error al intercambiar dias de publicacion' }
+      }
+    } else {
+      // No conflict — direct update
+      const { error: updateErr } = await supabase
+        .from('posts')
+        .update({ day_of_week: dayOfWeek })
+        .eq('id', postId)
+
+      if (updateErr) {
+        return { error: updateErr.message }
+      }
+    }
+
+    // Return updated post
+    const { data: row, error: refetchErr } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', postId)
+      .single()
+
+    if (refetchErr) {
+      return { error: refetchErr.message }
     }
 
     const parsed = postSchema.safeParse(row)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -316,14 +316,21 @@ export function PostEditor({
   // --- Day change state ---
   const [isChangingDay, setIsChangingDay] = useState(false)
 
+  // Skip content reload after save to preserve RecipeValidator score
+  const justSavedRef = useRef(false)
+
   // --- Derived ---
   const dayMeta = WEEKLY_PLAN[post.day_of_week]
   const funnelMeta = FUNNEL_META[post.funnel_stage]
   const charCount = editContent.length
   const isOverLimit = charCount > MAX_CHARS
 
-  // Load version content when active variant changes
+  // Load version content when active variant changes (skip after save to preserve score)
   useEffect(() => {
+    if (justSavedRef.current) {
+      justSavedRef.current = false
+      return
+    }
     const version = getCurrentVersionForVariant(post.versions, activeVariant)
     if (version) {
       setEditContent(version.content)
@@ -352,9 +359,11 @@ export function PostEditor({
       formData.set('post_id', post.id)
       formData.set('variant', activeVariant)
       formData.set('content', editContent)
+      justSavedRef.current = true
       const result = await onSaveVersion(formData)
       if (result.error) {
         setError(result.error)
+        justSavedRef.current = false
       } else {
         showSuccess('Version guardada correctamente')
       }

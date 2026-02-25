@@ -29,6 +29,7 @@ interface CampaignBuilderProps {
   posts: PostWithVersions[]
   onStatusChange?: (status: string) => Promise<{ error?: string } | void>
   onBriefSave?: (brief: WeeklyBrief, plan?: PublishingPlan) => Promise<{ error?: string } | void>
+  onKeywordChange?: (keyword: string) => Promise<{ error?: string } | void>
 }
 
 // ---- Constants ----
@@ -483,11 +484,14 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId, onPublishedTo
 
 // ---- Main component ----
 
-export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }: CampaignBuilderProps) {
+export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave, onKeywordChange }: CampaignBuilderProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'semana' | 'brief'>('semana')
   const [isChangingStatus, setIsChangingStatus] = useState(false)
   const [statusError, setStatusError] = useState('')
+  const [isEditingKeyword, setIsEditingKeyword] = useState(false)
+  const [keywordDraft, setKeywordDraft] = useState(campaign.keyword ?? '')
+  const [isSavingKeyword, setIsSavingKeyword] = useState(false)
 
   // Index posts by day_of_week for O(1) lookup
   const postsByDay = posts.reduce<Record<number, PostWithVersions>>((acc, post) => {
@@ -527,6 +531,26 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
     }
   }
 
+  async function handleKeywordSave() {
+    if (!onKeywordChange) return
+    const trimmed = keywordDraft.trim()
+    if (trimmed === (campaign.keyword ?? '')) {
+      setIsEditingKeyword(false)
+      return
+    }
+    setIsSavingKeyword(true)
+    try {
+      const result = await onKeywordChange(trimmed)
+      if (result?.error) {
+        setStatusError(result.error)
+      } else {
+        setIsEditingKeyword(false)
+      }
+    } finally {
+      setIsSavingKeyword(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Campaign header */}
@@ -562,14 +586,35 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
               {!campaign.topic_title && (
                 <span className="text-sm text-foreground-muted italic">Sin tema asociado</span>
               )}
-              {campaign.keyword && (
-                <div className="flex items-center gap-1.5">
-                  <TagIcon className="w-3.5 h-3.5 text-accent-500" />
-                  <span className="text-sm font-medium text-accent-600 bg-accent-50 border border-accent-200 px-2.5 py-0.5 rounded-full">
-                    {campaign.keyword}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5">
+                <TagIcon className="w-3.5 h-3.5 text-accent-500" />
+                {isEditingKeyword ? (
+                  <form
+                    className="flex items-center gap-1.5"
+                    onSubmit={(e) => { e.preventDefault(); handleKeywordSave() }}
+                  >
+                    <input
+                      type="text"
+                      value={keywordDraft}
+                      onChange={(e) => setKeywordDraft(e.target.value)}
+                      placeholder="Keyword CTA"
+                      className="text-sm px-2 py-0.5 border border-accent-300 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-accent-500 w-32"
+                      autoFocus
+                      disabled={isSavingKeyword}
+                      onBlur={handleKeywordSave}
+                    />
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { if (onKeywordChange) { setKeywordDraft(campaign.keyword ?? ''); setIsEditingKeyword(true) } }}
+                    className="text-sm font-medium text-accent-600 bg-accent-50 border border-accent-200 px-2.5 py-0.5 rounded-full hover:bg-accent-100 transition-colors cursor-pointer"
+                    title={onKeywordChange ? 'Click para editar keyword' : undefined}
+                  >
+                    {campaign.keyword || 'Sin keyword'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
