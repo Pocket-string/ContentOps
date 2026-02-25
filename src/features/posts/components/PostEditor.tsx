@@ -68,8 +68,8 @@ const FUNNEL_META: Record<FunnelStage, { label: string; short: string; color: st
 
 const VARIANT_LABELS: Record<PostVariant, string> = {
   contrarian: 'Contrarian',
-  story: 'Historia',
-  data_driven: 'Data-driven',
+  story: 'Narrativa',
+  data_driven: 'Dato de Shock',
 }
 
 const STATUS_LABELS: Record<PostStatus, string> = {
@@ -513,6 +513,7 @@ export function PostEditor({
           keyword: keyword,
           funnel_stage: post.funnel_stage,
           objective: objective || undefined,
+          context: topicContext || undefined,
           weekly_brief: weeklyBrief,
         }),
       })
@@ -544,7 +545,7 @@ export function PostEditor({
     } finally {
       setIsGenerating(false)
     }
-  }, [topicTitle, keyword, weeklyBrief, post.funnel_stage, post.id, objective, onSaveVersion])
+  }, [topicTitle, keyword, weeklyBrief, topicContext, post.funnel_stage, post.id, objective, onSaveVersion])
 
   const handleIterate = useCallback(async () => {
     if (!editContent.trim() || !feedback.trim()) return
@@ -1142,12 +1143,18 @@ export function PostEditor({
 
             {/* CopyCritic AI */}
             <CriticPanel
-              content={editContent}
-              variant={activeVariant}
+              versions={post.versions}
               funnelStage={post.funnel_stage}
               keyword={keyword}
+              topic={topicTitle}
+              context={topicContext}
               weeklyBrief={weeklyBrief}
-              humanScore={currentVariantVersion?.score_json}
+              onApplyScore={async (variant, scorePayload) => {
+                const version = getCurrentVersionForVariant(post.versions, variant)
+                if (version) {
+                  await onScore(version.id, scorePayload)
+                }
+              }}
             />
 
             {/* 3. Version Timeline */}

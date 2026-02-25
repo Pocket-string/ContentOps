@@ -1,11 +1,12 @@
 import { z } from 'zod'
+import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
 import { weeklyBriefSchema, structuredContentSchema } from '@/shared/types/content-ops'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import { getTopPatterns } from '@/features/patterns/services/pattern-service'
-import { generateObjectWithFallback } from '@/shared/lib/ai-router'
+import { getModel } from '@/shared/lib/ai-router'
 import { reviewCopy } from '@/shared/lib/ai-reviewer'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
@@ -20,7 +21,7 @@ const generatedCopySchema = z.object({
         structured_content: structuredContentSchema.optional(),
       })
     )
-    .length(3),
+    .min(3),
 })
 
 export type GeneratedCopy = z.infer<typeof generatedCopySchema>
@@ -95,14 +96,11 @@ export async function POST(request: Request): Promise<Response> {
       ? `\n${patternContext.join('\n')}\n\nUsa estos patrones como inspiracion para generar hooks y CTAs mas efectivos.`
       : ''
 
-  // 5. Generate with AI (structured output via generateObject)
+  // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
     const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief } = parsed.data
 
-    const result = await generateObjectWithFallback({
-      task: 'generate-copy',
-      schema: generatedCopySchema,
-      system: `Eres un experto en copywriting para LinkedIn especializado en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
+    const systemPrompt = `Eres un experto en copywriting para LinkedIn especializado en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 
 **Tono de marca configurado**: ${brandTone}. Aplica este tono en todo el copy generado.
 
@@ -119,8 +117,11 @@ Reglas de formato LinkedIn:
 - NO incluir links externos en el cuerpo del post
 - El CTA va al final, antes de los hashtags
 - Usar emojis con moderación (máximo 3-4 por post)
-- Incluir 3-5 hashtags relevantes al final`,
-      prompt: `Genera 3 variantes de un post de LinkedIn con estos parámetros:
+- Incluir 3-5 hashtags relevantes al final
+
+IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`
+
+    const userPrompt = `Genera 3 variantes de un post de LinkedIn con estos parámetros:
 
 **Tema**: ${topic}
 **Palabra clave**: ${keyword ?? 'No especificada'}
@@ -143,32 +144,84 @@ ${weekly_brief ? `
 ${patternSection}
 Las 3 variantes deben ser:
 1. **Contrarian**: Toma una posición opuesta a la creencia popular del sector. Empieza con una declaración provocadora.
-2. **Story (Historia)**: Cuenta una historia o caso real (puede ser ficticio pero realista) que ilustre el punto. Usa narrativa en primera persona.
-3. **Data-driven**: Usa datos, estadísticas y hechos para construir el argumento. Incluye números específicos.
+2. **Narrativa**: Cuenta una historia o caso real (puede ser ficticio pero realista) que ilustre el punto. Usa narrativa en primera persona.
+3. **Dato de Shock**: Usa datos, estadísticas y hechos impactantes para construir el argumento. Incluye números específicos y sorprendentes.
 
-Para cada variante proporciona:
-- content: El texto completo del post (con formato LinkedIn: párrafos cortos, espacios, hashtags al final)
-- hook: La primera línea que detiene el scroll
-- cta: El call-to-action al final del post
+Responde con este JSON exacto:
+{
+  "variants": [
+    {
+      "variant": "contrarian",
+      "content": "El texto completo del post (formato LinkedIn: párrafos cortos, espacios, hashtags al final)",
+      "hook": "La primera línea que detiene el scroll",
+      "cta": "El call-to-action al final del post",
+      "structured_content": {
+        "hook": "La primera linea",
+        "context": "El contexto o setup",
+        "signals": "Senales del mercado",
+        "provocation": "La provocacion",
+        "cta": "El call-to-action",
+        "hashtags": ["hashtag1", "hashtag2", "hashtag3"]
+      }
+    },
+    {
+      "variant": "story",
+      "content": "...",
+      "hook": "...",
+      "cta": "...",
+      "structured_content": { "hook": "...", "context": "...", "signals": "...", "provocation": "...", "cta": "...", "hashtags": [] }
+    },
+    {
+      "variant": "data_driven",
+      "content": "...",
+      "hook": "...",
+      "cta": "...",
+      "structured_content": { "hook": "...", "context": "...", "signals": "...", "provocation": "...", "cta": "...", "hashtags": [] }
+    }
+  ]
+}`
 
-Para cada variante, ademas del content, hook y cta, incluye un objeto "structured_content" con:
-- hook: La primera linea que detiene el scroll
-- context: El contexto o setup del argumento
-- signals: Las senales del mercado mencionadas
-- provocation: La provocacion o punto controversial
-- cta: El call-to-action
-- hashtags: Array de 3-5 hashtags relevantes`,
+    const result = await generateText({
+      model: getModel('generate-copy'),
+      system: systemPrompt,
+      prompt: userPrompt,
     })
 
+    // Parse JSON from text response (strip markdown fences if present)
+    let jsonText = result.text.trim()
+    if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
+    }
+
+    let parsed_ai: unknown
+    try {
+      parsed_ai = JSON.parse(jsonText)
+    } catch {
+      console.error('[generate-copy] Failed to parse AI JSON:', jsonText.slice(0, 500))
+      return Response.json(
+        { error: 'Error al parsear la respuesta de la IA. Intenta de nuevo.' },
+        { status: 500 }
+      )
+    }
+
+    const validated = generatedCopySchema.safeParse(parsed_ai)
+    if (!validated.success) {
+      console.error('[generate-copy] Zod validation failed:', validated.error.issues)
+      return Response.json(
+        { error: 'La IA genero un formato invalido. Intenta de nuevo.' },
+        { status: 500 }
+      )
+    }
+
     // 6. ChatGPT review (optional — runs on first variant, non-blocking on failure)
-    const firstVariant = result.object.variants[0]
+    const firstVariant = validated.data.variants[0]
     const review = await reviewCopy(
       firstVariant.content,
       firstVariant.variant,
       parsed.data.funnel_stage
     )
 
-    return Response.json({ data: result.object, review })
+    return Response.json({ data: validated.data, review })
   } catch (error) {
     console.error('[generate-copy] AI error:', error)
     return Response.json(

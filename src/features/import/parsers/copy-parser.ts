@@ -13,7 +13,7 @@ export interface ParseResult {
 const VARIANT_PATTERNS: Array<{ pattern: RegExp; variant: ParsedVariant['variant'] }> = [
   { pattern: /contrarian/i, variant: 'contrarian' },
   { pattern: /story|historia|narrativ/i, variant: 'story' },
-  { pattern: /data[_-]?driven|datos|estadistic/i, variant: 'data_driven' },
+  { pattern: /data[_-]?driven|datos|estadistic|shock|impacto/i, variant: 'data_driven' },
 ]
 
 function detectVariant(header: string): ParsedVariant['variant'] {

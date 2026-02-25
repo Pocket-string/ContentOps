@@ -55,8 +55,8 @@ ${additionalContext ? `**Contexto adicional**: ${additionalContext}` : ''}
 Genera 3 variantes del post:
 
 1. **Contrarian**: Toma una posicion opuesta a la creencia popular del sector. Empieza con una declaracion provocadora.
-2. **Story (Historia)**: Cuenta una historia o caso real que ilustre el punto. Usa narrativa en primera persona.
-3. **Data-driven**: Usa datos, estadisticas y hechos. Incluye numeros especificos.
+2. **Narrativa**: Cuenta una historia o caso real que ilustre el punto. Usa narrativa en primera persona.
+3. **Dato de Shock**: Usa datos, estadisticas y hechos impactantes. Incluye numeros especificos y sorprendentes.
 
 Para cada variante:
 - Hook: La primera linea que detiene el scroll

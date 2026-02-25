@@ -53,8 +53,8 @@ function formatWeek(weekStart: string): string {
 function variantLabel(variant: string): string {
   const labels: Record<string, string> = {
     contrarian: 'Contrarian',
-    story: 'Historia',
-    data_driven: 'Datos',
+    story: 'Narrativa',
+    data_driven: 'Dato de Shock',
   }
   return labels[variant] ?? variant
 }
