@@ -372,7 +372,8 @@ export type CriticFinding = z.infer<typeof criticFindingSchema>
 
 export const criticReviewSchema = z.object({
   id: z.string().uuid(),
-  post_version_id: z.string().uuid(),
+  post_version_id: z.string().uuid().nullable().optional(),
+  visual_version_id: z.string().uuid().nullable().optional(),
   critic_type: z.enum(CRITIC_TYPES),
   score_json: scoreJsonSchema.nullable(),
   findings: z.array(criticFindingSchema),

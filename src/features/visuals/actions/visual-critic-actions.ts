@@ -19,14 +19,14 @@ export async function saveVisualCriticAction(
 ): Promise<{ success?: true; error?: string }> {
   await requireAuth()
 
-  const result = await createCriticReview(
+  const result = await createCriticReview({
     visualVersionId,
-    'visual',
+    criticType: 'visual',
     scoreJson,
     findings,
     suggestions,
-    verdict
-  )
+    verdict,
+  })
 
   if (result.error) {
     return { error: result.error }

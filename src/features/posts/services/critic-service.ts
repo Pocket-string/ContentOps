@@ -11,19 +11,20 @@ export interface ServiceResult<T> {
 }
 
 /**
- * Get critic reviews for a post version.
+ * Get critic reviews for a post version or visual version.
  */
 export async function getCriticReviews(
-  postVersionId: string,
+  versionId: string,
   criticType?: string
 ): Promise<ServiceResult<CriticReview[]>> {
   try {
     const supabase = await createClient()
 
+    const column = criticType === 'visual' ? 'visual_version_id' : 'post_version_id'
     let query = supabase
       .from('critic_reviews')
       .select('*')
-      .eq('post_version_id', postVersionId)
+      .eq(column, versionId)
       .order('created_at', { ascending: false })
 
     if (criticType) {
@@ -52,27 +53,30 @@ export async function getCriticReviews(
 
 /**
  * Create a critic review from AI output.
+ * For copy critics, pass postVersionId. For visual critics, pass visualVersionId.
  */
-export async function createCriticReview(
-  postVersionId: string,
-  criticType: string,
-  scoreJson: unknown,
-  findings: unknown[],
-  suggestions: string[],
+export async function createCriticReview(params: {
+  postVersionId?: string
+  visualVersionId?: string
+  criticType: string
+  scoreJson: unknown
+  findings: unknown[]
+  suggestions: string[]
   verdict: string
-): Promise<ServiceResult<CriticReview>> {
+}): Promise<ServiceResult<CriticReview>> {
   try {
     const supabase = await createClient()
 
     const { data: row, error } = await supabase
       .from('critic_reviews')
       .insert({
-        post_version_id: postVersionId,
-        critic_type: criticType,
-        score_json: scoreJson,
-        findings,
-        suggestions,
-        verdict,
+        post_version_id: params.postVersionId ?? null,
+        visual_version_id: params.visualVersionId ?? null,
+        critic_type: params.criticType,
+        score_json: params.scoreJson,
+        findings: params.findings,
+        suggestions: params.suggestions,
+        verdict: params.verdict,
       })
       .select()
       .single()
