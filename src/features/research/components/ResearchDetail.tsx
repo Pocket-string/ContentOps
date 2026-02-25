@@ -10,52 +10,96 @@ import { CopyPromptButton } from '@/shared/components/copy-prompt-button'
 import { buildResearchPromptTemplate } from '@/features/prompts/templates/research-template'
 
 // -----------------------------------------------------------------------
-// AI Synthesis typed shape
+// AI Synthesis typed shapes (two formats coexist)
 // -----------------------------------------------------------------------
+
+// Format A: from grounded-research API
+interface KeyFinding {
+  finding: string
+  relevance: string
+  source_hint?: string
+}
+
+interface SuggestedTopic {
+  title: string
+  angle: string
+  hook_idea: string
+}
+
+// Format B: from synthesize-research API
 interface SynthesisBullet {
   insight: string
   suggested_topic_title: string
   suggested_angle: string
 }
 
+// Unified shape for display
 interface AiSynthesis {
-  bullets: SynthesisBullet[]
   summary: string
+  market_context?: string
+  key_findings: KeyFinding[]
+  suggested_topics: SuggestedTopic[]
+  bullets: SynthesisBullet[]
 }
 
 function parseSynthesis(raw: Record<string, unknown> | null): AiSynthesis | null {
   if (!raw) return null
 
-  const rawBullets = raw['bullets']
-  const rawSummary = raw['summary']
+  const summary = typeof raw['summary'] === 'string' ? raw['summary'] : ''
+  const marketContext = typeof raw['market_context'] === 'string' ? raw['market_context'] : undefined
 
-  if (!Array.isArray(rawBullets) || typeof rawSummary !== 'string') return null
+  // Parse Format A: key_findings + suggested_topics (from grounded research)
+  const keyFindings: KeyFinding[] = Array.isArray(raw['key_findings'])
+    ? (raw['key_findings'] as Record<string, unknown>[]).flatMap((item) => {
+        if (item && typeof item === 'object' && typeof item['finding'] === 'string') {
+          return [{
+            finding: item['finding'] as string,
+            relevance: typeof item['relevance'] === 'string' ? item['relevance'] as string : '',
+            source_hint: typeof item['source_hint'] === 'string' ? item['source_hint'] as string : undefined,
+          }]
+        }
+        return []
+      })
+    : []
 
-  const bullets: SynthesisBullet[] = rawBullets.flatMap((item) => {
-    if (
-      item !== null &&
-      typeof item === 'object' &&
-      'insight' in item &&
-      'suggested_topic_title' in item &&
-      'suggested_angle' in item &&
-      typeof (item as Record<string, unknown>)['insight'] === 'string' &&
-      typeof (item as Record<string, unknown>)['suggested_topic_title'] === 'string' &&
-      typeof (item as Record<string, unknown>)['suggested_angle'] === 'string'
-    ) {
-      return [
-        {
-          insight: (item as Record<string, unknown>)['insight'] as string,
-          suggested_topic_title: (item as Record<string, unknown>)[
-            'suggested_topic_title'
-          ] as string,
-          suggested_angle: (item as Record<string, unknown>)['suggested_angle'] as string,
-        },
-      ]
-    }
-    return []
-  })
+  const suggestedTopics: SuggestedTopic[] = Array.isArray(raw['suggested_topics'])
+    ? (raw['suggested_topics'] as Record<string, unknown>[]).flatMap((item) => {
+        if (item && typeof item === 'object' && typeof item['title'] === 'string') {
+          return [{
+            title: item['title'] as string,
+            angle: typeof item['angle'] === 'string' ? item['angle'] as string : '',
+            hook_idea: typeof item['hook_idea'] === 'string' ? item['hook_idea'] as string : '',
+          }]
+        }
+        return []
+      })
+    : []
 
-  return { bullets, summary: rawSummary }
+  // Parse Format B: bullets (from synthesis API)
+  const bullets: SynthesisBullet[] = Array.isArray(raw['bullets'])
+    ? (raw['bullets'] as Record<string, unknown>[]).flatMap((item) => {
+        if (
+          item && typeof item === 'object' &&
+          typeof item['insight'] === 'string' &&
+          typeof item['suggested_topic_title'] === 'string' &&
+          typeof item['suggested_angle'] === 'string'
+        ) {
+          return [{
+            insight: item['insight'] as string,
+            suggested_topic_title: item['suggested_topic_title'] as string,
+            suggested_angle: item['suggested_angle'] as string,
+          }]
+        }
+        return []
+      })
+    : []
+
+  // Must have at least something meaningful
+  if (!summary && keyFindings.length === 0 && suggestedTopics.length === 0 && bullets.length === 0) {
+    return null
+  }
+
+  return { summary, market_context: marketContext, key_findings: keyFindings, suggested_topics: suggestedTopics, bullets }
 }
 
 // -----------------------------------------------------------------------
@@ -524,11 +568,85 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
                   </p>
                 )}
 
-                {/* Insight bullets */}
+                {/* Market context */}
+                {synthesis.market_context && (
+                  <p className="text-xs text-foreground-muted mt-2 italic">
+                    {synthesis.market_context}
+                  </p>
+                )}
+
+                {/* Key Findings (Format A — from grounded research) */}
+                {synthesis.key_findings.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-foreground-muted font-medium uppercase tracking-wider">
+                      Hallazgos Clave ({synthesis.key_findings.length})
+                    </p>
+                    {synthesis.key_findings.map((finding, i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl border border-border bg-surface p-3"
+                      >
+                        <p className="text-sm font-medium text-foreground leading-snug">
+                          {finding.finding}
+                        </p>
+                        <p className="text-xs text-foreground-secondary mt-1">
+                          {finding.relevance}
+                        </p>
+                        {finding.source_hint && (
+                          <p className="text-xs text-foreground-muted mt-1 italic">
+                            Fuente: {finding.source_hint}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Suggested Topics (Format A — from grounded research) */}
+                {synthesis.suggested_topics.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-foreground-muted font-medium uppercase tracking-wider">
+                      Topics Sugeridos ({synthesis.suggested_topics.length})
+                    </p>
+                    {synthesis.suggested_topics.map((topic, i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl border border-border bg-surface p-4 flex flex-col sm:flex-row
+                          sm:items-start gap-3"
+                      >
+                        <div className="flex-1 space-y-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground leading-snug">
+                            {topic.title}
+                          </p>
+                          <p className="text-xs text-foreground-secondary">
+                            Angulo: {topic.angle}
+                          </p>
+                          <p className="text-xs text-foreground-muted italic">
+                            Hook: {topic.hook_idea}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            router.push(
+                              `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}`
+                            )
+                          }
+                          className="shrink-0 self-start"
+                        >
+                          Crear Topic
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Insight bullets (Format B — from synthesis API) */}
                 {synthesis.bullets.length > 0 && (
                   <div className="space-y-3">
                     <p className="text-xs text-foreground-muted font-medium uppercase tracking-wider">
-                      Insights y topics sugeridos
+                      Insights y Topics Sugeridos ({synthesis.bullets.length})
                     </p>
                     {synthesis.bullets.map((bullet, i) => (
                       <div

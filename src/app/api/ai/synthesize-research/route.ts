@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { createClient } from '@/lib/supabase/server'
-import { generateObjectWithFallback } from '@/shared/lib/ai-router'
+import { google, GEMINI_MODEL } from '@/shared/lib/gemini'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const synthesisOutputSchema = z.object({
@@ -14,7 +15,7 @@ const synthesisOutputSchema = z.object({
         suggested_angle: z.string(),
       })
     )
-    .min(3)
+    .min(1)
     .max(10),
   summary: z.string(),
 })
@@ -22,13 +23,14 @@ const synthesisOutputSchema = z.object({
 export type SynthesisOutput = z.infer<typeof synthesisOutputSchema>
 
 // Input schema — validated before touching the AI
+// Note: nullable() needed because client sends null (not undefined) for missing fields
 const inputSchema = z.object({
   research_id: z.string().uuid(),
   raw_text: z.string().min(1),
   key_takeaways: z.array(z.string()).default([]),
-  title: z.string().optional(),
-  market_region: z.string().optional(),
-  buyer_persona: z.string().optional(),
+  title: z.string().nullable().optional(),
+  market_region: z.string().nullable().optional(),
+  buyer_persona: z.string().nullable().optional(),
 })
 
 export async function POST(request: Request): Promise<Response> {
@@ -60,32 +62,38 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Generate with AI (structured output via generateObject) + save to DB
+  // 4. Generate with AI (text-based JSON — generateObject fails with Gemini on long inputs)
   try {
     const { raw_text, key_takeaways, title, market_region, buyer_persona, research_id } =
       parsed.data
 
-    const result = await generateObjectWithFallback({
-      task: 'synthesize-research',
-      schema: synthesisOutputSchema,
-      system: `Eres un experto en estrategia de contenido para LinkedIn especializado en el sector de O&M fotovoltaico (operación y mantenimiento de plantas solares).
+    const { text: jsonText } = await generateText({
+      model: google(GEMINI_MODEL),
+      system: `Eres un experto en estrategia de contenido para LinkedIn especializado en el sector de O&M fotovoltaico.
 
-Tu misión es analizar informes de investigación técnica o comercial del sector fotovoltaico y transformarlos en ángulos de contenido accionables para LinkedIn.
-
-Para cada insight debes:
-- Identificar el dato o hallazgo más valioso para el buyer persona del sector
-- Proponer un título de post que detenga el scroll usando la metodología D/G/P/I
-- Sugerir el ángulo narrativo que maximice el engagement (contrarian, story, data-driven, etc.)
-
-Reglas clave:
-- Los insights deben ser relevantes para profesionales de O&M fotovoltaico (asset managers, O&M managers, ingenieros de planta)
+Responde UNICAMENTE con un objeto JSON valido. Sin markdown, sin backticks, sin texto antes o despues.
+El JSON debe seguir esta estructura EXACTA:
+{
+  "summary": "los 2-3 mensajes clave de toda la investigacion",
+  "bullets": [
+    {
+      "insight": "hallazgo o dato relevante",
+      "suggested_topic_title": "titulo de post para LinkedIn",
+      "suggested_angle": "angulo narrativo (contrarian/story/data-driven/how-to/prediction) con justificacion"
+    }
+  ]
+}
+REGLAS:
+- bullets: minimo 3, maximo 10 items
+- Todos los valores deben ser strings
+- Los insights deben ser relevantes para profesionales de O&M fotovoltaico
 - Prioriza datos cuantitativos, comparativas de rendimiento, y lecciones operativas
-- El resumen debe capturar los 2-3 mensajes clave de toda la investigación
-- Los títulos de post deben ser directos, específicos y orientados al sector solar`,
-      prompt: `Analiza la siguiente investigación y genera entre 3 y 10 ángulos de contenido para LinkedIn:
+- Los titulos de post deben detener el scroll usando metodologia D/G/P/I
+- El summary debe capturar los mensajes clave para estrategia de contenido`,
+      prompt: `Analiza la siguiente investigacion y genera angulos de contenido para LinkedIn:
 
-${title ? `**Título del informe**: ${title}` : ''}
-${market_region ? `**Región de mercado**: ${market_region}` : ''}
+${title ? `**Titulo del informe**: ${title}` : ''}
+${market_region ? `**Region de mercado**: ${market_region}` : ''}
 ${buyer_persona ? `**Buyer persona objetivo**: ${buyer_persona}` : ''}
 ${
   key_takeaways.length > 0
@@ -94,29 +102,47 @@ ${key_takeaways.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
     : ''
 }
 
-**Texto completo de la investigación**:
-${raw_text}
-
-Para cada ángulo de contenido proporciona:
-- insight: El hallazgo o dato más relevante extraído de la investigación
-- suggested_topic_title: Un título de post de LinkedIn que detenga el scroll (específico, con datos si aplica)
-- suggested_angle: El ángulo narrativo recomendado (contrarian / story / data-driven / how-to / prediction) con una breve justificación
-
-Además, genera un summary con los 2-3 mensajes clave de toda la investigación que sirvan como base para la estrategia de contenido.`,
+**Texto completo de la investigacion**:
+${raw_text.slice(0, 8000)}`,
     })
+
+    // Parse JSON from response — handle markdown code blocks
+    const cleaned = jsonText
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim()
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('La IA no pudo estructurar la sintesis. Intenta de nuevo.')
+    }
+
+    const rawParsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
+    // Slice arrays to max limits
+    if (Array.isArray(rawParsed.bullets)) {
+      rawParsed.bullets = rawParsed.bullets.slice(0, 10)
+    }
+
+    const validated = synthesisOutputSchema.safeParse(rawParsed)
+    if (!validated.success) {
+      console.error('[synthesize-research] Validation failed:', validated.error.issues)
+      throw new Error('Los resultados no coinciden con el formato esperado.')
+    }
+
+    const synthesisData = validated.data
 
     // Save synthesis to the research_reports table
     const supabase = await createClient()
     await supabase
       .from('research_reports')
-      .update({ ai_synthesis: result.object })
+      .update({ ai_synthesis: synthesisData })
       .eq('id', research_id)
 
-    return Response.json({ data: result.object })
+    return Response.json({ data: synthesisData })
   } catch (error) {
     console.error('[synthesize-research] AI error:', error)
+    const message = error instanceof Error ? error.message : 'Error desconocido'
     return Response.json(
-      { error: 'Error al sintetizar la investigacion. Intenta de nuevo.' },
+      { error: `Error al sintetizar: ${message}` },
       { status: 500 }
     )
   }
