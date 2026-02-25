@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { generateText, generateObject } from 'ai'
+import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { researchRateLimiter } from '@/lib/rate-limit'
 import { google, GEMINI_MODEL } from '@/shared/lib/gemini'
@@ -95,57 +95,51 @@ ${region ? `- Region de interes: ${region}` : ''}`
       ? groundedText
       : `Tema de investigacion: ${tema}\n\nPrompt: ${researchPrompt}\n\nGenera un analisis basado en tu conocimiento del sector fotovoltaico.`
 
-    // 4c. Step 2: Structure into JSON — try generateObject, fallback to manual parse
-    const structurePrompt = `Analiza la siguiente investigacion y estructura los resultados en JSON.
-
-INSTRUCCIONES ESTRICTAS:
-- "summary": resumen ejecutivo de la investigacion (1-3 parrafos)
-- "key_findings": array de hallazgos (cada uno con "finding", "relevance", y opcionalmente "source_hint")
-- "suggested_topics": array de temas para posts de LinkedIn (cada uno con "title", "angle", "hook_idea")
-- "market_context": contexto de mercado opcional
-
-INVESTIGACION:
-${textForStructuring}`
-
-    let researchData: z.infer<typeof researchOutputSchema>
-
-    try {
-      const { object } = await generateObject({
-        model: google(GEMINI_MODEL),
-        schema: researchOutputSchema,
-        prompt: structurePrompt,
-      })
-      researchData = object
-    } catch (schemaErr) {
-      // Fallback: ask for JSON as text and parse manually
-      console.warn('[grounded-research] generateObject failed, trying text fallback:', schemaErr instanceof Error ? schemaErr.message : schemaErr)
-
-      const { text: jsonText } = await generateText({
-        model: google(GEMINI_MODEL),
-        system: `Responde UNICAMENTE con JSON valido. Sin markdown, sin backticks, sin explicaciones.
-El JSON debe tener esta estructura exacta:
+    // 4c. Step 2: Structure into JSON via text mode (generateObject fails with long inputs)
+    const { text: jsonText } = await generateText({
+      model: google(GEMINI_MODEL),
+      system: `Responde UNICAMENTE con un objeto JSON valido. Sin markdown, sin backticks, sin texto antes o despues.
+El JSON debe seguir esta estructura EXACTA:
 {
-  "summary": "string",
-  "key_findings": [{"finding": "string", "relevance": "string", "source_hint": "string"}],
-  "suggested_topics": [{"title": "string", "angle": "string", "hook_idea": "string"}],
-  "market_context": "string"
-}`,
-        prompt: structurePrompt,
-      })
+  "summary": "resumen ejecutivo (1-3 parrafos)",
+  "key_findings": [
+    {"finding": "hallazgo con datos", "relevance": "por que importa", "source_hint": "fuente opcional"}
+  ],
+  "suggested_topics": [
+    {"title": "titulo del post", "angle": "angulo editorial", "hook_idea": "idea de gancho con dato"}
+  ],
+  "market_context": "contexto de mercado"
+}
+REGLAS:
+- key_findings: minimo 3, maximo 8 items
+- suggested_topics: minimo 3, maximo 6 items
+- Todos los valores deben ser strings, no arrays ni objetos anidados`,
+      prompt: `Estructura esta investigacion en JSON:\n\n${textForStructuring.slice(0, 6000)}`,
+    })
 
-      // Extract JSON from response (handle potential markdown wrapping)
-      const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
-        throw new Error('La IA no pudo estructurar los resultados. Intenta de nuevo.')
-      }
-
-      const parsed = researchOutputSchema.safeParse(JSON.parse(jsonMatch[0]))
-      if (!parsed.success) {
-        console.error('[grounded-research] Manual parse validation failed:', parsed.error.issues)
-        throw new Error('Los resultados no coinciden con el formato esperado. Intenta de nuevo.')
-      }
-      researchData = parsed.data
+    // Parse JSON from response — handle markdown code blocks, whitespace, etc.
+    const cleaned = jsonText
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim()
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('La IA no pudo estructurar los resultados. Intenta de nuevo.')
     }
+
+    // Lenient parse: accept extra items by slicing arrays
+    const rawParsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
+    const findings = Array.isArray(rawParsed.key_findings) ? rawParsed.key_findings.slice(0, 10) : []
+    const topics = Array.isArray(rawParsed.suggested_topics) ? rawParsed.suggested_topics.slice(0, 8) : []
+    rawParsed.key_findings = findings
+    rawParsed.suggested_topics = topics
+
+    const validated = researchOutputSchema.safeParse(rawParsed)
+    if (!validated.success) {
+      console.error('[grounded-research] Validation failed:', validated.error.issues)
+      throw new Error('Los resultados no coinciden con el formato esperado. Intenta de nuevo.')
+    }
+    const researchData = validated.data
 
     // 4d. Persist results
     let savedResearchId: string | undefined
