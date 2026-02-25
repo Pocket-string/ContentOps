@@ -44,6 +44,24 @@ function TrashIcon({ className }: { className?: string }) {
   )
 }
 
+function ThumbsUpIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
+      <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+    </svg>
+  )
+}
+
+function ThumbsDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z" />
+      <path d="M17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17" />
+    </svg>
+  )
+}
+
 // ============================================
 // Helpers
 // ============================================
@@ -97,12 +115,14 @@ export function ChatWidget() {
     isOpen,
     isLoading,
     messages,
+    feedback,
     pageContext,
     toggle,
     setLoading,
     addMessage,
     updateLastAssistantMessage,
     setPageContext,
+    setFeedback,
     clearMessages,
   } = useChatStore()
 
@@ -208,6 +228,23 @@ export function ChatWidget() {
       handleSend()
     }
   }
+
+  const handleFeedback = useCallback(async (messageId: string, positive: boolean) => {
+    setFeedback(messageId, positive)
+    try {
+      await fetch('/api/chat/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId,
+          positive,
+          module: pageContext.module,
+        }),
+      })
+    } catch {
+      // Feedback is best-effort — don't disrupt UX on failure
+    }
+  }, [setFeedback, pageContext.module])
 
   // Module label for display
   const MODULE_LABELS: Record<string, string> = {
@@ -324,21 +361,52 @@ export function ChatWidget() {
                 key={msg.id}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`
-                    max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed
-                    ${msg.role === 'user'
-                      ? 'bg-primary-500 text-white rounded-br-md'
-                      : 'bg-gray-100 text-foreground rounded-bl-md'
-                    }
-                  `}
-                >
-                  {msg.content || (
-                    <span className="inline-flex gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </span>
+                <div className="max-w-[85%]">
+                  <div
+                    className={`
+                      rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed
+                      ${msg.role === 'user'
+                        ? 'bg-primary-500 text-white rounded-br-md'
+                        : 'bg-gray-100 text-foreground rounded-bl-md'
+                      }
+                    `}
+                  >
+                    {msg.content || (
+                      <span className="inline-flex gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    )}
+                  </div>
+                  {/* Feedback buttons for assistant messages */}
+                  {msg.role === 'assistant' && msg.content && !isLoading && (
+                    <div className="flex items-center gap-1 mt-1 ml-1">
+                      <button
+                        onClick={() => handleFeedback(msg.id, true)}
+                        className={`p-1 rounded transition-colors ${
+                          feedback[msg.id] === true
+                            ? 'text-green-600'
+                            : 'text-gray-300 hover:text-green-500'
+                        }`}
+                        aria-label="Buena respuesta"
+                        title="Buena respuesta"
+                      >
+                        <ThumbsUpIcon className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleFeedback(msg.id, false)}
+                        className={`p-1 rounded transition-colors ${
+                          feedback[msg.id] === false
+                            ? 'text-red-500'
+                            : 'text-gray-300 hover:text-red-400'
+                        }`}
+                        aria-label="Mala respuesta"
+                        title="Mala respuesta"
+                      >
+                        <ThumbsDownIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

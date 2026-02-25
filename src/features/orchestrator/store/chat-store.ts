@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { ChatMessage, PageContext } from '../types'
 
+// Track feedback per message: null = no feedback, true = thumbs up, false = thumbs down
+type FeedbackMap = Record<string, boolean>
+
 interface ChatState {
   // UI state
   isOpen: boolean
@@ -8,6 +11,9 @@ interface ChatState {
 
   // Messages
   messages: ChatMessage[]
+
+  // Feedback
+  feedback: FeedbackMap
 
   // Current page context
   pageContext: PageContext
@@ -19,6 +25,7 @@ interface ChatState {
   addMessage: (message: ChatMessage) => void
   updateLastAssistantMessage: (content: string) => void
   setPageContext: (context: PageContext) => void
+  setFeedback: (messageId: string, positive: boolean) => void
   clearMessages: () => void
 }
 
@@ -26,6 +33,7 @@ export const useChatStore = create<ChatState>((set) => ({
   isOpen: false,
   isLoading: false,
   messages: [],
+  feedback: {},
   pageContext: { module: 'dashboard', path: '/dashboard' },
 
   setOpen: (open) => set({ isOpen: open }),
@@ -40,7 +48,6 @@ export const useChatStore = create<ChatState>((set) => ({
   updateLastAssistantMessage: (content) =>
     set((state) => {
       const msgs = [...state.messages]
-      // Find last assistant message and update it (for streaming)
       for (let i = msgs.length - 1; i >= 0; i--) {
         if (msgs[i].role === 'assistant') {
           msgs[i] = { ...msgs[i], content }
@@ -51,5 +58,11 @@ export const useChatStore = create<ChatState>((set) => ({
     }),
 
   setPageContext: (context) => set({ pageContext: context }),
-  clearMessages: () => set({ messages: [] }),
+
+  setFeedback: (messageId, positive) =>
+    set((state) => ({
+      feedback: { ...state.feedback, [messageId]: positive },
+    })),
+
+  clearMessages: () => set({ messages: [], feedback: {} }),
 }))
