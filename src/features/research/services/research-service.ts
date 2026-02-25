@@ -262,6 +262,7 @@ export async function getAllTags(
       .from('research_reports')
       .select('tags_json')
       .eq('workspace_id', workspaceId)
+      .limit(500)
 
     if (error) {
       return { error: error.message }

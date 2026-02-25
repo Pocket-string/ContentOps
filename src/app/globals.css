@@ -1,5 +1,4 @@
-/* Google Fonts - Inter + DM Sans */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+/* Fonts loaded via next/font in layout.tsx */
 
 @tailwind base;
 @tailwind components;
@@ -85,7 +84,7 @@
 }
 
 html {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
@@ -127,7 +126,7 @@ body {
 
 /* Tipografía para headings */
 h1, h2, h3, h4, h5, h6, .heading {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: -0.02em;
 }

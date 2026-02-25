@@ -22,15 +22,12 @@ export default async function VisualEditorPage({ params, searchParams }: Props) 
     notFound()
   }
 
-  const campaignResult = await getCampaignById(campaignId)
+  const [campaignResult, postResult] = await Promise.all([
+    getCampaignById(campaignId),
+    getPostByCampaignAndDay(campaignId, dayOfWeek),
+  ])
 
-  if (!campaignResult.data) {
-    notFound()
-  }
-
-  const postResult = await getPostByCampaignAndDay(campaignId, dayOfWeek)
-
-  if (!postResult.data) {
+  if (!campaignResult.data || !postResult.data) {
     notFound()
   }
 
@@ -49,16 +46,19 @@ export default async function VisualEditorPage({ params, searchParams }: Props) 
   const visualsResult = await getVisualsByPostId(post.id)
   const visuals = visualsResult.data ?? []
 
-  // Load carousel slides for any carousel visual versions
+  // Load carousel slides in parallel (batch instead of N+1)
+  const carouselVisuals = visuals.filter(
+    (v) => v.concept_type === 'carousel_4x5' || (v.slide_count && v.slide_count >= 2)
+  )
+  const slidesResults = await Promise.all(
+    carouselVisuals.map((v) => getCarouselSlides(v.id))
+  )
   const carouselSlidesMap: Record<string, CarouselSlide[]> = {}
-  for (const v of visuals) {
-    if (v.concept_type === 'carousel_4x5' || (v.slide_count && v.slide_count >= 2)) {
-      const slidesResult = await getCarouselSlides(v.id)
-      if (slidesResult.data) {
-        carouselSlidesMap[v.id] = slidesResult.data
-      }
+  carouselVisuals.forEach((v, i) => {
+    if (slidesResults[i].data) {
+      carouselSlidesMap[v.id] = slidesResults[i].data!
     }
-  }
+  })
 
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto">

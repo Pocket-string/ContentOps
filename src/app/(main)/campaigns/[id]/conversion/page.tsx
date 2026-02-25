@@ -12,14 +12,16 @@ interface Props {
 export default async function ConversionPage({ params }: Props) {
   const { id: campaignId } = await params
 
-  const campaignResult = await getCampaignById(campaignId)
+  const [campaignResult, configResult] = await Promise.all([
+    getCampaignById(campaignId),
+    getConversionConfig(campaignId),
+  ])
 
   if (!campaignResult.data) {
     notFound()
   }
 
   const campaign = campaignResult.data
-  const configResult = await getConversionConfig(campaignId)
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto">

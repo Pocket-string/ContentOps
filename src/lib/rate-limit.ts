@@ -10,7 +10,26 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>()
 
+// Cleanup expired entries every 5 minutes to prevent memory drift
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000
+let cleanupTimer: ReturnType<typeof setInterval> | null = null
+
+function ensureCleanup() {
+  if (cleanupTimer) return
+  cleanupTimer = setInterval(() => {
+    const now = Date.now()
+    for (const [key, entry] of store) {
+      if (now > entry.resetAt) store.delete(key)
+    }
+  }, CLEANUP_INTERVAL_MS)
+  // Allow Node.js process to exit even if interval is active
+  if (cleanupTimer && typeof cleanupTimer === 'object' && 'unref' in cleanupTimer) {
+    cleanupTimer.unref()
+  }
+}
+
 export function createRateLimiter({ maxRequests, windowMs }: RateLimiterConfig) {
+  ensureCleanup()
   return {
     check(key: string): { success: boolean; remaining: number; resetAt: number } {
       const now = Date.now()

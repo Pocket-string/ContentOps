@@ -7,6 +7,9 @@ export const metadata = {
   title: 'Dashboard | LinkedIn ContentOps',
 }
 
+// ISR: revalidate every 5 minutes to reduce Supabase hits
+export const revalidate = 300
+
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
   in_progress: 'En Progreso',

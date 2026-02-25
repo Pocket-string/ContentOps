@@ -17,17 +17,13 @@ export default async function PostEditorPage({ params }: Props) {
     notFound()
   }
 
-  // Fetch campaign for context (topic, keyword)
-  const campaignResult = await getCampaignById(campaignId)
+  // Fetch campaign and post in parallel
+  const [campaignResult, postResult] = await Promise.all([
+    getCampaignById(campaignId),
+    getPostByCampaignAndDay(campaignId, dayOfWeek),
+  ])
 
-  if (!campaignResult.data) {
-    notFound()
-  }
-
-  // Fetch the post with all its versions
-  const postResult = await getPostByCampaignAndDay(campaignId, dayOfWeek)
-
-  if (!postResult.data) {
+  if (!campaignResult.data || !postResult.data) {
     notFound()
   }
 

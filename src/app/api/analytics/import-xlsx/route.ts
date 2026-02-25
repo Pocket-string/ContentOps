@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import type * as XLSX from 'xlsx'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 
@@ -124,8 +124,8 @@ interface ParseRendimientoResult {
  * Numeric metrics are cast to integers; string metrics kept as-is.
  * Highlights sections are parsed when their header label is encountered.
  */
-function parseRendimiento(sheet: XLSX.WorkSheet): ParseRendimientoResult {
-  const rows = XLSX.utils.sheet_to_json<[unknown, unknown]>(sheet, {
+function parseRendimiento(sheet: XLSX.WorkSheet, xlsx: typeof XLSX): ParseRendimientoResult {
+  const rows = xlsx.utils.sheet_to_json<[unknown, unknown]>(sheet, {
     header: 1,
     defval: null,
   }) as Array<[unknown, unknown]>
@@ -215,9 +215,10 @@ const KNOWN_CATEGORIES = new Set([
  * Unknown categories are accepted — the schema uses Record<string, ...>.
  */
 function parseInformacionDetallada(
-  sheet: XLSX.WorkSheet
+  sheet: XLSX.WorkSheet,
+  xlsx: typeof XLSX
 ): Record<string, Array<z.infer<typeof demographicEntrySchema>>> {
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+  const rows = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: null,
   })
 
@@ -287,10 +288,12 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // Step 3: Execute — parse XLSX and extract data from both sheets
+  // Dynamic import to avoid loading ~260KB xlsx on every cold start
+  const xlsx = await import('xlsx')
   let workbook: XLSX.WorkBook
 
   try {
-    workbook = XLSX.read(fileBuffer, { type: 'buffer' })
+    workbook = xlsx.read(fileBuffer, { type: 'buffer' })
   } catch (err) {
     console.error('[import-xlsx] Error parsing XLSX:', err)
     return Response.json(
@@ -320,8 +323,8 @@ export async function POST(request: Request): Promise<Response> {
   let parsed: ImportXlsxOutput
 
   try {
-    const { performance, highlights } = parseRendimiento(rendimientoSheet)
-    const demographics = parseInformacionDetallada(detalladaSheet)
+    const { performance, highlights } = parseRendimiento(rendimientoSheet, xlsx)
+    const demographics = parseInformacionDetallada(detalladaSheet, xlsx)
 
     const raw = { performance, highlights, demographics }
 
