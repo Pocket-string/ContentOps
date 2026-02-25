@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { generateText, Output } from 'ai'
+import { generateText, generateObject } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { researchRateLimiter } from '@/lib/rate-limit'
 import { google, GEMINI_MODEL } from '@/shared/lib/gemini'
@@ -66,18 +66,10 @@ export async function POST(request: Request): Promise<Response> {
     const promptData = await buildResearchPrompt(tema, buyer_persona, region)
     const researchPrompt = promptData?.optimized_prompt ?? tema
 
-    // 4b. Generate grounded research via Gemini with Google Search.
-    // generateText + output.object() is the correct pattern to combine tools (grounding)
-    // with structured output in the Vercel AI SDK v6.
-    const { output: researchData } = await generateText({
-      model: google(GEMINI_MODEL),
-      tools: {
-        google_search: google.tools.googleSearch({}),
-      },
-      experimental_output: Output.object({ schema: researchOutputSchema }),
-      system: `Eres un analista de investigacion experto en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
+    // 4b. Step 1: Grounded search via Gemini + Google Search (no structured output)
+    const systemPrompt = `Eres un analista de investigacion experto en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 
-Tu mision es investigar temas del sector y producir un reporte estructurado con hallazgos clave, topics sugeridos para contenido de LinkedIn, y contexto de mercado.
+Tu mision es investigar temas del sector y producir un reporte detallado con hallazgos clave, topics sugeridos para contenido de LinkedIn, y contexto de mercado.
 
 Reglas:
 - Basa tus hallazgos en informacion verificable y reciente
@@ -86,8 +78,23 @@ Reglas:
 - Los hooks deben ser especificos y con datos, no genericos
 - Prioriza informacion cuantitativa sobre opiniones
 ${buyer_persona ? `- Enfoca para el perfil: ${buyer_persona}` : ''}
-${region ? `- Region de interes: ${region}` : ''}`,
+${region ? `- Region de interes: ${region}` : ''}`
+
+    const { text: groundedText } = await generateText({
+      model: google(GEMINI_MODEL),
+      tools: {
+        google_search: google.tools.googleSearch({}),
+      },
+      system: systemPrompt,
       prompt: researchPrompt,
+    })
+
+    // 4c. Step 2: Structure the grounded text into JSON schema (no tools)
+    const { object: researchData } = await generateObject({
+      model: google(GEMINI_MODEL),
+      schema: researchOutputSchema,
+      system: 'Extrae y estructura la siguiente investigacion en el formato JSON solicitado. Mantén todos los datos, cifras y fuentes mencionadas.',
+      prompt: groundedText,
     })
 
     // 4c. Save to research_reports if research_id provided
