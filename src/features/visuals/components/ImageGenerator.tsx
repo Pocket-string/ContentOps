@@ -28,6 +28,16 @@ function SparklesIcon() {
   )
 }
 
+function DownloadIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  )
+}
+
 export function ImageGenerator({
   visualVersionId,
   promptJson,
@@ -37,6 +47,7 @@ export function ImageGenerator({
 }: ImageGeneratorProps) {
   const [modelId, setModelId] = useState<ImageModelId>(DEFAULT_IMAGE_MODEL)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [error, setError] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl)
 
@@ -69,6 +80,31 @@ export function ImageGenerator({
     }
   }, [visualVersionId, promptJson, format, modelId, onImageGenerated])
 
+  const handleDownload = useCallback(async () => {
+    if (!previewUrl) return
+    setIsDownloading(true)
+    try {
+      const res = await fetch(previewUrl)
+      const blob = await res.blob()
+      const ext = blob.type === 'image/jpeg' ? 'jpg'
+        : blob.type === 'image/webp' ? 'webp'
+        : 'png'
+      const filename = `visual-${visualVersionId.slice(0, 8)}.${ext}`
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      setError('Error al descargar la imagen')
+    } finally {
+      setIsDownloading(false)
+    }
+  }, [previewUrl, visualVersionId])
+
   const hasPrompt = Object.keys(promptJson).length > 0
 
   return (
@@ -76,12 +112,24 @@ export function ImageGenerator({
       <h2 className="text-sm font-semibold text-foreground">Imagen generada</h2>
 
       {previewUrl && (
-        <div className="rounded-xl overflow-hidden border border-border bg-gray-50">
-          <img
-            src={previewUrl}
-            alt="Visual generado"
-            className="w-full h-auto object-contain"
-          />
+        <div className="space-y-2">
+          <div className="rounded-xl overflow-hidden border border-border bg-gray-50">
+            <img
+              src={previewUrl}
+              alt="Visual generado"
+              className="w-full h-auto object-contain"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            isLoading={isDownloading}
+            leftIcon={<DownloadIcon />}
+            className="w-full"
+          >
+            Descargar Imagen
+          </Button>
         </div>
       )}
 
