@@ -77,6 +77,7 @@ export function DeepResearchPanel({
   const [isResearching, setIsResearching] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<ResearchResult | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(null)
 
   // -----------------------------------------------------------------------
   // Handler
@@ -86,6 +87,7 @@ export function DeepResearchPanel({
     setIsResearching(true)
     setError('')
     setResult(null)
+    setSavedId(null)
 
     try {
       const res = await fetch('/api/research/grounded-research', {
@@ -106,8 +108,14 @@ export function DeepResearchPanel({
         return
       }
 
-      const { data } = json as { data: ResearchResult }
+      const { data, research_id: returnedId } = json as {
+        data: ResearchResult
+        research_id?: string
+      }
       setResult(data)
+      if (returnedId) {
+        setSavedId(returnedId)
+      }
     } catch {
       setError('Error de red al investigar')
     } finally {
@@ -228,6 +236,23 @@ export function DeepResearchPanel({
                 Investigando con Gemini + Google Search... esto puede tardar 15-30 segundos
               </p>
             )}
+
+            {/* Auto-save indicator */}
+            {savedId && !isResearching && (
+              <div className="flex items-center justify-between rounded-xl bg-success-50 border border-success-300 px-3 py-2">
+                <p className="text-xs text-success-700">
+                  Guardado automaticamente
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push(`/research/${savedId}`)}
+                  className="text-xs text-success-700 hover:text-success-900 h-auto py-0 px-1"
+                >
+                  Ver Research
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -312,7 +337,7 @@ export function DeepResearchPanel({
                         size="sm"
                         onClick={() =>
                           router.push(
-                            `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}`
+                            `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}`
                           )
                         }
                         className="shrink-0 self-start"

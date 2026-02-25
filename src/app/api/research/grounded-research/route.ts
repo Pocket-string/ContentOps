@@ -5,6 +5,7 @@ import { researchRateLimiter } from '@/lib/rate-limit'
 import { google, GEMINI_MODEL } from '@/shared/lib/gemini'
 import { createClient } from '@/lib/supabase/server'
 import { buildResearchPrompt } from '@/features/research/services/research-prompt-builder'
+import { getWorkspaceId } from '@/lib/workspace'
 
 const inputSchema = z.object({
   tema: z.string().min(3, 'El tema debe tener al menos 3 caracteres'),
@@ -19,12 +20,12 @@ const researchOutputSchema = z.object({
     finding: z.string(),
     relevance: z.string(),
     source_hint: z.string().optional(),
-  })).min(3).max(10),
+  })).min(1).max(10),
   suggested_topics: z.array(z.object({
     title: z.string(),
     angle: z.string(),
     hook_idea: z.string(),
-  })).min(3).max(8),
+  })).min(1).max(8),
   market_context: z.string().optional(),
 })
 
@@ -93,20 +94,57 @@ ${region ? `- Region de interes: ${region}` : ''}`
     const { object: researchData } = await generateObject({
       model: google(GEMINI_MODEL),
       schema: researchOutputSchema,
-      system: 'Extrae y estructura la siguiente investigacion en el formato JSON solicitado. Mantén todos los datos, cifras y fuentes mencionadas.',
+      system: `Extrae y estructura la siguiente investigacion en el formato JSON solicitado.
+Mantén todos los datos, cifras y fuentes mencionadas.
+IMPORTANTE: El JSON debe incluir al menos 1 elemento en key_findings y al menos 1 elemento en suggested_topics.
+Cada suggested_topic debe tener: title (titulo del post), angle (angulo editorial), hook_idea (idea de gancho).
+Cada key_finding debe tener: finding (hallazgo), relevance (relevancia para el sector).`,
       prompt: groundedText,
     })
 
-    // 4c. Save to research_reports if research_id provided
+    // 4d. Persist results
+    let savedResearchId: string | undefined
+
     if (research_id) {
+      // Update existing report
       const supabase = await createClient()
       await supabase
         .from('research_reports')
         .update({ ai_synthesis: researchData })
         .eq('id', research_id)
+      savedResearchId = research_id
+    } else {
+      // Auto-create a new research report so results are never lost
+      try {
+        const workspaceId = await getWorkspaceId()
+        const supabase = await createClient()
+
+        const { data: newReport, error: insertError } = await supabase
+          .from('research_reports')
+          .insert({
+            workspace_id: workspaceId,
+            created_by: user.id,
+            title: tema,
+            source: 'AI Research (Gemini + Google Search)',
+            raw_text: groundedText,
+            tags_json: [],
+            ai_synthesis: researchData,
+          })
+          .select('id')
+          .single()
+
+        if (insertError) {
+          console.error('[grounded-research] Auto-save insert error:', insertError)
+        } else if (newReport) {
+          savedResearchId = newReport.id as string
+        }
+      } catch (saveErr) {
+        // Non-fatal: log and continue — the AI result is still returned
+        console.error('[grounded-research] Auto-save unexpected error:', saveErr)
+      }
     }
 
-    return Response.json({ data: researchData })
+    return Response.json({ data: researchData, research_id: savedResearchId })
   } catch (error) {
     console.error('[grounded-research] Error:', error)
     const message = error instanceof Error ? error.message : 'Error desconocido'
