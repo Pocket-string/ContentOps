@@ -8,7 +8,7 @@ import {
   updateVisualQAAction,
   uploadVisualImageAction,
 } from '@/features/visuals/actions/visual-actions'
-import type { VisualVersion } from '@/shared/types/content-ops'
+import type { VisualVersion, CarouselSlide } from '@/shared/types/content-ops'
 
 interface Props {
   postId: string
@@ -19,6 +19,7 @@ interface Props {
   topicTitle?: string
   keyword?: string
   visuals: VisualVersion[]
+  carouselSlidesMap?: Record<string, CarouselSlide[]>
 }
 
 export function VisualEditorClient({
@@ -30,6 +31,7 @@ export function VisualEditorClient({
   topicTitle,
   keyword,
   visuals,
+  carouselSlidesMap,
 }: Props) {
   async function handleCreateVisual(formData: FormData) {
     const result = await createVisualVersionAction(formData)
@@ -81,6 +83,7 @@ export function VisualEditorClient({
       topicTitle={topicTitle}
       keyword={keyword}
       visuals={visuals}
+      carouselSlidesMap={carouselSlidesMap}
       onCreateVisual={handleCreateVisual}
       onUpdatePrompt={handleUpdatePrompt}
       onUpdateStatus={handleUpdateStatus}

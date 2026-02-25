@@ -219,6 +219,23 @@ export const visualVersionSchema = z.object({
   output_asset_id: z.string().uuid().nullable(),
   qa_notes: z.string().nullable(),
   iteration_reason: z.string().nullable(),
+  // Carousel support
+  slide_count: z.number().min(2).max(10).nullable().optional(),
+})
+
+// ============================================
+// Carousel Slides
+// ============================================
+
+export const carouselSlideSchema = z.object({
+  id: z.string().uuid(),
+  visual_version_id: z.string().uuid(),
+  slide_index: z.number().min(0).max(9),
+  prompt_json: z.record(z.unknown()),
+  image_url: z.string().nullable(),
+  headline: z.string().nullable(),
+  body_text: z.string().nullable(),
+  created_at: z.string(),
 })
 
 export const assetSchema = z.object({
@@ -263,6 +280,7 @@ export type Campaign = z.infer<typeof campaignSchema>
 export type Post = z.infer<typeof postSchema>
 export type PostVersion = z.infer<typeof postVersionSchema>
 export type VisualVersion = z.infer<typeof visualVersionSchema>
+export type CarouselSlide = z.infer<typeof carouselSlideSchema>
 export type Asset = z.infer<typeof assetSchema>
 export type Metrics = z.infer<typeof metricsSchema>
 export type Learning = z.infer<typeof learningSchema>

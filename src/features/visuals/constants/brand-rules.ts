@@ -100,3 +100,22 @@ export const QA_CHECKLIST: QACheckItem[] = [
   { id: 'brand_logo', label: 'Logo presente y bien ubicado', category: 'marca' },
   { id: 'brand_negative', label: 'Sin elementos de negative prompts', category: 'marca' },
 ]
+
+// ============================================
+// Carousel Configuration
+// ============================================
+
+export const CAROUSEL_CONFIG = {
+  minSlides: 2,
+  maxSlides: 10,
+  defaultSlides: 5,
+  format: '4:5' as VisualFormat,
+  dimensions: { width: 1080, height: 1350 },
+} as const
+
+export const CAROUSEL_QA_CHECKLIST: QACheckItem[] = [
+  { id: 'carousel_consistency', label: 'Consistencia visual entre slides', category: 'estilo' },
+  { id: 'carousel_narrative', label: 'Narrativa coherente (hook → contenido → CTA)', category: 'texto' },
+  { id: 'carousel_cover', label: 'Cover slide atractivo y claro', category: 'texto' },
+  { id: 'carousel_cta', label: 'Ultimo slide con CTA efectivo', category: 'texto' },
+]

@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation'
 import { getCampaignById } from '@/features/campaigns/services/campaign-service'
 import { getPostByCampaignAndDay } from '@/features/posts/services/post-service'
 import { getVisualsByPostId } from '@/features/visuals/services/visual-service'
+import { getCarouselSlides } from '@/features/visuals/services/carousel-service'
 import { VisualEditorClient } from './client'
+import type { CarouselSlide } from '@/shared/types/content-ops'
 
 export const metadata = { title: 'Visual Editor | ContentOps' }
 
@@ -39,6 +41,18 @@ export default async function VisualEditorPage({ params }: Props) {
 
   // Get visual versions for this post
   const visualsResult = await getVisualsByPostId(post.id)
+  const visuals = visualsResult.data ?? []
+
+  // Load carousel slides for any carousel visual versions
+  const carouselSlidesMap: Record<string, CarouselSlide[]> = {}
+  for (const v of visuals) {
+    if (v.concept_type === 'carousel_4x5' || (v.slide_count && v.slide_count >= 2)) {
+      const slidesResult = await getCarouselSlides(v.id)
+      if (slidesResult.data) {
+        carouselSlidesMap[v.id] = slidesResult.data
+      }
+    }
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
@@ -50,7 +64,8 @@ export default async function VisualEditorPage({ params }: Props) {
         funnelStage={post.funnel_stage}
         topicTitle={campaign.topics?.title}
         keyword={campaign.keyword ?? undefined}
-        visuals={visualsResult.data ?? []}
+        visuals={visuals}
+        carouselSlidesMap={carouselSlidesMap}
       />
     </div>
   )

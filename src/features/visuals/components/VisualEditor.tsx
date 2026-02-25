@@ -12,7 +12,7 @@ import {
   QA_CHECKLIST,
   type VisualFormat,
 } from '../constants/brand-rules'
-import type { VisualVersion, VisualStatus } from '@/shared/types/content-ops'
+import type { VisualVersion, VisualStatus, CarouselSlide } from '@/shared/types/content-ops'
 import { VisualCriticPanel } from './VisualCriticPanel'
 import { VisualValidator, runVisualChecks } from './VisualValidator'
 import { QAScoreCard } from '@/features/qa/components/QAScoreCard'
@@ -22,7 +22,9 @@ import { parseVisualJson } from '@/features/import/parsers/visual-parser'
 import { AIReviewBadge } from '@/shared/components/ai-review-badge'
 import type { VisualReview } from '@/shared/types/ai-review'
 import { updateNanoBananaAction } from '../actions/visual-actions'
+import { initCarouselSlidesAction, saveCarouselSlidesAction } from '../actions/carousel-actions'
 import { ImageGenerator } from './ImageGenerator'
+import { CarouselEditor } from './CarouselEditor'
 
 // ============================================
 // Types
@@ -37,6 +39,7 @@ interface VisualEditorProps {
   topicTitle?: string
   keyword?: string
   visuals: VisualVersion[]
+  carouselSlidesMap?: Record<string, CarouselSlide[]>
   onCreateVisual: (formData: FormData) => Promise<{ success?: true; error?: string }>
   onUpdatePrompt: (visualId: string, promptJson: string) => Promise<{ success?: true; error?: string }>
   onUpdateStatus: (visualId: string, status: string) => Promise<{ success?: true; error?: string }>
@@ -192,6 +195,7 @@ export function VisualEditor({
   topicTitle,
   keyword,
   visuals,
+  carouselSlidesMap,
   onCreateVisual,
   onUpdatePrompt,
   onUpdateStatus,
@@ -226,8 +230,13 @@ export function VisualEditor({
   // Import bridge state
   const [importJsonText, setImportJsonText] = useState('')
   const [importError, setImportError] = useState('')
+  // Carousel state
+  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>([])
+  const [isInitCarousel, setIsInitCarousel] = useState(false)
+  const [carouselSlideCount, setCarouselSlideCount] = useState(5)
 
   const selectedVisual = visuals.find((v) => v.id === selectedVisualId) ?? null
+  const isCarousel = selectedVisual?.concept_type === 'carousel_4x5' || (selectedVisual?.slide_count && selectedVisual.slide_count >= 2)
   const sortedVisuals = sortedNewestFirst(visuals)
 
   // Load selected visual into editor
@@ -249,7 +258,45 @@ export function VisualEditor({
     setNbQaNotes(selectedVisual.qa_notes ?? '')
     setNbIterationReason(reason === '' ? '' : isPreset ? reason : 'Otro')
     setNbCustomReason(isPreset ? '' : reason)
+    // Load carousel slides from map
+    if (selectedVisual && carouselSlidesMap?.[selectedVisual.id]) {
+      setCarouselSlides(carouselSlidesMap[selectedVisual.id])
+    } else {
+      setCarouselSlides([])
+    }
   }, [selectedVisualId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleInitCarousel = useCallback(async () => {
+    if (!selectedVisualId || !topicTitle) return
+    setIsInitCarousel(true); setError('')
+    try {
+      const result = await initCarouselSlidesAction(selectedVisualId, topicTitle, carouselSlideCount)
+      if ('error' in result) {
+        setError(result.error)
+      } else if (result.slides) {
+        setCarouselSlides(result.slides)
+        showSuccess(`Carrusel de ${carouselSlideCount} slides inicializado`)
+      }
+    } finally {
+      setIsInitCarousel(false)
+    }
+  }, [selectedVisualId, topicTitle, carouselSlideCount])
+
+  const handleSaveCarouselSlides = useCallback(async (slides: CarouselSlide[]) => {
+    if (!selectedVisualId) return
+    setCarouselSlides(slides)
+    // Auto-save updated slide content
+    const slidesPayload = slides.map((s) => ({
+      slide_index: s.slide_index,
+      headline: s.headline ?? undefined,
+      body_text: s.body_text ?? undefined,
+      prompt_json: s.prompt_json as Record<string, unknown>,
+    }))
+    const result = await saveCarouselSlidesAction(selectedVisualId, slidesPayload)
+    if ('error' in result) {
+      setError(result.error)
+    }
+  }, [selectedVisualId])
 
   function showSuccess(msg: string) {
     setSuccessMsg(msg)
@@ -657,8 +704,49 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 3. Image Generation */}
-            {selectedVisualId && (
+            {/* 3. Image Generation / Carousel Editor */}
+            {selectedVisualId && isCarousel ? (
+              <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
+                {carouselSlides.length > 0 ? (
+                  <CarouselEditor
+                    visualVersionId={selectedVisualId}
+                    slides={carouselSlides}
+                    topic={topicTitle ?? 'Carrusel'}
+                    label={topicTitle ? `${topicTitle} dia-${dayOfWeek}` : `carousel-dia-${dayOfWeek}`}
+                    onSlidesChange={handleSaveCarouselSlides}
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    <h2 className="text-sm font-semibold text-foreground">Inicializar Carrusel</h2>
+                    <p className="text-xs text-foreground-muted">
+                      Este visual es un carrusel. Configura el numero de slides para empezar.
+                    </p>
+                    <Select
+                      label="Numero de slides"
+                      options={[
+                        { value: '5', label: '5 slides' },
+                        { value: '6', label: '6 slides' },
+                        { value: '7', label: '7 slides' },
+                        { value: '8', label: '8 slides' },
+                        { value: '10', label: '10 slides' },
+                      ]}
+                      value={String(carouselSlideCount)}
+                      onChange={(e) => setCarouselSlideCount(parseInt(e.target.value, 10))}
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleInitCarousel}
+                      isLoading={isInitCarousel}
+                      leftIcon={<PlusIcon />}
+                      className="w-full"
+                    >
+                      Crear Slides
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : selectedVisualId ? (
               <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
                 <ImageGenerator
                   visualVersionId={selectedVisualId}
@@ -676,7 +764,7 @@ export function VisualEditor({
                   </div>
                 </details>
               </div>
-            )}
+            ) : null}
 
             {/* 4. QA Checklist (only when image exists) */}
             {selectedVisualId && hasImage && (
