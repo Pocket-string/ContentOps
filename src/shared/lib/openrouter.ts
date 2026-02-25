@@ -10,4 +10,4 @@ export const openrouter = createOpenAI({
 })
 
 /** Legacy model ID on OpenRouter */
-export const OPENROUTER_GEMINI_MODEL = 'google/gemini-2.0-flash-001' as const
+export const OPENROUTER_GEMINI_MODEL = 'google/gemini-2.5-flash' as const

@@ -9,7 +9,7 @@ export const google = createGoogleGenerativeAI({
 })
 
 /** Default model for all generation/evaluation tasks */
-export const GEMINI_MODEL = 'gemini-2.0-flash' as const
+export const GEMINI_MODEL = 'gemini-2.5-flash' as const
 
 /** Image generation models */
 export const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image' as const
