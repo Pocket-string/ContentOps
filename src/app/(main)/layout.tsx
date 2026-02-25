@@ -1,4 +1,5 @@
 import { Sidebar } from '@/components/layout/sidebar'
+import { ChatWidget } from '@/features/orchestrator/components'
 
 export default function MainLayout({
   children,
@@ -11,6 +12,7 @@ export default function MainLayout({
       <main className="ml-64">
         {children}
       </main>
+      <ChatWidget />
     </div>
   )
 }

@@ -14,6 +14,7 @@ export type AITask =
   | 'critic-visual'
   | 'iterate-visual'
   | 'generate-image'
+  | 'orchestrator'
 
 /**
  * Returns the primary model for a given AI task.

@@ -35,3 +35,4 @@ export const aiRateLimiter = createRateLimiter({ maxRequests: 10, windowMs: 60_0
 export const imageRateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60_000 })
 export const exportRateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60_000 })
 export const researchRateLimiter = createRateLimiter({ maxRequests: 3, windowMs: 60_000 })
+export const chatRateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
