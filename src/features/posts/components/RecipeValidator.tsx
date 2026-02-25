@@ -36,13 +36,19 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
 
   // 1. Hook presente — First line < 120 chars, has ? or number
   const firstLine = trimmed.split('\n')[0] ?? ''
-  const hookPresent = firstLine.length > 0 && firstLine.length <= 120 && (/\?/.test(firstLine) || /\d/.test(firstLine))
+  const hookShort = firstLine.length > 0 && firstLine.length <= 120
+  const hookHasGancho = /\?/.test(firstLine) || /\d/.test(firstLine)
+  const hookPresent = hookShort && hookHasGancho
   checks.push({
     id: 'hook',
     label: 'Hook presente',
     passed: hookPresent,
     severity: 'error',
-    detail: hookPresent ? 'Primera linea con gancho' : 'Primera linea debe tener < 120 chars y contener ? o numero',
+    detail: hookPresent
+      ? `Hook efectivo (${firstLine.length} chars)`
+      : !hookShort
+        ? `Primera linea muy larga (${firstLine.length} chars). Maximo 120 para captar atencion`
+        : 'Incluye una pregunta (?) o un dato numerico para detener el scroll',
   })
 
   // 2. Sin links externos — No http/https in content
@@ -101,18 +107,7 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
     detail: `${len} chars (optimo: 1500-2800)`,
   })
 
-  // 7. Hashtags correctos — 3-5 hashtags at end
-  const hashtagMatches = trimmed.match(/#\w+/g) ?? []
-  const correctHashtags = hashtagMatches.length >= 3 && hashtagMatches.length <= 5
-  checks.push({
-    id: 'hashtags',
-    label: 'Hashtags correctos',
-    passed: correctHashtags,
-    severity: 'warning',
-    detail: `${hashtagMatches.length} hashtags (optimo: 3-5)`,
-  })
-
-  // 8. Legibilidad movil — No paragraph > 280 chars
+  // 7. Legibilidad movil — No paragraph > 280 chars
   const mobileReadable = paragraphs.every(p => p.length <= 280)
   checks.push({
     id: 'mobile',

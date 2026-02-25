@@ -40,6 +40,7 @@ interface PostEditorProps {
   onScore: (versionId: string, score: unknown) => Promise<{ success?: true; error?: string }>
   onStatusChange: (postId: string, status: string) => Promise<{ success?: true; error?: string }>
   onObjectiveChange: (postId: string, objective: string) => Promise<{ success?: true; error?: string }>
+  onDayChange?: (postId: string, dayOfWeek: number) => Promise<{ success?: true; error?: string }>
 }
 
 interface IterationResult {
@@ -287,6 +288,7 @@ export function PostEditor({
   onScore,
   onStatusChange,
   onObjectiveChange,
+  onDayChange,
 }: PostEditorProps) {
   // --- Core state ---
   const [activeVariant, setActiveVariant] = useState<PostVariant>('contrarian')
@@ -310,6 +312,9 @@ export function PostEditor({
   // --- Status state ---
   const [postStatus, setPostStatus] = useState<PostStatus>(post.status)
   const [isChangingStatus, setIsChangingStatus] = useState(false)
+
+  // --- Day change state ---
+  const [isChangingDay, setIsChangingDay] = useState(false)
 
   // --- Derived ---
   const dayMeta = WEEKLY_PLAN[post.day_of_week]
@@ -402,6 +407,26 @@ export function PostEditor({
       setIsSavingObjective(false)
     }
   }, [objective, post.objective, post.id, onObjectiveChange])
+
+  const handleDayChange = useCallback(
+    async (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newDay = Number(e.target.value)
+      if (newDay === post.day_of_week || !onDayChange) return
+      setIsChangingDay(true)
+      setError('')
+      try {
+        const result = await onDayChange(post.id, newDay)
+        if (result.error) {
+          setError(result.error)
+        } else {
+          showSuccess('Dia actualizado')
+        }
+      } finally {
+        setIsChangingDay(false)
+      }
+    },
+    [post.day_of_week, post.id, onDayChange]
+  )
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true)
@@ -990,17 +1015,34 @@ export function PostEditor({
           {/* ==================== RIGHT COLUMN ==================== */}
           <div className="w-full lg:w-1/3 space-y-5 lg:sticky lg:top-6">
 
-            {/* 1. Post Status */}
-            <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Estado del post</h2>
-              <Select
-                label="Estado"
-                options={STATUS_OPTIONS}
-                value={postStatus}
-                onChange={handleStatusChange}
-                disabled={isChangingStatus}
-                aria-label="Estado del post"
-              />
+            {/* 1. Post Status + Day */}
+            <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground mb-3">Estado del post</h2>
+                <Select
+                  label="Estado"
+                  options={STATUS_OPTIONS}
+                  value={postStatus}
+                  onChange={handleStatusChange}
+                  disabled={isChangingStatus}
+                  aria-label="Estado del post"
+                />
+              </div>
+              {onDayChange && (
+                <div>
+                  <label htmlFor="day-select" className="text-sm font-semibold text-foreground block mb-2">
+                    Dia de publicacion
+                  </label>
+                  <Select
+                    id="day-select"
+                    options={Object.entries(WEEKLY_PLAN).map(([d, p]) => ({ value: d, label: p.label }))}
+                    value={String(post.day_of_week)}
+                    onChange={handleDayChange}
+                    disabled={isChangingDay}
+                    aria-label="Dia de publicacion"
+                  />
+                </div>
+              )}
             </div>
 
             {/* QA Score Card */}

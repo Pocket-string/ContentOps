@@ -386,3 +386,38 @@ export async function updatePostObjective(
     return { error: 'Error inesperado al actualizar el objetivo del post' }
   }
 }
+
+/**
+ * Update the day_of_week for a post (move it to another day).
+ */
+export async function updatePostDayOfWeek(
+  postId: string,
+  dayOfWeek: number
+): Promise<ServiceResult<Post>> {
+  try {
+    const supabase = await createClient()
+
+    const { data: row, error } = await supabase
+      .from('posts')
+      .update({ day_of_week: dayOfWeek })
+      .eq('id', postId)
+      .select()
+      .single()
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    const parsed = postSchema.safeParse(row)
+
+    if (!parsed.success) {
+      console.error('[post-service] updatePostDayOfWeek parse error', parsed.error.flatten())
+      return { error: 'Error al parsear el dia actualizado' }
+    }
+
+    return { data: parsed.data }
+  } catch (err) {
+    console.error('[post-service] updatePostDayOfWeek unexpected error', err)
+    return { error: 'Error inesperado al actualizar el dia del post' }
+  }
+}

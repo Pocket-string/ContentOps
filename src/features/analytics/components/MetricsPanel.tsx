@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -95,6 +95,8 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
   const [isSavingLearning, setIsSavingLearning] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [isImporting, setIsImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleSaveMetrics(dayOfWeek: number, postId: string) {
     setSavingDay(dayOfWeek)
@@ -126,6 +128,46 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
     const result = await onDeleteLearning(id)
     if (result.error) setError(result.error)
     setDeleteConfirmId(null)
+  }
+
+  async function handleXlsxImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsImporting(true)
+    setError('')
+    try {
+      const fd = new FormData()
+      fd.set('file', file)
+      const res = await fetch('/api/analytics/import-xlsx', { method: 'POST', body: fd })
+      const json = await res.json() as { data?: { performance: { impressions: number; comments: number; saves: number; shares: number } }; error?: string }
+      if (!res.ok || json.error) {
+        setError(json.error ?? 'Error al importar el archivo')
+        return
+      }
+      const perf = json.data?.performance
+      if (!perf) return
+      // Apply to the first post that has no metrics yet, or the first post
+      const targetDay = postMetrics.find((pm) => pm.metricsId === null)?.dayOfWeek ?? postMetrics[0]?.dayOfWeek
+      if (targetDay !== undefined) {
+        setMetricsState((prev) => ({
+          ...prev,
+          [targetDay]: {
+            ...prev[targetDay],
+            impressions: perf.impressions,
+            comments: perf.comments,
+            saves: perf.saves,
+            shares: perf.shares,
+            notes: prev[targetDay]?.notes ?? '',
+            leads: prev[targetDay]?.leads ?? 0,
+          },
+        }))
+      }
+    } catch {
+      setError('Error de red al importar el archivo')
+    } finally {
+      setIsImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const engLabel = summary.totalImpressions === 0 ? 'N/A' : `${summary.engagementRate.toFixed(1)}%`
@@ -184,9 +226,30 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
 
       {/* ===== SECTION 2: Metrics per Post ===== */}
       <section className="bg-surface border border-border rounded-2xl shadow-card p-6 space-y-4" aria-labelledby="metrics-form-heading">
-        <div className="flex items-center gap-2">
-          <TrendIcon c="w-4 h-4 text-accent-500 shrink-0" />
-          <h2 id="metrics-form-heading" className="text-sm font-semibold text-foreground">Metricas por Post</h2>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TrendIcon c="w-4 h-4 text-accent-500 shrink-0" />
+            <h2 id="metrics-form-heading" className="text-sm font-semibold text-foreground">Metricas por Post</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleXlsxImport}
+              className="hidden"
+              aria-label="Importar metricas desde LinkedIn XLSX"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              isLoading={isImporting}
+              disabled={isImporting}
+            >
+              Importar XLSX
+            </Button>
+          </div>
         </div>
         <div className="space-y-4">
           {postMetrics.map((pm) => {

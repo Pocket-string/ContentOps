@@ -6,6 +6,7 @@ import {
   savePostVersionSchema,
   scorePostSchema,
   POST_STATUSES,
+  WEEKLY_PLAN,
   structuredContentSchema,
 } from '@/shared/types/content-ops'
 import { requireAuth } from '@/lib/auth'
@@ -16,6 +17,7 @@ import {
   scorePostVersion,
   updatePostStatus,
   updatePostObjective,
+  updatePostDayOfWeek,
 } from '../services/post-service'
 
 // ============================================
@@ -259,6 +261,41 @@ export async function updatePostObjectiveAction(
   track('post.objective_updated', {
     user_id: user.id,
     post_id: postId,
+  })
+
+  revalidatePath('/campaigns')
+
+  return { success: true }
+}
+
+/**
+ * Move a post to a different day of the week.
+ */
+export async function updatePostDayAction(
+  postId: string,
+  dayOfWeek: number
+): Promise<ActionResult> {
+  const user = await requireAuth()
+
+  if (!postId || typeof postId !== 'string') {
+    return { error: 'ID de post requerido' }
+  }
+
+  const validDays = Object.keys(WEEKLY_PLAN).map(Number)
+  if (!validDays.includes(dayOfWeek)) {
+    return { error: `Dia invalido. Valores permitidos: ${validDays.join(', ')}` }
+  }
+
+  const result = await updatePostDayOfWeek(postId, dayOfWeek)
+
+  if (result.error) {
+    return { error: result.error }
+  }
+
+  track('post.day_changed', {
+    user_id: user.id,
+    post_id: postId,
+    new_day: dayOfWeek,
   })
 
   revalidatePath('/campaigns')

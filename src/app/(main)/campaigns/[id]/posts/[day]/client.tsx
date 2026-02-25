@@ -7,6 +7,7 @@ import {
   scorePostVersionAction,
   updatePostStatusAction,
   updatePostObjectiveAction,
+  updatePostDayAction,
 } from '@/features/posts/actions/post-actions'
 import type { Post, PostVersion, WeeklyBrief } from '@/shared/types/content-ops'
 
@@ -60,6 +61,14 @@ export function PostEditorClient({ post, campaignId, topicTitle, keyword, weekly
     return { success: true as const }
   }
 
+  async function handleDayChange(postId: string, dayOfWeek: number) {
+    const result = await updatePostDayAction(postId, dayOfWeek)
+    if ('error' in result) {
+      return { error: result.error }
+    }
+    return { success: true as const }
+  }
+
   return (
     <PostEditor
       post={post}
@@ -73,6 +82,7 @@ export function PostEditorClient({ post, campaignId, topicTitle, keyword, weekly
       onScore={handleScore}
       onStatusChange={handleStatusChange}
       onObjectiveChange={handleObjectiveChange}
+      onDayChange={handleDayChange}
     />
   )
 }
