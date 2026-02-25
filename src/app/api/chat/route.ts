@@ -2,8 +2,10 @@ import { streamText, stepCountIs } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { chatRateLimiter } from '@/lib/rate-limit'
 import { getModel } from '@/shared/lib/ai-router'
+import { createClient } from '@/lib/supabase/server'
 import { chatInputSchema } from '@/features/orchestrator/types'
 import { specialistTools } from '@/features/orchestrator/tools/specialist-tools'
+import { getRecentLearnings } from '@/features/orchestrator/services/learning-service'
 
 // Human-readable labels for each module
 const MODULE_LABELS: Record<string, string> = {
@@ -18,7 +20,8 @@ const MODULE_LABELS: Record<string, string> = {
   settings: 'Configuracion',
 }
 
-const ORCHESTRATOR_SYSTEM_PROMPT = `Eres el Orquestador de ContentOps (Bitalize), un asistente experto en content operations para LinkedIn en el sector O&M fotovoltaico.
+function buildSystemPrompt(contextDescription: string, learningsSection: string): string {
+  return `Eres el Orquestador de ContentOps (Bitalize), un asistente experto en content operations para LinkedIn en el sector O&M fotovoltaico.
 
 ## Tu Rol
 Eres el "maestro de marionetas" del flujo de contenido. Guias al usuario en cada etapa:
@@ -30,7 +33,7 @@ Eres el "maestro de marionetas" del flujo de contenido. Guias al usuario en cada
 6. **Analytics**: Metricas, patrones exitosos y aprendizajes
 
 ## Contexto Actual
-{contextDescription}
+${contextDescription}
 
 ## Herramientas Disponibles
 Tienes acceso a herramientas que te permiten consultar datos reales del sistema:
@@ -44,7 +47,7 @@ Tienes acceso a herramientas que te permiten consultar datos reales del sistema:
 - **recordLearning**: Registrar un aprendizaje para mejorar futuras interacciones
 
 Usa las herramientas cuando el usuario pregunte sobre datos especificos. NO inventes datos — consulta siempre las herramientas para obtener informacion real.
-
+${learningsSection}
 ## Reglas
 - Responde en espanol, tono profesional pero cercano
 - Se conciso (maximo 3-4 parrafos por respuesta)
@@ -54,6 +57,77 @@ Usa las herramientas cuando el usuario pregunte sobre datos especificos. NO inve
 - Referencia datos del sector O&M fotovoltaico cuando sea relevante
 - Si el usuario da feedback valioso, usa recordLearning para registrarlo
 - NO inventes datos ni metricas - usa las herramientas o se honesto sobre lo que no sabes`
+}
+
+/**
+ * Fetches workspace_id for the current user.
+ */
+async function getWorkspaceId(userId: string): Promise<string | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('workspace_members')
+    .select('workspace_id')
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle()
+  return data?.workspace_id ?? null
+}
+
+/**
+ * Loads recent learnings and formats them as a system prompt section.
+ */
+async function buildLearningsSection(workspaceId: string | null): Promise<string> {
+  if (!workspaceId) return ''
+  const result = await getRecentLearnings(workspaceId, 10)
+  const learnings = result.data ?? []
+  if (learnings.length === 0) return ''
+
+  const items = learnings
+    .filter((l) => l.feedback_text)
+    .slice(0, 5)
+    .map((l) => `- [${l.agent_type}] ${l.feedback_text}`)
+    .join('\n')
+
+  if (!items) return ''
+
+  return `
+## Aprendizajes del Workspace
+Estos son insights y feedback previos del usuario. Usalos para mejorar tus respuestas:
+${items}
+`
+}
+
+/**
+ * Logs a tool call to orchestrator_actions (fire-and-forget).
+ */
+async function logAction(params: {
+  sessionId: string | undefined
+  workspaceId: string | null
+  userId: string
+  toolName: string
+  input: unknown
+  output: unknown
+  status: 'success' | 'failed'
+  errorMessage?: string
+}) {
+  if (!params.workspaceId) return
+  try {
+    const supabase = await createClient()
+    await supabase.from('orchestrator_actions').insert({
+      session_id: params.sessionId ?? null,
+      workspace_id: params.workspaceId,
+      agent_type: 'orchestrator',
+      action_name: params.toolName,
+      input_data: params.input,
+      output_data: params.output,
+      status: params.status,
+      error_message: params.errorMessage ?? null,
+      executed_by: params.userId,
+    })
+  } catch (err) {
+    console.error('[chat/route] Failed to log action:', err)
+  }
+}
 
 export async function POST(request: Request): Promise<Response> {
   // 1. Auth
@@ -85,9 +159,13 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  const { message, context, history } = parsed.data
+  const { message, context, history, sessionId } = parsed.data
 
-  // 5. Build context description for the system prompt
+  // 5. Get workspace context + learnings in parallel
+  const workspaceId = await getWorkspaceId(user.id)
+  const learningsSection = await buildLearningsSection(workspaceId)
+
+  // 6. Build context description for the system prompt
   const moduleLabel = MODULE_LABELS[context.module] ?? context.module
   let contextDescription = `Modulo: ${moduleLabel} (${context.path})`
   if (context.campaignId) contextDescription += `\nCampana ID: ${context.campaignId}`
@@ -97,12 +175,9 @@ export async function POST(request: Request): Promise<Response> {
   if (context.dayOfWeek !== undefined) contextDescription += `\nDia: ${context.dayOfWeek}`
   if (context.funnelStage) contextDescription += `\nFunnel: ${context.funnelStage}`
 
-  const systemPrompt = ORCHESTRATOR_SYSTEM_PROMPT.replace(
-    '{contextDescription}',
-    contextDescription
-  )
+  const systemPrompt = buildSystemPrompt(contextDescription, learningsSection)
 
-  // 6. Build the messages array
+  // 7. Build the messages array
   const messages = [
     ...history.map((h) => ({
       role: h.role as 'user' | 'assistant',
@@ -111,14 +186,32 @@ export async function POST(request: Request): Promise<Response> {
     { role: 'user' as const, content: message },
   ]
 
-  // 7. Stream response with tool calling
-  // stopWhen controls how many tool-calling rounds Gemini can take
+  // 8. Stream response with tool calling + action logging
   const result = streamText({
     model: getModel('orchestrator'),
     system: systemPrompt,
     messages,
     tools: specialistTools,
     stopWhen: stepCountIs(3),
+    onStepFinish: async (step) => {
+      // Log each tool call to orchestrator_actions
+      if (step.toolCalls && step.toolCalls.length > 0) {
+        for (const tc of step.toolCalls) {
+          const toolResult = step.toolResults?.find(
+            (tr) => tr.toolCallId === tc.toolCallId
+          )
+          await logAction({
+            sessionId,
+            workspaceId,
+            userId: user.id,
+            toolName: tc.toolName,
+            input: tc.input,
+            output: toolResult?.output ?? null,
+            status: 'success',
+          })
+        }
+      }
+    },
   })
 
   return result.toTextStreamResponse()

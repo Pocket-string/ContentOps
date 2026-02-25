@@ -105,6 +105,56 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+// Module-specific proactive suggestions
+const MODULE_SUGGESTIONS: Record<string, string[]> = {
+  dashboard: [
+    'Cual es el estado de mis campanas?',
+    'Que debo hacer esta semana?',
+    'Mostrar patrones exitosos',
+  ],
+  research: [
+    'Como empiezo un research?',
+    'Que temas deberia investigar?',
+    'Analizar tendencias del sector',
+  ],
+  topics: [
+    'Que temas tienen mejor fit score?',
+    'Sugerir un nuevo angulo',
+    'Evaluar este tema',
+  ],
+  campaigns: [
+    'Cual es el estado de esta campana?',
+    'Que variante es mejor?',
+    'Como mejoro el D/G/P/I?',
+  ],
+  posts: [
+    'Evaluar este copy',
+    'Sugerir mejoras al hook',
+    'Como mejorar el engagement?',
+  ],
+  visuals: [
+    'Ideas para el visual',
+    'Que formato funciona mejor?',
+    'Revisar coherencia con el copy',
+  ],
+  patterns: [
+    'Cuales son los hooks mas exitosos?',
+    'Que CTAs funcionan mejor?',
+    'Tendencias en engagement',
+  ],
+  insights: [
+    'Resumir aprendizajes recientes',
+    'Que metricas debo mejorar?',
+    'Comparar semanas anteriores',
+  ],
+}
+
+const DEFAULT_SUGGESTIONS = [
+  'Como empiezo un research?',
+  'Que variante es mejor?',
+  'Como mejoro el D/G/P/I?',
+]
+
 // ============================================
 // Main Component
 // ============================================
@@ -116,10 +166,13 @@ export function ChatWidget() {
     isLoading,
     messages,
     feedback,
+    sessionId,
     pageContext,
     toggle,
     setLoading,
+    setSessionId,
     addMessage,
+    setMessages,
     updateLastAssistantMessage,
     setPageContext,
     setFeedback,
@@ -127,6 +180,7 @@ export function ChatWidget() {
   } = useChatStore()
 
   const [input, setInput] = useState('')
+  const [sessionLoaded, setSessionLoaded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -136,6 +190,28 @@ export function ChatWidget() {
     const ids = extractIdsFromPath(pathname)
     setPageContext({ module, path: pathname, ...ids })
   }, [pathname, setPageContext])
+
+  // Load active session when chat opens for the first time
+  useEffect(() => {
+    if (!isOpen || sessionLoaded) return
+    setSessionLoaded(true)
+
+    async function loadSession() {
+      try {
+        const res = await fetch('/api/chat/session')
+        if (!res.ok) return
+        const data = await res.json() as { session?: { id: string; messages_json: unknown[] } | null }
+        if (data.session?.id && Array.isArray(data.session.messages_json) && data.session.messages_json.length > 0) {
+          setSessionId(data.session.id)
+          const restored = data.session.messages_json as ChatMessage[]
+          setMessages(restored)
+        }
+      } catch {
+        // Session load is best-effort
+      }
+    }
+    loadSession()
+  }, [isOpen, sessionLoaded, setSessionId, setMessages])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -149,12 +225,45 @@ export function ChatWidget() {
     }
   }, [isOpen])
 
+  // Ensure a session exists, creating one if needed
+  const ensureSession = useCallback(async (): Promise<string | null> => {
+    if (sessionId) return sessionId
+    try {
+      const res = await fetch('/api/chat/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageContext }),
+      })
+      if (!res.ok) return null
+      const data = await res.json() as { session?: { id: string } }
+      if (data.session?.id) {
+        setSessionId(data.session.id)
+        return data.session.id
+      }
+    } catch { /* session creation is best-effort */ }
+    return null
+  }, [sessionId, pageContext, setSessionId])
+
+  // Save messages to server (fire-and-forget)
+  const saveMessagesToServer = useCallback(async (sid: string, msgs: ChatMessage[]) => {
+    try {
+      await fetch('/api/chat/session/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: sid, messages: msgs }),
+      })
+    } catch { /* save is best-effort */ }
+  }, [])
+
   const handleSend = useCallback(async () => {
     const trimmed = input.trim()
     if (!trimmed || isLoading) return
 
     setInput('')
     setLoading(true)
+
+    // Ensure session exists
+    const sid = await ensureSession()
 
     // Add user message
     const userMsg: ChatMessage = {
@@ -188,6 +297,7 @@ export function ChatWidget() {
           message: trimmed,
           context: pageContext,
           history: historyMessages,
+          sessionId: sid,
         }),
       })
 
@@ -215,12 +325,18 @@ export function ChatWidget() {
         accumulated += decoder.decode(value, { stream: true })
         updateLastAssistantMessage(accumulated)
       }
+
+      // Save messages to session after successful exchange
+      if (sid) {
+        const updatedMessages = useChatStore.getState().messages
+        saveMessagesToServer(sid, updatedMessages)
+      }
     } catch {
       updateLastAssistantMessage('Error de red. Verifica tu conexion e intenta de nuevo.')
     } finally {
       setLoading(false)
     }
-  }, [input, isLoading, messages, pageContext, addMessage, updateLastAssistantMessage, setLoading])
+  }, [input, isLoading, messages, pageContext, addMessage, updateLastAssistantMessage, setLoading, ensureSession, saveMessagesToServer])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -339,11 +455,7 @@ export function ChatWidget() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5 justify-center mt-2">
-                  {[
-                    'Como empiezo un research?',
-                    'Que variante es mejor?',
-                    'Como mejoro el D/G/P/I?',
-                  ].map((suggestion) => (
+                  {(MODULE_SUGGESTIONS[pageContext.module] ?? DEFAULT_SUGGESTIONS).map((suggestion) => (
                     <button
                       key={suggestion}
                       onClick={() => { setInput(suggestion); inputRef.current?.focus() }}

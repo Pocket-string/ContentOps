@@ -64,6 +64,8 @@ export const chatInputSchema = z.object({
     )
     .max(10)
     .default([]),
+  // Session ID for persistence
+  sessionId: z.string().uuid().optional(),
 })
 
 export type ChatInput = z.infer<typeof chatInputSchema>

@@ -9,6 +9,9 @@ interface ChatState {
   isOpen: boolean
   isLoading: boolean
 
+  // Session
+  sessionId: string | null
+
   // Messages
   messages: ChatMessage[]
 
@@ -22,7 +25,9 @@ interface ChatState {
   setOpen: (open: boolean) => void
   toggle: () => void
   setLoading: (loading: boolean) => void
+  setSessionId: (id: string | null) => void
   addMessage: (message: ChatMessage) => void
+  setMessages: (messages: ChatMessage[]) => void
   updateLastAssistantMessage: (content: string) => void
   setPageContext: (context: PageContext) => void
   setFeedback: (messageId: string, positive: boolean) => void
@@ -32,6 +37,7 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set) => ({
   isOpen: false,
   isLoading: false,
+  sessionId: null,
   messages: [],
   feedback: {},
   pageContext: { module: 'dashboard', path: '/dashboard' },
@@ -39,11 +45,14 @@ export const useChatStore = create<ChatState>((set) => ({
   setOpen: (open) => set({ isOpen: open }),
   toggle: () => set((state) => ({ isOpen: !state.isOpen })),
   setLoading: (loading) => set({ isLoading: loading }),
+  setSessionId: (id) => set({ sessionId: id }),
 
   addMessage: (message) =>
     set((state) => ({
       messages: [...state.messages, message],
     })),
+
+  setMessages: (messages) => set({ messages }),
 
   updateLastAssistantMessage: (content) =>
     set((state) => {
@@ -64,5 +73,5 @@ export const useChatStore = create<ChatState>((set) => ({
       feedback: { ...state.feedback, [messageId]: positive },
     })),
 
-  clearMessages: () => set({ messages: [], feedback: {} }),
+  clearMessages: () => set({ messages: [], feedback: {}, sessionId: null }),
 }))
