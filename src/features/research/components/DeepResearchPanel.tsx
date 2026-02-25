@@ -337,7 +337,7 @@ export function DeepResearchPanel({
                         size="sm"
                         onClick={() =>
                           router.push(
-                            `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}`
+                            `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}${savedId ? `&from_research=${savedId}` : ''}`
                           )
                         }
                         className="shrink-0 self-start"

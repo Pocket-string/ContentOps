@@ -16,9 +16,10 @@ interface Props {
   topicTitle?: string
   keyword?: string
   weeklyBrief?: WeeklyBrief
+  topicContext?: string
 }
 
-export function PostEditorClient({ post, campaignId, topicTitle, keyword, weeklyBrief }: Props) {
+export function PostEditorClient({ post, campaignId, topicTitle, keyword, weeklyBrief, topicContext }: Props) {
   async function handleSaveVersion(formData: FormData) {
     const result = await savePostVersionAction(formData)
     if ('error' in result) {
@@ -66,6 +67,7 @@ export function PostEditorClient({ post, campaignId, topicTitle, keyword, weekly
       topicTitle={topicTitle}
       keyword={keyword}
       weeklyBrief={weeklyBrief}
+      topicContext={topicContext}
       onSaveVersion={handleSaveVersion}
       onSetCurrent={handleSetCurrent}
       onScore={handleScore}

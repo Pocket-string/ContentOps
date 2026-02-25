@@ -36,6 +36,17 @@ export default async function PostEditorPage({ params }: Props) {
   const keyword = campaign.keyword ?? undefined
   const weeklyBrief = campaign.weekly_brief ?? undefined
 
+  // Build additional context from topic data for richer copy generation
+  const topicContext = campaign.topics
+    ? [
+        campaign.topics.hypothesis ? `Hipotesis: ${campaign.topics.hypothesis}` : '',
+        campaign.topics.evidence ? `Evidencia: ${campaign.topics.evidence}` : '',
+        campaign.topics.anti_myth ? `Anti-mito: ${campaign.topics.anti_myth}` : '',
+        campaign.topics.silent_enemy_name ? `Enemigo silencioso: ${campaign.topics.silent_enemy_name}` : '',
+        campaign.topics.signals_json.length > 0 ? `Senales: ${campaign.topics.signals_json.join(', ')}` : '',
+      ].filter(Boolean).join('\n')
+    : undefined
+
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
       <PostEditorClient
@@ -44,6 +55,7 @@ export default async function PostEditorPage({ params }: Props) {
         topicTitle={topicTitle}
         keyword={keyword}
         weeklyBrief={weeklyBrief}
+        topicContext={topicContext}
       />
     </div>
   )

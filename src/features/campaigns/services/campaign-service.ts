@@ -31,7 +31,7 @@ export interface CampaignFilters {
  * Campaign with its parent topic title attached via join.
  */
 export type CampaignWithTopic = Campaign & {
-  topics: { title: string; evidence: string | null; anti_myth: string | null; signals_json: string[]; silent_enemy_name: string | null } | null
+  topics: { title: string; hypothesis: string | null; evidence: string | null; anti_myth: string | null; signals_json: string[]; silent_enemy_name: string | null } | null
 }
 
 /**
@@ -48,6 +48,7 @@ export type CampaignWithPosts = CampaignWithTopic & {
 const campaignWithTopicSchema = campaignSchema.extend({
   topics: z.object({
     title: z.string(),
+    hypothesis: z.string().nullable(),
     evidence: z.string().nullable(),
     anti_myth: z.string().nullable(),
     signals_json: z.array(z.string()),
@@ -77,7 +78,7 @@ export async function getCampaignList(
 
     let query = supabase
       .from('campaigns')
-      .select('*, topics(title, evidence, anti_myth, signals_json, silent_enemy_name)')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name)')
       .eq('workspace_id', workspaceId)
       .order('week_start', { ascending: false })
 
@@ -116,7 +117,7 @@ export async function getCampaignById(
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, topics(title, evidence, anti_myth, signals_json, silent_enemy_name), posts(*)')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name), posts(*)')
       .eq('id', id)
       .single()
 
@@ -214,18 +215,19 @@ export async function createCampaignWithPosts(
     }
 
     // Fetch topic fields if topic_id was provided
-    let topicData: { title: string; evidence: string | null; anti_myth: string | null; signals_json: string[]; silent_enemy_name: string | null } | null = null
+    let topicData: { title: string; hypothesis: string | null; evidence: string | null; anti_myth: string | null; signals_json: string[]; silent_enemy_name: string | null } | null = null
 
     if (parsedCampaign.data.topic_id) {
       const { data: topicRow } = await supabase
         .from('topics')
-        .select('title, evidence, anti_myth, signals_json, silent_enemy_name')
+        .select('title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name')
         .eq('id', parsedCampaign.data.topic_id)
         .single()
 
       if (topicRow) {
         topicData = {
           title: topicRow.title,
+          hypothesis: topicRow.hypothesis ?? null,
           evidence: topicRow.evidence ?? null,
           anti_myth: topicRow.anti_myth ?? null,
           signals_json: Array.isArray(topicRow.signals_json) ? (topicRow.signals_json as string[]) : [],

@@ -630,7 +630,7 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
                           size="sm"
                           onClick={() =>
                             router.push(
-                              `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}`
+                              `/topics/new?from_research=${research.id}&title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}`
                             )
                           }
                           className="shrink-0 self-start"
@@ -670,9 +670,9 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
                           size="sm"
                           onClick={() =>
                             router.push(
-                              `/topics/new?title=${encodeURIComponent(
+                              `/topics/new?from_research=${research.id}&title=${encodeURIComponent(
                                 bullet.suggested_topic_title
-                              )}&angle=${encodeURIComponent(bullet.suggested_angle)}`
+                              )}&angle=${encodeURIComponent(bullet.suggested_angle)}&hook_idea=${encodeURIComponent(bullet.insight)}`
                             )
                           }
                           className="shrink-0 self-start"

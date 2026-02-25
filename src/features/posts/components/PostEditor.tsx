@@ -34,6 +34,7 @@ interface PostEditorProps {
   topicTitle?: string
   keyword?: string
   weeklyBrief?: WeeklyBrief
+  topicContext?: string
   onSaveVersion: (formData: FormData) => Promise<{ success?: true; error?: string }>
   onSetCurrent: (versionId: string) => Promise<{ success?: true; error?: string }>
   onScore: (versionId: string, score: unknown) => Promise<{ success?: true; error?: string }>
@@ -339,6 +340,7 @@ export function PostEditor({
   topicTitle,
   keyword,
   weeklyBrief,
+  topicContext,
   onSaveVersion,
   onSetCurrent,
   onScore,
@@ -798,6 +800,7 @@ export function PostEditor({
                           keyword,
                           funnelStage: post.funnel_stage,
                           objective: post.objective ?? undefined,
+                          additionalContext: topicContext,
                         })}
                         label="Copiar Prompt"
                       />
@@ -872,6 +875,7 @@ export function PostEditor({
                       keyword,
                       funnelStage: post.funnel_stage,
                       objective: post.objective ?? undefined,
+                      additionalContext: topicContext,
                     })}
                     label="Copiar Prompt"
                   />
