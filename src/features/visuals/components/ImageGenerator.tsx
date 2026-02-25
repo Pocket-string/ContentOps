@@ -12,6 +12,7 @@ interface ImageGeneratorProps {
   format: VisualFormat
   currentImageUrl: string | null
   onImageGenerated: (imageUrl: string) => void
+  label?: string
 }
 
 const MODEL_OPTIONS = Object.values(IMAGE_MODELS).map((m) => ({
@@ -44,6 +45,7 @@ export function ImageGenerator({
   format,
   currentImageUrl,
   onImageGenerated,
+  label,
 }: ImageGeneratorProps) {
   const [modelId, setModelId] = useState<ImageModelId>(DEFAULT_IMAGE_MODEL)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -83,27 +85,41 @@ export function ImageGenerator({
   const handleDownload = useCallback(async () => {
     if (!previewUrl) return
     setIsDownloading(true)
+    setError('')
     try {
-      const res = await fetch(previewUrl)
-      const blob = await res.blob()
-      const ext = blob.type === 'image/jpeg' ? 'jpg'
-        : blob.type === 'image/webp' ? 'webp'
+      // Derive extension from URL path (more reliable than blob.type)
+      const urlPath = new URL(previewUrl).pathname
+      const urlExt = urlPath.split('.').pop()?.toLowerCase()
+      const ext = urlExt === 'jpg' || urlExt === 'jpeg' ? 'jpg'
+        : urlExt === 'webp' ? 'webp'
         : 'png'
-      const filename = `visual-${visualVersionId.slice(0, 8)}.${ext}`
-      const url = URL.createObjectURL(blob)
+
+      // Build a human-readable filename
+      const safeName = (label || 'visual')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 40)
+      const filename = `${safeName}-${format}.${ext}`
+
+      const res = await fetch(previewUrl)
+      if (!res.ok) throw new Error('fetch failed')
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url
+      a.href = blobUrl
       a.download = filename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      URL.revokeObjectURL(blobUrl)
     } catch {
-      setError('Error al descargar la imagen')
+      // Fallback: open in new tab so the user can right-click > Save As
+      window.open(previewUrl, '_blank')
     } finally {
       setIsDownloading(false)
     }
-  }, [previewUrl, visualVersionId])
+  }, [previewUrl, label, format])
 
   const hasPrompt = Object.keys(promptJson).length > 0
 

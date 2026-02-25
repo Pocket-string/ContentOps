@@ -666,6 +666,7 @@ export function VisualEditor({
                   format={format}
                   currentImageUrl={selectedVisual?.image_url ?? null}
                   onImageGenerated={(url) => setImageUrl(url)}
+                  label={topicTitle ? `${topicTitle} dia-${dayOfWeek}` : `visual-dia-${dayOfWeek}`}
                 />
                 <details className="mt-3 text-xs text-foreground-muted">
                   <summary className="cursor-pointer hover:text-foreground">URL manual (avanzado)</summary>
