@@ -316,12 +316,14 @@ export function PostEditor({
   // --- Day change state ---
   const [isChangingDay, setIsChangingDay] = useState(false)
 
-  // Track current editor content via ref for comparison in effect
-  const editContentRef = useRef(editContent)
-  editContentRef.current = editContent
-
   // Track active variant to detect real variant switches vs version refreshes
   const prevVariantRef = useRef(activeVariant)
+
+  // Flag to skip content reload after saving (prevents Recipe Validator reset)
+  const justSavedRef = useRef(false)
+
+  // Track whether editor has been initialized with content
+  const hasInitializedRef = useRef(false)
 
   // --- Derived ---
   const dayMeta = WEEKLY_PLAN[post.day_of_week]
@@ -336,14 +338,23 @@ export function PostEditor({
     const variantChanged = prevVariantRef.current !== activeVariant
     prevVariantRef.current = activeVariant
 
-    // Only update editor content if:
+    // After a save, skip overwriting editor content — the editor already has the correct text
+    // and the DB round-trip may subtly alter content (e.g. line endings), resetting the Recipe Validator
+    if (justSavedRef.current && !variantChanged) {
+      justSavedRef.current = false
+      return
+    }
+
+    // Update editor content when:
     // 1. User switched to a different variant tab, OR
-    // 2. The DB content differs from what's in the editor (e.g. first load)
-    if (variantChanged || newContent !== editContentRef.current) {
+    // 2. First load (editor not yet initialized)
+    if (variantChanged || !hasInitializedRef.current) {
       setEditContent(newContent)
+      hasInitializedRef.current = true
     }
 
     if (variantChanged) {
+      justSavedRef.current = false
       setIterationResult(null)
       setFeedback('')
       setError('')
@@ -371,6 +382,7 @@ export function PostEditor({
       if (result.error) {
         setError(result.error)
       } else {
+        justSavedRef.current = true
         showSuccess('Version guardada correctamente')
       }
     } finally {
