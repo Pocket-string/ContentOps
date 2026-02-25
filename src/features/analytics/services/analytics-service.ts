@@ -41,6 +41,7 @@ export interface PostMetricRow {
   dayOfWeek: number
   dayLabel: string
   funnelStage: string
+  postStatus: string
   impressions: number
   comments: number
   saves: number
@@ -56,8 +57,9 @@ export interface PostMetricRow {
 
 const postRowSchema = z.object({
   id: z.string().uuid(),
-  day_of_week: z.number().min(1).max(5),
+  day_of_week: z.number().min(1).max(7),
   funnel_stage: z.string(),
+  status: z.string(),
 })
 
 type PostRow = z.infer<typeof postRowSchema>
@@ -82,7 +84,7 @@ export async function getMetricsByCampaign(
     // Step 1: Fetch all posts for this campaign
     const { data: postsRaw, error: postsError } = await supabase
       .from('posts')
-      .select('id, day_of_week, funnel_stage')
+      .select('id, day_of_week, funnel_stage, status')
       .eq('campaign_id', campaignId)
       .order('day_of_week')
 
@@ -137,6 +139,7 @@ export async function getMetricsByCampaign(
         dayOfWeek: post.day_of_week,
         dayLabel: dayEntry?.label ?? `Dia ${post.day_of_week}`,
         funnelStage: post.funnel_stage,
+        postStatus: post.status,
         impressions: metrics?.impressions ?? 0,
         comments: metrics?.comments ?? 0,
         saves: metrics?.saves ?? 0,

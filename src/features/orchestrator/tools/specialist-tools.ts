@@ -77,7 +77,7 @@ export const getPostContent = tool({
   description: 'Obtiene el contenido actual de un post especifico con sus variantes y scores',
   inputSchema: z.object({
     campaignId: z.string().uuid().describe('ID de la campana'),
-    dayOfWeek: z.number().min(1).max(5).describe('Dia de la semana (1=Lunes, 5=Viernes)'),
+    dayOfWeek: z.number().min(1).max(7).describe('Dia de la semana (1=Lunes, 7=Domingo)'),
   }),
   execute: async ({ campaignId, dayOfWeek }) => {
     const supabase = await createClient()

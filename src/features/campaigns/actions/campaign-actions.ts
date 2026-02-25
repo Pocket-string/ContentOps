@@ -58,14 +58,28 @@ function parseJsonField(value: FormDataEntryValue | null): Record<string, unknow
 function parseCampaignFormData(formData: FormData): Record<string, unknown> {
   const topicId = formData.get('topic_id')
   const keyword = formData.get('keyword')
+  const frequencyRaw = formData.get('post_frequency')
+  const selectedDaysRaw = formData.get('selected_days')
 
-  return {
+  const result: Record<string, unknown> = {
     week_start: formData.get('week_start'),
     topic_id: typeof topicId === 'string' && topicId.trim().length > 0 ? topicId.trim() : undefined,
     keyword: typeof keyword === 'string' && keyword.trim().length > 0 ? keyword.trim() : undefined,
     resource_json: parseJsonField(formData.get('resource_json')),
     audience_json: parseJsonField(formData.get('audience_json')),
   }
+
+  if (typeof frequencyRaw === 'string' && frequencyRaw.length > 0) {
+    result.post_frequency = Number(frequencyRaw)
+  }
+
+  if (typeof selectedDaysRaw === 'string' && selectedDaysRaw.length > 0) {
+    try {
+      result.selected_days = JSON.parse(selectedDaysRaw) as unknown
+    } catch { /* ignore */ }
+  }
+
+  return result
 }
 
 // ============================================

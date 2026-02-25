@@ -7,6 +7,8 @@ import {
   weeklyBriefSchema,
   publishingPlanSchema,
   WEEKLY_PLAN,
+  DEFAULT_DAYS_5,
+  DEFAULT_DAYS_3,
   POST_VARIANTS,
   type Campaign,
   type Post,
@@ -161,11 +163,16 @@ export async function getCampaignById(
 }
 
 /**
- * Create a new campaign and auto-generate its 5 weekly posts.
+ * Create a new campaign and auto-generate weekly posts.
+ *
+ * Respects `post_frequency` (3, 5, or 7) and `selected_days` from input.
+ *   - 7: all days (Mon-Sun)
+ *   - 5 (default): Mon-Fri
+ *   - 3: user-chosen days (or default Mon/Wed/Fri)
  *
  * Two-step process:
  *   1. Insert the campaign row.
- *   2. Bulk-insert 5 posts using WEEKLY_PLAN (day → funnel_stage mapping).
+ *   2. Bulk-insert posts for the selected days using WEEKLY_PLAN mapping.
  *
  * Returns the full campaign with posts attached.
  */
@@ -210,11 +217,19 @@ export async function createCampaignWithPosts(
       return { error: 'Error al parsear la campana creada' }
     }
 
-    // Step 2: Auto-generate 5 posts using WEEKLY_PLAN
-    const postsPayload = Object.entries(WEEKLY_PLAN).map(([day, plan]) => ({
+    // Step 2: Determine which days to generate posts for
+    const frequency = validated.data.post_frequency ?? 5
+    const daysToGenerate =
+      frequency === 7
+        ? [1, 2, 3, 4, 5, 6, 7]
+        : frequency === 3
+          ? (validated.data.selected_days ?? DEFAULT_DAYS_3)
+          : DEFAULT_DAYS_5
+
+    const postsPayload = daysToGenerate.map((day) => ({
       campaign_id: parsedCampaign.data.id,
-      day_of_week: Number(day),
-      funnel_stage: plan.stage,
+      day_of_week: day,
+      funnel_stage: WEEKLY_PLAN[day].stage,
       status: 'draft' as const,
       objective: null,
     }))

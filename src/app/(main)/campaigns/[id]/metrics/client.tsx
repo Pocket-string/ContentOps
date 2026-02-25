@@ -14,6 +14,7 @@ interface PostMetricRow {
   dayOfWeek: number
   dayLabel: string
   funnelStage: string
+  postStatus: string
   impressions: number
   comments: number
   saves: number

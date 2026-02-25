@@ -14,7 +14,7 @@ const MetricsMiniChart = dynamic(
 // ---- Types ----
 
 interface PostMetric {
-  postId: string; dayOfWeek: number; dayLabel: string; funnelStage: string
+  postId: string; dayOfWeek: number; dayLabel: string; funnelStage: string; postStatus: string
   impressions: number; comments: number; saves: number; shares: number; leads: number
   notes: string | null; metricsId: string | null
 }
@@ -146,8 +146,13 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
       }
       const perf = json.data?.performance
       if (!perf) return
-      // Apply to the first post that has no metrics yet, or the first post
-      const targetDay = postMetrics.find((pm) => pm.metricsId === null)?.dayOfWeek ?? postMetrics[0]?.dayOfWeek
+      // Apply to the first published post that has no metrics yet
+      const publishedWithoutMetrics = postMetrics.filter((pm) => pm.postStatus === 'published' && pm.metricsId === null)
+      if (publishedWithoutMetrics.length === 0) {
+        setError('No hay posts publicados sin metricas. Marca un post como "Publicado" primero.')
+        return
+      }
+      const targetDay = publishedWithoutMetrics[0].dayOfWeek
       if (targetDay !== undefined) {
         setMetricsState((prev) => ({
           ...prev,
@@ -261,6 +266,9 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
                 <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-border">
                   <span className="text-sm font-semibold text-foreground">{pm.dayLabel}</span>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${stage.color}`}>{stage.label}</span>
+                  {pm.postStatus === 'published' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700">Publicado</span>
+                  )}
                 </div>
                 <div className="p-4 space-y-3">
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">

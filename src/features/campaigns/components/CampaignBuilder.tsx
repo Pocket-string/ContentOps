@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select'
 import { CAMPAIGN_STATUSES, WEEKLY_PLAN, POST_VARIANTS } from '@/shared/types/content-ops'
 import type { Campaign, Post, CampaignStatus, FunnelStage, PostStatus, PostVariant, WeeklyBrief, PublishingPlan } from '@/shared/types/content-ops'
 import type { PostWithVersions, PostVersionSummary } from '@/features/campaigns/services/campaign-service'
+import { updatePostStatusAction } from '@/features/posts/actions/post-actions'
 import { WeeklyBriefForm } from './WeeklyBriefForm'
 
 // ---- Types ----
@@ -306,10 +307,12 @@ interface DayColumnProps {
   stage: FunnelStage
   post: PostWithVersions | undefined
   campaignId: string
+  onPublishedToggle?: (postId: string, published: boolean) => Promise<void>
 }
 
-function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnProps) {
+function DayColumn({ dayNumber, dayLabel, stage, post, campaignId, onPublishedToggle }: DayColumnProps) {
   const router = useRouter()
+  const [isTogglingPublished, setIsTogglingPublished] = useState(false)
   const meta = FUNNEL_STAGE_META[stage]
 
   function handleEditPost() {
@@ -320,6 +323,17 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnPr
     const { bestVersion } = getVersionSummary(post?.post_versions ?? [])
     const variantParam = bestVersion?.variant ? `?variant=${bestVersion.variant}` : ''
     router.push(`/campaigns/${campaignId}/visuals/${dayNumber}${variantParam}`)
+  }
+
+  async function handleTogglePublished() {
+    if (!post || !onPublishedToggle) return
+    setIsTogglingPublished(true)
+    try {
+      const newPublished = post.status !== 'published'
+      await onPublishedToggle(post.id, newPublished)
+    } finally {
+      setIsTogglingPublished(false)
+    }
   }
 
   return (
@@ -399,6 +413,24 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnPr
               )
             })()}
 
+            {/* Published toggle */}
+            {onPublishedToggle && (
+              <button
+                type="button"
+                onClick={handleTogglePublished}
+                disabled={isTogglingPublished}
+                className={`self-start inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                  post.status === 'published'
+                    ? 'bg-success-100 text-success-700 border-success-300'
+                    : 'bg-gray-50 text-foreground-muted border-border hover:border-border-dark'
+                } ${isTogglingPublished ? 'opacity-50' : ''}`}
+                aria-label={post.status === 'published' ? 'Marcar como no publicado' : 'Marcar como publicado'}
+              >
+                <span className={`w-2 h-2 rounded-full ${post.status === 'published' ? 'bg-success-500' : 'bg-gray-300'}`} />
+                {post.status === 'published' ? 'Publicado' : 'Publicar'}
+              </button>
+            )}
+
             {/* Action buttons */}
             <div className="flex gap-2 mt-auto">
               <Button
@@ -452,6 +484,7 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnPr
 // ---- Main component ----
 
 export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }: CampaignBuilderProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'semana' | 'brief'>('semana')
   const [isChangingStatus, setIsChangingStatus] = useState(false)
   const [statusError, setStatusError] = useState('')
@@ -461,6 +494,25 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
     acc[post.day_of_week] = post
     return acc
   }, {})
+
+  // Determine which days to show (only days with posts)
+  const activeDays = Object.entries(WEEKLY_PLAN)
+    .filter(([dayNum]) => postsByDay[Number(dayNum)] !== undefined)
+
+  // Grid columns class based on post count
+  const gridColsClass =
+    activeDays.length <= 3 ? 'md:grid-cols-3' :
+    activeDays.length <= 5 ? 'md:grid-cols-5' :
+    'md:grid-cols-7'
+
+  async function handlePublishedToggle(postId: string, published: boolean) {
+    const result = await updatePostStatusAction(postId, published ? 'published' : 'approved')
+    if ('error' in result) {
+      setStatusError(result.error)
+    } else {
+      router.refresh()
+    }
+  }
 
   async function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newStatus = e.target.value
@@ -547,10 +599,12 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
         {/* Posts summary strip */}
         <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs text-foreground-muted">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground">{posts.length} / 5</span>
-            <span>posts generados</span>
+            <span className="font-medium text-foreground">{posts.length}</span>
+            <span>posts</span>
             <span className="ml-1">&middot;</span>
-            <span>Lunes a Viernes</span>
+            <span>{activeDays.map(([, { label }]) => label).join(', ')}</span>
+            <span className="ml-1">&middot;</span>
+            <span className="font-medium text-success-600">{posts.filter((p) => p.status === 'published').length} publicados</span>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -615,9 +669,9 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
           {/* Builder grid */}
           <section aria-label="Posts de la semana" id="panel-semana" role="tabpanel" aria-labelledby="tab-semana">
             <h2 className="sr-only">Plan semanal de posts</h2>
-            {/* Desktop: 5-column grid */}
-            <div className="hidden md:grid md:grid-cols-5 gap-4">
-              {Object.entries(WEEKLY_PLAN).map(([dayNum, { label, stage }]) => (
+            {/* Desktop: dynamic column grid */}
+            <div className={`hidden md:grid ${gridColsClass} gap-4`}>
+              {activeDays.map(([dayNum, { label, stage }]) => (
                 <DayColumn
                   key={dayNum}
                   dayNumber={Number(dayNum)}
@@ -625,13 +679,14 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
                   stage={stage}
                   post={postsByDay[Number(dayNum)]}
                   campaignId={campaign.id}
+                  onPublishedToggle={handlePublishedToggle}
                 />
               ))}
             </div>
 
             {/* Mobile: vertical stack */}
             <div className="flex flex-col gap-4 md:hidden">
-              {Object.entries(WEEKLY_PLAN).map(([dayNum, { label, stage }]) => (
+              {activeDays.map(([dayNum, { label, stage }]) => (
                 <DayColumn
                   key={dayNum}
                   dayNumber={Number(dayNum)}
@@ -639,6 +694,7 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
                   stage={stage}
                   post={postsByDay[Number(dayNum)]}
                   campaignId={campaign.id}
+                  onPublishedToggle={handlePublishedToggle}
                 />
               ))}
             </div>

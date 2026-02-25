@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import type { CreateCampaignInput } from '@/shared/types/content-ops'
+import type { CreateCampaignInput, PostFrequency } from '@/shared/types/content-ops'
+import { WEEKLY_PLAN, DEFAULT_DAYS_3, DEFAULT_DAYS_5 } from '@/shared/types/content-ops'
 
 // ---- Types ----
 
@@ -46,6 +47,8 @@ export function CampaignForm({ topics = [], onSubmit, onSuccess }: CampaignFormP
   const [weekStart, setWeekStart] = useState('')
   const [topicId, setTopicId] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [frequency, setFrequency] = useState<PostFrequency>(5)
+  const [selectedDays, setSelectedDays] = useState<number[]>(DEFAULT_DAYS_5)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ week_start?: string }>({})
@@ -79,6 +82,8 @@ export function CampaignForm({ topics = [], onSubmit, onSuccess }: CampaignFormP
         keyword: keyword.trim() || undefined,
         resource_json: {},
         audience_json: {},
+        post_frequency: frequency,
+        selected_days: frequency === 3 ? selectedDays : undefined,
       }
 
       const result = await onSubmit(data)
@@ -109,10 +114,76 @@ export function CampaignForm({ topics = [], onSubmit, onSuccess }: CampaignFormP
         >
           <InfoIcon className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
           <p className="text-sm text-blue-700 leading-relaxed">
-            Se generaran automaticamente <strong>5 posts (L-V)</strong> con asignacion{' '}
+            Se generaran automaticamente <strong>{frequency} posts</strong> con asignacion{' '}
             <strong>TOFU / MOFU / BOFU</strong> segun el plan semanal.
           </p>
         </div>
+
+        {/* Frequency selector */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Frecuencia de publicacion
+          </label>
+          <div className="flex gap-2">
+            {([3, 5, 7] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => {
+                  setFrequency(f)
+                  if (f === 5) setSelectedDays(DEFAULT_DAYS_5)
+                  else if (f === 3) setSelectedDays(DEFAULT_DAYS_3)
+                  else setSelectedDays([1, 2, 3, 4, 5, 6, 7])
+                }}
+                className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                  frequency === f
+                    ? 'bg-primary-50 border-primary-300 text-primary-700'
+                    : 'bg-surface border-border text-foreground-muted hover:border-border-dark'
+                }`}
+              >
+                {f === 3 ? '3 dias' : f === 5 ? '5 dias (L-V)' : '7 dias'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Day picker (only for 3-day mode) */}
+        {frequency === 3 && (
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Selecciona los dias
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(WEEKLY_PLAN).map(([dayNum, { label }]) => {
+                const d = Number(dayNum)
+                const isSelected = selectedDays.includes(d)
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        if (selectedDays.length > 1) setSelectedDays(selectedDays.filter((x) => x !== d))
+                      } else if (selectedDays.length < 3) {
+                        setSelectedDays([...selectedDays, d].sort())
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                      isSelected
+                        ? 'bg-primary-50 border-primary-300 text-primary-700'
+                        : 'bg-surface border-border text-foreground-muted hover:border-border-dark'
+                    } ${selectedDays.length >= 3 && !isSelected ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs text-foreground-muted mt-1">
+              {selectedDays.length}/3 dias seleccionados
+            </p>
+          </div>
+        )}
 
         {/* Week start */}
         <Input

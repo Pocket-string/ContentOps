@@ -13,7 +13,7 @@ export default async function PostEditorPage({ params }: Props) {
   const { id: campaignId, day: dayStr } = await params
   const dayOfWeek = parseInt(dayStr, 10)
 
-  if (isNaN(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 5) {
+  if (isNaN(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7) {
     notFound()
   }
 

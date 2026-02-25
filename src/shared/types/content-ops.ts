@@ -31,14 +31,25 @@ export type VisualStatus = (typeof VISUAL_STATUSES)[number]
 export const ASSET_TYPES = ['image', 'document', 'other'] as const
 export type AssetType = (typeof ASSET_TYPES)[number]
 
-// Weekly plan mapping: day → funnel stage
+// Weekly plan mapping: day → funnel stage (full 7-day)
 export const WEEKLY_PLAN: Record<number, { label: string; stage: FunnelStage }> = {
   1: { label: 'Lunes', stage: 'tofu_problem' },
   2: { label: 'Martes', stage: 'mofu_problem' },
   3: { label: 'Miércoles', stage: 'tofu_solution' },
   4: { label: 'Jueves', stage: 'mofu_solution' },
   5: { label: 'Viernes', stage: 'bofu_conversion' },
+  6: { label: 'Sábado', stage: 'tofu_problem' },
+  7: { label: 'Domingo', stage: 'mofu_solution' },
 }
+
+// Post frequency options
+export const POST_FREQUENCIES = [3, 5, 7] as const
+export type PostFrequency = (typeof POST_FREQUENCIES)[number]
+
+// Default days for 5-day frequency (Mon-Fri)
+export const DEFAULT_DAYS_5 = [1, 2, 3, 4, 5]
+// Default days for 3-day frequency (Mon, Wed, Fri)
+export const DEFAULT_DAYS_3 = [1, 3, 5]
 
 // D/G/P/I Score
 export const scoreJsonSchema = z.object({
@@ -178,7 +189,7 @@ export const campaignSchema = z.object({
 export const postSchema = z.object({
   id: z.string().uuid(),
   campaign_id: z.string().uuid(),
-  day_of_week: z.number().min(1).max(5),
+  day_of_week: z.number().min(1).max(7),
   funnel_stage: z.enum(FUNNEL_STAGES),
   objective: z.string().nullable(),
   status: z.enum(POST_STATUSES),
@@ -326,6 +337,8 @@ export const createCampaignSchema = z.object({
   keyword: z.string().optional(),
   resource_json: z.record(z.unknown()).default({}),
   audience_json: z.record(z.unknown()).default({}),
+  post_frequency: z.number().refine((v) => [3, 5, 7].includes(v)).default(5),
+  selected_days: z.array(z.number().min(1).max(7)).optional(),
 })
 
 export const savePostVersionSchema = z.object({
