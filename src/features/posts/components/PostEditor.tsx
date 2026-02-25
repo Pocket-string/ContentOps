@@ -42,13 +42,6 @@ interface PostEditorProps {
   onObjectiveChange: (postId: string, objective: string) => Promise<{ success?: true; error?: string }>
 }
 
-interface ScoreState {
-  detener: number
-  ganar: number
-  provocar: number
-  iniciar: number
-}
-
 interface IterationResult {
   content: string
   changes_made: string[]
@@ -278,58 +271,6 @@ function ScoreBadge({ score }: { score: ScoreJson | null }) {
   )
 }
 
-// --- Rubric slider row ---
-interface SliderRowProps {
-  id: string
-  label: string
-  description: string
-  value: number
-  onChange: (value: number) => void
-}
-
-function SliderRow({ id, label, description, value, onChange }: SliderRowProps) {
-  const trackColor =
-    value >= 4
-      ? 'accent-green-500'
-      : value >= 2
-        ? 'accent-yellow-500'
-        : 'accent-red-500'
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <label htmlFor={id} className="text-sm font-medium text-foreground">
-          <span className="font-bold">{label}</span>{' '}
-          <span className="text-foreground-muted font-normal">— {description}</span>
-        </label>
-        <span
-          className={`text-sm font-bold tabular-nums w-8 text-right ${
-            value >= 4 ? 'text-green-600' : value >= 2 ? 'text-yellow-600' : 'text-red-500'
-          }`}
-          aria-live="polite"
-        >
-          {value}/5
-        </span>
-      </div>
-      <input
-        id={id}
-        type="range"
-        min={0}
-        max={5}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className={`w-full h-2 rounded-full appearance-none cursor-pointer bg-gray-200 ${trackColor}`}
-        aria-label={`${label}: ${value} de 5`}
-      />
-      <div className="flex justify-between text-xs text-foreground-muted">
-        <span>0</span>
-        <span>5</span>
-      </div>
-    </div>
-  )
-}
-
 // ============================================
 // Main PostEditor component
 // ============================================
@@ -355,9 +296,6 @@ export function PostEditor({
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [iterationResult, setIterationResult] = useState<IterationResult | null>(null)
-  const [score, setScore] = useState<ScoreState>({ detener: 0, ganar: 0, provocar: 0, iniciar: 0 })
-  const [scoreNotes, setScoreNotes] = useState('')
-  const [isSavingScore, setIsSavingScore] = useState(false)
   const [error, setError] = useState('')
   const [importText, setImportText] = useState('')
   const [importPreview, setImportPreview] = useState<ReturnType<typeof parseCopyVariants> | null>(null)
@@ -383,22 +321,8 @@ export function PostEditor({
     const version = getCurrentVersionForVariant(post.versions, activeVariant)
     if (version) {
       setEditContent(version.content)
-      if (version.score_json) {
-        setScore({
-          detener: version.score_json.detener,
-          ganar: version.score_json.ganar,
-          provocar: version.score_json.provocar,
-          iniciar: version.score_json.iniciar,
-        })
-        setScoreNotes(version.score_json.notes ?? '')
-      } else {
-        setScore({ detener: 0, ganar: 0, provocar: 0, iniciar: 0 })
-        setScoreNotes('')
-      }
     } else {
       setEditContent('')
-      setScore({ detener: 0, ganar: 0, provocar: 0, iniciar: 0 })
-      setScoreNotes('')
     }
     setIterationResult(null)
     setFeedback('')
@@ -445,29 +369,6 @@ export function PostEditor({
     },
     [onSetCurrent]
   )
-
-  const handleSaveScore = useCallback(async () => {
-    const currentVersion = getCurrentVersionForVariant(post.versions, activeVariant)
-    if (!currentVersion) return
-    setIsSavingScore(true)
-    setError('')
-    try {
-      const total = score.detener + score.ganar + score.provocar + score.iniciar
-      const scorePayload: ScoreJson = {
-        ...score,
-        total,
-        notes: scoreNotes || undefined,
-      }
-      const result = await onScore(currentVersion.id, scorePayload)
-      if (result.error) {
-        setError(result.error)
-      } else {
-        showSuccess('Score guardado')
-      }
-    } finally {
-      setIsSavingScore(false)
-    }
-  }, [score, scoreNotes, activeVariant, post.versions, onScore])
 
   const handleStatusChange = useCallback(
     async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -552,7 +453,8 @@ export function PostEditor({
     setIsIterating(true)
     setError('')
     try {
-      const total = score.detener + score.ganar + score.provocar + score.iniciar
+      const currentVersion = getCurrentVersionForVariant(post.versions, activeVariant)
+      const existingScore = currentVersion?.score_json
       const response = await fetch('/api/ai/iterate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -560,7 +462,7 @@ export function PostEditor({
           current_content: editContent,
           feedback,
           variant: activeVariant,
-          score: total > 0 ? score : undefined,
+          score: existingScore?.total ? existingScore : undefined,
         }),
       })
       const json: unknown = await response.json()
@@ -579,7 +481,7 @@ export function PostEditor({
     } finally {
       setIsIterating(false)
     }
-  }, [editContent, feedback, activeVariant, score])
+  }, [editContent, feedback, activeVariant, post.versions])
 
   const handleUseIterationResult = useCallback(async () => {
     if (!iterationResult) return
@@ -609,7 +511,6 @@ export function PostEditor({
   // ============================================
 
   const currentVariantVersion = getCurrentVersionForVariant(post.versions, activeVariant)
-  const totalScore = score.detener + score.ganar + score.provocar + score.iniciar
 
   return (
     <div className="min-h-screen bg-background">
@@ -1039,98 +940,6 @@ export function PostEditor({
                 disabled={isChangingStatus}
                 aria-label="Estado del post"
               />
-            </div>
-
-            {/* 2. D/G/P/I Rubric */}
-            <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-foreground">Rubrica D/G/P/I</h2>
-                <span
-                  className={`text-sm font-bold tabular-nums px-2.5 py-0.5 rounded-full ${
-                    totalScore >= 16
-                      ? 'bg-green-100 text-green-700'
-                      : totalScore >= 10
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-gray-100 text-gray-600'
-                  }`}
-                  aria-live="polite"
-                  aria-label={`Puntuacion total: ${totalScore} de 20`}
-                >
-                  {totalScore} / 20
-                </span>
-              </div>
-
-              <div className="space-y-5">
-                <SliderRow
-                  id="score-detener"
-                  label="D — Detener"
-                  description="Detiene el scroll?"
-                  value={score.detener}
-                  onChange={(v) => setScore((prev) => ({ ...prev, detener: v }))}
-                />
-                <SliderRow
-                  id="score-ganar"
-                  label="G — Ganar"
-                  description="Gana la atencion?"
-                  value={score.ganar}
-                  onChange={(v) => setScore((prev) => ({ ...prev, ganar: v }))}
-                />
-                <SliderRow
-                  id="score-provocar"
-                  label="P — Provocar"
-                  description="Provoca reaccion?"
-                  value={score.provocar}
-                  onChange={(v) => setScore((prev) => ({ ...prev, provocar: v }))}
-                />
-                <SliderRow
-                  id="score-iniciar"
-                  label="I — Iniciar"
-                  description="Inicia conversacion?"
-                  value={score.iniciar}
-                  onChange={(v) => setScore((prev) => ({ ...prev, iniciar: v }))}
-                />
-              </div>
-
-              <div className="mt-4">
-                <label htmlFor="score-notes" className="block text-sm font-medium text-foreground mb-1.5">
-                  Notas del score
-                </label>
-                <textarea
-                  id="score-notes"
-                  value={scoreNotes}
-                  onChange={(e) => setScoreNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Observaciones sobre el scoring..."
-                  className="
-                    w-full px-3 py-2.5
-                    bg-background text-foreground
-                    border border-border hover:border-border-dark
-                    rounded-xl placeholder:text-foreground-muted
-                    text-sm leading-relaxed resize-none
-                    transition-all duration-200
-                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent
-                  "
-                />
-              </div>
-
-              <div className="mt-3">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleSaveScore}
-                  isLoading={isSavingScore}
-                  disabled={!currentVariantVersion}
-                  leftIcon={<StarIcon className="w-4 h-4" />}
-                  className="w-full"
-                >
-                  Guardar Score
-                </Button>
-                {!currentVariantVersion && (
-                  <p className="text-xs text-foreground-muted mt-1.5 text-center">
-                    Guarda una version primero para puntuar
-                  </p>
-                )}
-              </div>
             </div>
 
             {/* QA Score Card */}
