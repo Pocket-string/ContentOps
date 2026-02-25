@@ -71,6 +71,14 @@ const QA_CATEGORY_LABELS: Record<string, string> = {
 
 const FORMAT_OPTIONS = VISUAL_FORMATS.map((f) => ({ value: f, label: FORMAT_LABELS[f] }))
 
+const DAY_LABELS: Record<number, string> = {
+  1: 'Lunes',
+  2: 'Martes',
+  3: 'Miercoles',
+  4: 'Jueves',
+  5: 'Viernes',
+}
+
 const NB_ITERATION_REASONS = [
   'Texto ilegible',
   'Caos visual / composicion saturada',
@@ -178,6 +186,7 @@ function allQaChecked(checks: Record<string, boolean>) {
 export function VisualEditor({
   postId,
   campaignId,
+  dayOfWeek,
   postContent,
   funnelStage,
   topicTitle,
@@ -389,10 +398,15 @@ export function VisualEditor({
             {/* 1. Header */}
             <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <Link href={`/campaigns/${campaignId}`} className="inline-flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors group" aria-label="Volver a la campana">
-                  <span className="group-hover:-translate-x-0.5 transition-transform"><ArrowLeftIcon /></span>
-                  Volver a la campana
-                </Link>
+                <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-foreground-muted">
+                  <Link href="/campaigns" className="hover:text-foreground transition-colors">Campanas</Link>
+                  <span aria-hidden="true">/</span>
+                  <Link href={`/campaigns/${campaignId}`} className="hover:text-foreground transition-colors">
+                    {topicTitle || 'Campana'}
+                  </Link>
+                  <span aria-hidden="true">/</span>
+                  <span className="text-foreground font-medium">Visual {DAY_LABELS[dayOfWeek] ?? ''}</span>
+                </nav>
                 <h1 className="text-lg font-bold text-foreground sm:ml-auto">Visual Editor</h1>
               </div>
               {(topicTitle || keyword) && (

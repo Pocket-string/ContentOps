@@ -374,7 +374,10 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnPr
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${meta.headerBg}`}>
               <FileIcon className={`w-5 h-5 ${meta.text}`} />
             </div>
-            <p className="text-xs text-foreground-muted">Post no generado</p>
+            <div className="space-y-0.5">
+              <p className={`text-xs font-medium ${meta.text}`}>{meta.label}</p>
+              <p className="text-xs text-foreground-muted">Sin contenido aun</p>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -382,7 +385,7 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnPr
               className="w-full text-xs"
               aria-label={`Crear post del ${dayLabel}`}
             >
-              Crear Post
+              Generar Post
             </Button>
           </div>
         )}
@@ -437,7 +440,16 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
               {campaign.topic_title && (
                 <span className="text-sm text-foreground-secondary">
                   Tema:{' '}
-                  <span className="font-medium text-foreground">{campaign.topic_title}</span>
+                  {campaign.topic_id ? (
+                    <Link
+                      href={`/topics/${campaign.topic_id}`}
+                      className="font-medium text-foreground hover:text-accent-600 transition-colors underline decoration-dotted underline-offset-2"
+                    >
+                      {campaign.topic_title}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground">{campaign.topic_title}</span>
+                  )}
                 </span>
               )}
               {!campaign.topic_title && (
