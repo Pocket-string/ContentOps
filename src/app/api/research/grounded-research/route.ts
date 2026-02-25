@@ -67,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
     const promptData = await buildResearchPrompt(tema, buyer_persona, region)
     const researchPrompt = promptData?.optimized_prompt ?? tema
 
-    // 4b. Step 1: Grounded search via Gemini + Google Search (no structured output)
+    // 4b. Step 1: Grounded search via Gemini + Google Search
     const systemPrompt = `Eres un analista de investigacion experto en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 
 Tu mision es investigar temas del sector y producir un reporte detallado con hallazgos clave, topics sugeridos para contenido de LinkedIn, y contexto de mercado.
@@ -90,17 +90,62 @@ ${region ? `- Region de interes: ${region}` : ''}`
       prompt: researchPrompt,
     })
 
-    // 4c. Step 2: Structure the grounded text into JSON schema (no tools)
-    const { object: researchData } = await generateObject({
-      model: google(GEMINI_MODEL),
-      schema: researchOutputSchema,
-      system: `Extrae y estructura la siguiente investigacion en el formato JSON solicitado.
-Mantén todos los datos, cifras y fuentes mencionadas.
-IMPORTANTE: El JSON debe incluir al menos 1 elemento en key_findings y al menos 1 elemento en suggested_topics.
-Cada suggested_topic debe tener: title (titulo del post), angle (angulo editorial), hook_idea (idea de gancho).
-Cada key_finding debe tener: finding (hallazgo), relevance (relevancia para el sector).`,
-      prompt: groundedText,
-    })
+    // If grounded search returned empty text, use the original prompt as fallback
+    const textForStructuring = groundedText.trim().length > 50
+      ? groundedText
+      : `Tema de investigacion: ${tema}\n\nPrompt: ${researchPrompt}\n\nGenera un analisis basado en tu conocimiento del sector fotovoltaico.`
+
+    // 4c. Step 2: Structure into JSON — try generateObject, fallback to manual parse
+    const structurePrompt = `Analiza la siguiente investigacion y estructura los resultados en JSON.
+
+INSTRUCCIONES ESTRICTAS:
+- "summary": resumen ejecutivo de la investigacion (1-3 parrafos)
+- "key_findings": array de hallazgos (cada uno con "finding", "relevance", y opcionalmente "source_hint")
+- "suggested_topics": array de temas para posts de LinkedIn (cada uno con "title", "angle", "hook_idea")
+- "market_context": contexto de mercado opcional
+
+INVESTIGACION:
+${textForStructuring}`
+
+    let researchData: z.infer<typeof researchOutputSchema>
+
+    try {
+      const { object } = await generateObject({
+        model: google(GEMINI_MODEL),
+        schema: researchOutputSchema,
+        prompt: structurePrompt,
+      })
+      researchData = object
+    } catch (schemaErr) {
+      // Fallback: ask for JSON as text and parse manually
+      console.warn('[grounded-research] generateObject failed, trying text fallback:', schemaErr instanceof Error ? schemaErr.message : schemaErr)
+
+      const { text: jsonText } = await generateText({
+        model: google(GEMINI_MODEL),
+        system: `Responde UNICAMENTE con JSON valido. Sin markdown, sin backticks, sin explicaciones.
+El JSON debe tener esta estructura exacta:
+{
+  "summary": "string",
+  "key_findings": [{"finding": "string", "relevance": "string", "source_hint": "string"}],
+  "suggested_topics": [{"title": "string", "angle": "string", "hook_idea": "string"}],
+  "market_context": "string"
+}`,
+        prompt: structurePrompt,
+      })
+
+      // Extract JSON from response (handle potential markdown wrapping)
+      const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        throw new Error('La IA no pudo estructurar los resultados. Intenta de nuevo.')
+      }
+
+      const parsed = researchOutputSchema.safeParse(JSON.parse(jsonMatch[0]))
+      if (!parsed.success) {
+        console.error('[grounded-research] Manual parse validation failed:', parsed.error.issues)
+        throw new Error('Los resultados no coinciden con el formato esperado. Intenta de nuevo.')
+      }
+      researchData = parsed.data
+    }
 
     // 4d. Persist results
     let savedResearchId: string | undefined
