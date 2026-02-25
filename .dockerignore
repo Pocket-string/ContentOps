@@ -1,23 +1,55 @@
+# Dependencies (rebuilt inside container)
 node_modules
+.pnp
+.pnp.js
+
+# Build artifacts (rebuilt inside container)
 .next
+/out
+/build
+/dist
+tsconfig.tsbuildinfo
+
+# Git (not needed in build context — saves ~5MB per build)
 .git
 .gitignore
+.gitattributes
+
+# Environment — secrets must come from Dokploy env vars
 .env
 .env.*
 !.env.example
-.claude
-.playwright-mcp
+
+# IDE / Editor
 .vscode
 .idea
+*.swp
+*.swo
+
+# Claude / AI tooling
+.claude
+.playwright-mcp
+
+# Documentation (not needed in production image)
 docs
-e2e
-supabase/migrations
 *.md
 !README.md
-Thumbs.db
-.DS_Store
-nul
+
+# Testing (not needed in production image)
+e2e
 playwright.config.ts
 playwright-report
 test-results
 coverage
+
+# Database migrations (applied via Supabase, not in Docker)
+supabase
+
+# Scripts (operational, not runtime)
+scripts
+
+# OS artifacts
+Thumbs.db
+.DS_Store
+nul
+*.pem
