@@ -46,7 +46,11 @@ export default async function DashboardPage() {
         .select('id, campaigns!inner(workspace_id)')
         .eq('status', 'draft')
         .eq('campaigns.workspace_id', workspaceId),
-      supabase.from('post_versions').select('score_json').not('score_json', 'is', null),
+      supabase
+        .from('post_versions')
+        .select('score_json, posts!inner(campaigns!inner(workspace_id))')
+        .eq('posts.campaigns.workspace_id', workspaceId)
+        .not('score_json', 'is', null),
       supabase
         .from('campaigns')
         .select('id, week_start, keyword, status, topics(title)')

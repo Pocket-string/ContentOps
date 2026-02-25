@@ -10,10 +10,12 @@ export const metadata = { title: 'Visual Editor | ContentOps' }
 
 interface Props {
   params: Promise<{ id: string; day: string }>
+  searchParams: Promise<{ variant?: string }>
 }
 
-export default async function VisualEditorPage({ params }: Props) {
+export default async function VisualEditorPage({ params, searchParams }: Props) {
   const { id: campaignId, day: dayStr } = await params
+  const { variant: variantParam } = await searchParams
   const dayOfWeek = parseInt(dayStr, 10)
 
   if (isNaN(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 5) {
@@ -35,9 +37,13 @@ export default async function VisualEditorPage({ params }: Props) {
   const campaign = campaignResult.data
   const post = postResult.data
 
-  // Get the current post content (from current version, if any)
-  const currentVersion = post.versions.find((v) => v.is_current)
-  const postContent = currentVersion?.content ?? ''
+  // Get post content: prefer variant from query param, fall back to is_current
+  const targetVersion = variantParam
+    ? post.versions
+        .filter((v) => v.variant === variantParam)
+        .sort((a, b) => b.version - a.version)[0]
+    : post.versions.find((v) => v.is_current)
+  const postContent = targetVersion?.content ?? ''
 
   // Get visual versions for this post
   const visualsResult = await getVisualsByPostId(post.id)

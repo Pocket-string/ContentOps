@@ -2,7 +2,8 @@
 
 import { CampaignBuilder } from '@/features/campaigns/components'
 import { updateCampaignStatusAction, updateBriefAction } from '@/features/campaigns/actions/campaign-actions'
-import type { Campaign, Post, WeeklyBrief, PublishingPlan } from '@/shared/types/content-ops'
+import type { Campaign, WeeklyBrief, PublishingPlan } from '@/shared/types/content-ops'
+import type { PostWithVersions } from '@/features/campaigns/services/campaign-service'
 
 type CampaignWithTopic = Campaign & {
   topic_title?: string
@@ -17,7 +18,7 @@ type CampaignWithTopic = Campaign & {
 
 interface Props {
   campaign: CampaignWithTopic
-  posts: Post[]
+  posts: PostWithVersions[]
 }
 
 export function CampaignBuilderClient({ campaign, posts }: Props) {

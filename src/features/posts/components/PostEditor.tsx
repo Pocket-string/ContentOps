@@ -290,6 +290,7 @@ export function PostEditor({
 }: PostEditorProps) {
   // --- Core state ---
   const [activeVariant, setActiveVariant] = useState<PostVariant>('contrarian')
+  const [compareMode, setCompareMode] = useState(false)
   const [editContent, setEditContent] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isIterating, setIsIterating] = useState(false)
@@ -622,50 +623,110 @@ export function PostEditor({
 
             {/* 3. Variant Tabs + 4. Copy Editor */}
             <div className="bg-surface border border-border rounded-2xl shadow-card overflow-hidden">
-              {/* Tabs */}
-              <div
-                role="tablist"
-                aria-label="Variantes del post"
-                className="flex border-b border-border"
-              >
-                {POST_VARIANTS.map((variant) => {
-                  const hasVersion =
-                    getVariantVersions(post.versions, variant).length > 0
-                  const isActive = activeVariant === variant
-                  return (
-                    <button
-                      key={variant}
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-controls={`tabpanel-${variant}`}
-                      id={`tab-${variant}`}
-                      onClick={() => setActiveVariant(variant)}
-                      className={`
-                        flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium
-                        border-b-2 transition-all duration-150
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-inset
-                        ${
-                          isActive
-                            ? 'border-primary-500 text-primary-600 bg-primary-50'
-                            : 'border-transparent text-foreground-muted hover:text-foreground hover:bg-gray-50'
-                        }
-                      `}
-                    >
-                      {VARIANT_LABELS[variant]}
-                      {hasVersion && (
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-primary-500' : 'bg-gray-400'}`}
-                          aria-hidden="true"
-                          title="Tiene contenido"
-                        />
-                      )}
-                    </button>
-                  )
-                })}
+              {/* Tabs + Compare toggle */}
+              <div className="flex items-stretch border-b border-border">
+                {compareMode ? (
+                  <div className="flex-1 flex items-center px-4 py-3">
+                    <span className="text-sm font-medium text-foreground">Comparando 3 variantes</span>
+                  </div>
+                ) : (
+                  <div
+                    role="tablist"
+                    aria-label="Variantes del post"
+                    className="flex flex-1"
+                  >
+                    {POST_VARIANTS.map((variant) => {
+                      const hasVersion =
+                        getVariantVersions(post.versions, variant).length > 0
+                      const isActive = activeVariant === variant
+                      return (
+                        <button
+                          key={variant}
+                          role="tab"
+                          aria-selected={isActive}
+                          aria-controls={`tabpanel-${variant}`}
+                          id={`tab-${variant}`}
+                          onClick={() => setActiveVariant(variant)}
+                          className={`
+                            flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium
+                            border-b-2 transition-all duration-150
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-inset
+                            ${
+                              isActive
+                                ? 'border-primary-500 text-primary-600 bg-primary-50'
+                                : 'border-transparent text-foreground-muted hover:text-foreground hover:bg-gray-50'
+                            }
+                          `}
+                        >
+                          {VARIANT_LABELS[variant]}
+                          {hasVersion && (
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-primary-500' : 'bg-gray-400'}`}
+                              aria-hidden="true"
+                              title="Tiene contenido"
+                            />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setCompareMode(!compareMode)}
+                  className="px-4 py-3 text-xs font-medium text-accent-600 hover:bg-accent-50 border-l border-border transition-colors shrink-0"
+                >
+                  {compareMode ? 'Editar' : 'Comparar'}
+                </button>
               </div>
 
-              {/* Tab panel */}
-              <div
+              {/* Compare mode panel */}
+              {compareMode && (
+                <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {POST_VARIANTS.map((variant) => {
+                    const version = getCurrentVersionForVariant(post.versions, variant)
+                    const score = version?.score_json ?? null
+                    return (
+                      <div
+                        key={variant}
+                        className="flex flex-col border border-border rounded-xl overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 border-b border-border">
+                          <VariantBadge variant={variant} />
+                          <ScoreBadge score={score} />
+                        </div>
+                        <div className="flex-1 p-3 max-h-80 overflow-y-auto">
+                          {version ? (
+                            <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                              {version.content}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-foreground-muted italic text-center py-8">
+                              Sin contenido
+                            </p>
+                          )}
+                        </div>
+                        <div className="px-3 py-2 border-t border-border">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs"
+                            onClick={() => {
+                              setActiveVariant(variant)
+                              setCompareMode(false)
+                            }}
+                          >
+                            Editar
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Tab panel (hidden during compare mode) */}
+              {!compareMode && <div
                 role="tabpanel"
                 id={`tabpanel-${activeVariant}`}
                 aria-labelledby={`tab-${activeVariant}`}
@@ -922,7 +983,7 @@ export function PostEditor({
                     </div>
                   )}
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
 

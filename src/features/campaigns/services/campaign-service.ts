@@ -2,10 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import {
   campaignSchema,
   postSchema,
+  scoreJsonSchema,
   createCampaignSchema,
   weeklyBriefSchema,
   publishingPlanSchema,
   WEEKLY_PLAN,
+  POST_VARIANTS,
   type Campaign,
   type Post,
   type CreateCampaignInput,
@@ -35,10 +37,16 @@ export type CampaignWithTopic = Campaign & {
 }
 
 /**
- * Campaign with full topic join and nested posts.
+ * Post with nested version summaries (for campaign page display).
+ */
+export type PostVersionSummary = z.infer<typeof postVersionSummarySchema>
+export type PostWithVersions = Post & { post_versions: PostVersionSummary[] }
+
+/**
+ * Campaign with full topic join and nested posts (including versions).
  */
 export type CampaignWithPosts = CampaignWithTopic & {
-  posts: Post[]
+  posts: PostWithVersions[]
 }
 
 // ============================================
@@ -56,8 +64,21 @@ const campaignWithTopicSchema = campaignSchema.extend({
   }).nullable(),
 })
 
+const postVersionSummarySchema = z.object({
+  id: z.string().uuid(),
+  variant: z.enum(POST_VARIANTS),
+  version: z.number(),
+  score_json: scoreJsonSchema.nullable(),
+  is_current: z.boolean(),
+  content: z.string(),
+})
+
+const postWithVersionsSchema = postSchema.extend({
+  post_versions: z.array(postVersionSummarySchema).default([]),
+})
+
 const campaignWithPostsSchema = campaignWithTopicSchema.extend({
-  posts: z.array(postSchema),
+  posts: z.array(postWithVersionsSchema),
 })
 
 // ============================================
@@ -117,7 +138,7 @@ export async function getCampaignById(
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name), posts(*)')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
       .eq('id', id)
       .single()
 
@@ -240,7 +261,7 @@ export async function createCampaignWithPosts(
       data: {
         ...parsedCampaign.data,
         topics: topicData,
-        posts: parsedPosts.data,
+        posts: parsedPosts.data.map((p) => ({ ...p, post_versions: [] })),
       },
     }
   } catch (err) {

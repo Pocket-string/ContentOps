@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
-import { CAMPAIGN_STATUSES, WEEKLY_PLAN } from '@/shared/types/content-ops'
-import type { Campaign, Post, CampaignStatus, FunnelStage, PostStatus, WeeklyBrief, PublishingPlan } from '@/shared/types/content-ops'
+import { CAMPAIGN_STATUSES, WEEKLY_PLAN, POST_VARIANTS } from '@/shared/types/content-ops'
+import type { Campaign, Post, CampaignStatus, FunnelStage, PostStatus, PostVariant, WeeklyBrief, PublishingPlan } from '@/shared/types/content-ops'
+import type { PostWithVersions, PostVersionSummary } from '@/features/campaigns/services/campaign-service'
 import { WeeklyBriefForm } from './WeeklyBriefForm'
 
 // ---- Types ----
@@ -24,7 +25,7 @@ type CampaignWithTopic = Campaign & {
 
 interface CampaignBuilderProps {
   campaign: CampaignWithTopic
-  posts: Post[]
+  posts: PostWithVersions[]
   onStatusChange?: (status: string) => Promise<{ error?: string } | void>
   onBriefSave?: (brief: WeeklyBrief, plan?: PublishingPlan) => Promise<{ error?: string } | void>
 }
@@ -58,6 +59,32 @@ const POST_STATUS_STYLES: Record<PostStatus, string> = {
   needs_human_review: 'bg-orange-100 text-orange-700',
   approved: 'bg-success-100 text-success-700',
   published: 'bg-primary-100 text-primary-700',
+}
+
+const VARIANT_LABELS: Record<PostVariant, string> = {
+  contrarian: 'Contrarian',
+  story: 'Narrativa',
+  data_driven: 'Dato de Shock',
+}
+
+/** Find the best-scored version and a copy preview from a post's versions. */
+function getVersionSummary(versions: PostVersionSummary[]) {
+  let bestVersion: PostVersionSummary | null = null
+  let bestScore = -1
+
+  for (const v of versions) {
+    const total = v.score_json?.total ?? -1
+    if (total > bestScore) {
+      bestScore = total
+      bestVersion = v
+    }
+  }
+
+  const currentVersion = versions.find((v) => v.is_current)
+  const previewVersion = bestVersion ?? currentVersion ?? versions[0]
+  const previewText = previewVersion?.content?.slice(0, 120) ?? null
+
+  return { bestVersion, bestScore: bestScore >= 0 ? bestScore : null, previewText }
 }
 
 // Funnel stage display metadata
@@ -277,7 +304,7 @@ interface DayColumnProps {
   dayNumber: number
   dayLabel: string
   stage: FunnelStage
-  post: Post | undefined
+  post: PostWithVersions | undefined
   campaignId: string
 }
 
@@ -290,7 +317,9 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnPr
   }
 
   function handleEditVisual() {
-    router.push(`/campaigns/${campaignId}/visuals/${dayNumber}`)
+    const { bestVersion } = getVersionSummary(post?.post_versions ?? [])
+    const variantParam = bestVersion?.variant ? `?variant=${bestVersion.variant}` : ''
+    router.push(`/campaigns/${campaignId}/visuals/${dayNumber}${variantParam}`)
   }
 
   return (
@@ -323,26 +352,52 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId }: DayColumnPr
       <div className={`flex-1 flex flex-col p-4 gap-3 ${meta.bg}`}>
         {post ? (
           <>
-            {/* Post status */}
-            <span
-              className={`
-                self-start inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                ${POST_STATUS_STYLES[post.status]}
-              `}
-            >
-              {POST_STATUS_LABELS[post.status]}
-            </span>
+            {/* Post status + score row */}
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className={`
+                  inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                  ${POST_STATUS_STYLES[post.status]}
+                `}
+              >
+                {POST_STATUS_LABELS[post.status]}
+              </span>
+              {(() => {
+                const { bestVersion, bestScore } = getVersionSummary(post.post_versions ?? [])
+                if (bestScore === null) return null
+                const scoreColor =
+                  bestScore >= 16 ? 'bg-green-100 text-green-700' :
+                  bestScore >= 10 ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
+                return (
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${scoreColor}`}>
+                    {bestScore.toFixed(0)}/20
+                  </span>
+                )
+              })()}
+            </div>
 
-            {/* Objective */}
-            {post.objective ? (
-              <p className="text-sm text-foreground leading-relaxed line-clamp-3 flex-1">
-                {post.objective}
-              </p>
-            ) : (
-              <p className="text-sm text-foreground-muted italic flex-1">
-                Sin objetivo definido
-              </p>
-            )}
+            {/* Best variant badge */}
+            {(() => {
+              const { bestVersion } = getVersionSummary(post.post_versions ?? [])
+              if (!bestVersion?.variant) return null
+              return (
+                <span className="self-start inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200">
+                  {VARIANT_LABELS[bestVersion.variant]}
+                </span>
+              )
+            })()}
+
+            {/* Copy preview */}
+            {(() => {
+              const { previewText } = getVersionSummary(post.post_versions ?? [])
+              if (!previewText) return null
+              return (
+                <p className="text-xs text-foreground-secondary leading-relaxed line-clamp-3 flex-1">
+                  {previewText}{previewText.length >= 120 ? '...' : ''}
+                </p>
+              )
+            })()}
 
             {/* Action buttons */}
             <div className="flex gap-2 mt-auto">
@@ -402,7 +457,7 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave }
   const [statusError, setStatusError] = useState('')
 
   // Index posts by day_of_week for O(1) lookup
-  const postsByDay = posts.reduce<Record<number, Post>>((acc, post) => {
+  const postsByDay = posts.reduce<Record<number, PostWithVersions>>((acc, post) => {
     acc[post.day_of_week] = post
     return acc
   }, {})
