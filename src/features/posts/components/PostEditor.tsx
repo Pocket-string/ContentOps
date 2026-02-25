@@ -316,8 +316,12 @@ export function PostEditor({
   // --- Day change state ---
   const [isChangingDay, setIsChangingDay] = useState(false)
 
-  // Skip content reload after save to preserve RecipeValidator score
-  const justSavedRef = useRef(false)
+  // Track current editor content via ref for comparison in effect
+  const editContentRef = useRef(editContent)
+  editContentRef.current = editContent
+
+  // Track active variant to detect real variant switches vs version refreshes
+  const prevVariantRef = useRef(activeVariant)
 
   // --- Derived ---
   const dayMeta = WEEKLY_PLAN[post.day_of_week]
@@ -325,22 +329,26 @@ export function PostEditor({
   const charCount = editContent.length
   const isOverLimit = charCount > MAX_CHARS
 
-  // Load version content when active variant changes (skip after save to preserve score)
+  // Load version content when active variant changes or versions refresh
   useEffect(() => {
-    if (justSavedRef.current) {
-      justSavedRef.current = false
-      return
-    }
     const version = getCurrentVersionForVariant(post.versions, activeVariant)
-    if (version) {
-      setEditContent(version.content)
-    } else {
-      setEditContent('')
+    const newContent = version?.content ?? ''
+    const variantChanged = prevVariantRef.current !== activeVariant
+    prevVariantRef.current = activeVariant
+
+    // Only update editor content if:
+    // 1. User switched to a different variant tab, OR
+    // 2. The DB content differs from what's in the editor (e.g. first load)
+    if (variantChanged || newContent !== editContentRef.current) {
+      setEditContent(newContent)
     }
-    setIterationResult(null)
-    setFeedback('')
-    setError('')
-    setSuccessMsg('')
+
+    if (variantChanged) {
+      setIterationResult(null)
+      setFeedback('')
+      setError('')
+      setSuccessMsg('')
+    }
   }, [activeVariant, post.versions])
 
   // --- Handlers ---
@@ -359,11 +367,9 @@ export function PostEditor({
       formData.set('post_id', post.id)
       formData.set('variant', activeVariant)
       formData.set('content', editContent)
-      justSavedRef.current = true
       const result = await onSaveVersion(formData)
       if (result.error) {
         setError(result.error)
-        justSavedRef.current = false
       } else {
         showSuccess('Version guardada correctamente')
       }

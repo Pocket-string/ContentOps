@@ -56,23 +56,40 @@ function parseJsonField(value: FormDataEntryValue | null): Record<string, unknow
  * Handles optional uuid fields and JSON blob fields.
  */
 function parseCampaignFormData(formData: FormData): Record<string, unknown> {
-  const topicId = formData.get('topic_id')
-  const keyword = formData.get('keyword')
-  const frequencyRaw = formData.get('post_frequency')
-  const selectedDaysRaw = formData.get('selected_days')
+  const result: Record<string, unknown> = {}
 
-  const result: Record<string, unknown> = {
-    week_start: formData.get('week_start'),
-    topic_id: typeof topicId === 'string' && topicId.trim().length > 0 ? topicId.trim() : undefined,
-    keyword: typeof keyword === 'string' && keyword.trim().length > 0 ? keyword.trim() : undefined,
-    resource_json: parseJsonField(formData.get('resource_json')),
-    audience_json: parseJsonField(formData.get('audience_json')),
+  // Only include fields that are actually present in the FormData
+  // This prevents null values from breaking partial updates
+  if (formData.has('week_start')) {
+    result.week_start = formData.get('week_start')
   }
 
+  const topicId = formData.get('topic_id')
+  if (typeof topicId === 'string' && topicId.trim().length > 0) {
+    result.topic_id = topicId.trim()
+  }
+
+  const keyword = formData.get('keyword')
+  if (typeof keyword === 'string') {
+    result.keyword = keyword.trim().length > 0 ? keyword.trim() : null
+  }
+
+  const resourceJson = formData.get('resource_json')
+  if (resourceJson !== null) {
+    result.resource_json = parseJsonField(resourceJson)
+  }
+
+  const audienceJson = formData.get('audience_json')
+  if (audienceJson !== null) {
+    result.audience_json = parseJsonField(audienceJson)
+  }
+
+  const frequencyRaw = formData.get('post_frequency')
   if (typeof frequencyRaw === 'string' && frequencyRaw.length > 0) {
     result.post_frequency = Number(frequencyRaw)
   }
 
+  const selectedDaysRaw = formData.get('selected_days')
   if (typeof selectedDaysRaw === 'string' && selectedDaysRaw.length > 0) {
     try {
       result.selected_days = JSON.parse(selectedDaysRaw) as unknown
