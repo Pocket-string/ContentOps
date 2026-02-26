@@ -1,7 +1,8 @@
-# Arquitectura — LinkedIn ContentOps (Bitalize)
+# Arquitectura -- LinkedIn ContentOps (Bitalize)
 
-> **Fecha**: 2026-02-23
-> **Fuente**: requerimiento §8 + análisis del codebase existente
+> **Fecha original**: 2026-02-23 | Correcciones: 2026-02-26
+> **Fuente**: requerimiento S8 + analisis del codebase existente
+> **Nota**: Tech stack y deploy corregidos a 2026-02-26. Ver [current-state.md](current-state.md) para estado completo.
 
 ---
 
@@ -26,9 +27,11 @@ Research (Perplexity) → Topic Backlog → Campaign (L-V) → Posts (3 variante
 | Backend/DB | Supabase (PostgreSQL + Auth + Storage) | SSR Client (3 clientes) |
 | Estado | Zustand | 5.x |
 | Validación | Zod | runtime + compile-time (env, inputs, AI responses) |
-| AI | Vercel AI SDK + OpenRouter/Anthropic | v5 |
-| Testing | Playwright | 1.58 |
-| Deploy | Vercel | Production |
+| AI Primario | Vercel AI SDK + Gemini 2.5 Flash | v6 (`ai@^6.0.97`) |
+| AI Reviewer | OpenAI GPT-4o-mini | Opcional (review copy/visual) |
+| AI Fallback | OpenRouter | Cuando Gemini falla |
+| Testing | Playwright | 1.58 (config presente, tests pendientes) |
+| Deploy | Docker (4-stage) -> Dokploy -> VPS | Ver [deployment.md](deployment.md) |
 
 ---
 
@@ -223,9 +226,13 @@ src/lib/auth.ts  → requireAuth(), getProfile(), requireAdmin()
 
 ---
 
-## 6. Integración AI
+## 6. Integracion AI
 
-### Generación de Copy (Vercel AI SDK)
+> **Nota (2026-02-26)**: Esta seccion describe el patron original con 3 endpoints.
+> El sistema ahora tiene 12 endpoints AI + orchestrator con 9 tools.
+> Ver [ai-system.md](ai-system.md) para la referencia completa y actualizada.
+
+### Generacion de Copy (Vercel AI SDK)
 - **Endpoint**: `POST /api/ai/generate-copy`
 - **Rate limit**: 10 req/min por IP
 - **Input**: topic, funnel_stage, day_of_week, campaign context
@@ -318,20 +325,23 @@ export async function createEntity(formData: FormData) {
 
 ## 9. Estrategia MVP vs v2
 
-### MVP (este plan)
-- Ingesta manual de research (pegar texto)
-- Generación AI de copy y JSON
-- Scoring manual D/G/P/I
-- Upload manual de imágenes
-- Export como ZIP
-- Métricas manuales
+> **Nota (2026-02-26)**: La mayoria de features "v2" ya estan implementadas.
+> Ver [current-state.md](current-state.md) para el estado real.
 
-### v2 (futuro, explícitamente fuera de scope)
-- Integración Perplexity API (auto-ingest)
-- Publicación directa a LinkedIn API
-- Generación de imágenes con API Nano Banana Pro
-- Analytics automático (LinkedIn API)
-- Scoring asistido por AI
-- Templates de campañas reutilizables
-- Calendario editorial visual
-- Colaboración en tiempo real
+### MVP (completado)
+- Ingesta manual de research (pegar texto)
+- Generacion AI de copy y JSON
+- Scoring manual D/G/P/I
+- Upload manual de imagenes
+- Export como ZIP
+- Metricas manuales
+
+### v2 (estado actual)
+- ~~Integracion Perplexity API~~ -> Grounded Research con Gemini + Google Search (implementado)
+- Publicacion directa a LinkedIn API (pendiente)
+- ~~Generacion de imagenes con API Nano Banana Pro~~ -> Gemini image generation in-app (implementado)
+- ~~Analytics automatico~~ -> XLSX import bridge (implementado)
+- ~~Scoring asistido por AI~~ -> CriticPanel con D/G/P/I automatico (implementado)
+- ~~Templates de campanas reutilizables~~ -> Pattern Library (implementado)
+- Calendario editorial visual (pendiente)
+- Colaboracion en tiempo real (pendiente)

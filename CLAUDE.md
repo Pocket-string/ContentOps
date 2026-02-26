@@ -463,4 +463,56 @@ test('should calculate total with tax', () => {
 
 ---
 
-*Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte.*
+### 🗃️ Base de Datos (Supabase) — ContentOps
+
+### 2026-02-25: UNIQUE INDEX vs UNIQUE CONSTRAINT para operaciones swap
+- **Error**: `swap_post_days` fallaba con "duplicate key violates unique constraint" incluso con CASE WHEN en un solo UPDATE. Tardó 3 sesiones en diagnosticar
+- **Causa raíz**: Un `UNIQUE INDEX` NO es deferrable — PostgreSQL verifica per-row, no al final de la transacción. Solo un `UNIQUE CONSTRAINT` puede ser `DEFERRABLE`
+- **Fix**: Convertir INDEX a CONSTRAINT con `DEFERRABLE INITIALLY IMMEDIATE` + usar `SET CONSTRAINTS ... DEFERRED` en la función PL/pgSQL
+- **Aplicar en**: Cualquier tabla que necesite swap/reordenar filas con restricción única
+
+### 2026-02-25: SECURITY DEFINER para funciones que cruzan RLS
+- **Error**: `critic_reviews` insert fallaba con "new row violates RLS policy" al guardar crítica visual (FK a visual_version, sin workspace_id directo)
+- **Fix**: Funciones que necesitan operar sin filtro RLS deben ser `SECURITY DEFINER` (corren como postgres). Alternativamente, usar `supabaseServiceRole` en el servidor
+- **Aplicar en**: Toda función SQL o server action que cruza boundaries de RLS
+
+---
+
+### 🤖 AI y Modelos — ContentOps
+
+### 2026-02-25: generateObject SIEMPRE falla con inputs largos en Gemini 2.5 Flash
+- **Error**: `generateObject` de Vercel AI SDK falla silenciosamente o retorna JSON malformado cuando el prompt supera ~5000 caracteres
+- **Fix**: Usar `generateText` con system prompt que pida JSON + `JSON.parse()` manual + Zod validate. Nunca `generateObject` para prompts largos con Gemini
+- **Aplicar en**: Todo endpoint AI que reciba copy completo, weekly_brief, o context largo
+
+### 2026-02-25: Zod `.nullable().optional()` para inputs de API
+- **Error**: Client envía `null` para campos opcionales, pero Zod `.optional()` solo acepta `undefined` → falla validación inesperadamente
+- **Fix**: Usar `.nullable().optional()` (acepta `undefined`, `null`, y el tipo) en schemas de input de API
+- **Aplicar en**: Todo schema Zod en API routes que recibe datos de formularios/fetch del client
+
+---
+
+### ⚛️ React / Next.js — ContentOps
+
+### 2026-02-25: useRef flag para evitar useEffect después de revalidatePath
+- **Error**: Después de guardar un post, `revalidatePath` causa re-render del server component → nuevos props → useEffect detecta "cambio" → sobreescribe el estado del editor (RecipeValidator scores se reseteaban de 7/8 a 4/8)
+- **Fix**: `justSavedRef.current = true` al guardar, y en el useEffect: `if (justSavedRef.current) { justSavedRef.current = false; return }` para saltar la primera actualización post-save
+- **Aplicar en**: Todo editor con estado local + server revalidation
+
+---
+
+### 🚀 Deploy y Producción — ContentOps
+
+### 2026-02-26: Docker build cache se acumula con deploys frecuentes
+- **Error**: 30 deploys en 24h con `cleanCache: true` acumularon 42.9GB de build cache en el VPS
+- **Fix**: (1) Cron job diario con `docker builder prune`, (2) No usar `cleanCache: true` salvo que cambien deps, (3) Docker daemon con log rotation (`max-size: 10m`, `max-file: 3`)
+- **Aplicar en**: Todo proyecto con Docker + Dokploy en VPS
+
+### 2026-02-26: Configurar SSH con alias + key dedicada desde el día 0
+- **Error**: Pérdida de acceso SSH al VPS al cambiar de máquina — no había clave privada, ni `~/.ssh/config`, ni ssh-agent
+- **Fix**: Crear `~/.ssh/id_ed25519_<proyecto>` + `~/.ssh/config` con alias (`Host vps-bitalize`) + sudoers passwordless para scripts de mantenimiento
+- **Aplicar en**: Todo VPS nuevo, documentar en el runbook de deploy
+
+---
+
+*Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte. (26 aprendizajes activos)*

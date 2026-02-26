@@ -1,5 +1,10 @@
 # Plan de Mejoras V3: Gemini-Centric + ChatGPT Reviewer
 
+> **Estado**: PARCIALMENTE IMPLEMENTADO (2026-02-26)
+> Implementado: Gemini 2.5 Flash como primario, OpenAI GPT-4o-mini como reviewer, generacion de imagenes in-app
+> Pendiente: Deep Research como herramienta primaria, Nano Banana Pro 4K como default
+> Referencia tecnica actual: [ai-system.md](ai-system.md)
+>
 > **APIs confirmadas y verificadas (2026-02-24)**:
 > - Google AI Studio API Key: OK — 38+ modelos incluyendo Nano Banana Pro, Deep Research, Imagen 4
 > - OpenAI API Key: OK — gpt-4o, o3-pro, o3-deep-research, o4-mini
