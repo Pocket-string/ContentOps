@@ -5,48 +5,48 @@
 @tailwind utilities;
 
 /* ============================================
-   DESIGN SYSTEM: LEXAGENDA - BUFETE LEGAL
+   DESIGN SYSTEM: CONTENTOPS — LINKEDIN OPS
    Headings: DM Sans | Body: Inter
-   Estilo: Liquid Glass + Professional
+   Estilo: Liquid Glass + LinkedIn Professional
    ============================================ */
 
 :root {
-  /* Colores principales */
-  --color-primary: #1E3A5F;
-  --color-primary-50: #F0F4F8;
-  --color-primary-100: #D9E2EC;
-  --color-primary-200: #BCCCDC;
-  --color-primary-300: #9FB3C8;
-  --color-primary-400: #627D98;
-  --color-primary-500: #1E3A5F;
-  --color-primary-600: #1A3355;
-  --color-primary-700: #152A46;
-  --color-primary-800: #102238;
-  --color-primary-900: #0A1929;
+  /* LinkedIn Blue family */
+  --color-primary: #0A66C2;
+  --color-primary-50: #E8F0FE;
+  --color-primary-100: #C2D8F7;
+  --color-primary-200: #8BB5EF;
+  --color-primary-300: #5592E7;
+  --color-primary-400: #1F6FDF;
+  --color-primary-500: #0A66C2;
+  --color-primary-600: #004182;
+  --color-primary-700: #003472;
+  --color-primary-800: #002759;
+  --color-primary-900: #001A40;
 
-  /* Dorado legal */
-  --color-secondary: #D4A853;
-  --color-secondary-50: #FDF8ED;
-  --color-secondary-100: #F9EDCF;
-  --color-secondary-200: #F2DBA0;
-  --color-secondary-300: #E7C570;
-  --color-secondary-400: #DCAF4A;
-  --color-secondary-500: #D4A853;
-  --color-secondary-600: #B8923F;
-  --color-secondary-700: #96762F;
-  --color-secondary-800: #745A22;
-  --color-secondary-900: #523F18;
+  /* LinkedIn Light Blue */
+  --color-secondary: #70B5F9;
+  --color-secondary-50: #F0F7FF;
+  --color-secondary-100: #E0EFFF;
+  --color-secondary-200: #B8D8FF;
+  --color-secondary-300: #8CBFFF;
+  --color-secondary-400: #70B5F9;
+  --color-secondary-500: #5AA3E8;
+  --color-secondary-600: #4891D6;
+  --color-secondary-700: #3A7FC0;
+  --color-secondary-800: #2D6BA4;
+  --color-secondary-900: #1F5888;
 
-  /* Acento para CTAs */
-  --color-accent: #2563EB;
-  --color-accent-50: #EFF6FF;
-  --color-accent-100: #DBEAFE;
-  --color-accent-200: #BFDBFE;
-  --color-accent-300: #93C5FD;
-  --color-accent-400: #60A5FA;
-  --color-accent-500: #2563EB;
-  --color-accent-600: #1D4ED8;
-  --color-accent-700: #1E40AF;
+  /* Accent unified with primary */
+  --color-accent: #0A66C2;
+  --color-accent-50: #E8F0FE;
+  --color-accent-100: #D0E1FD;
+  --color-accent-200: #A1C3FB;
+  --color-accent-300: #72A5F9;
+  --color-accent-400: #4387F7;
+  --color-accent-500: #0A66C2;
+  --color-accent-600: #0857A6;
+  --color-accent-700: #06488A;
 
   /* Estados */
   --color-success: #10B981;
@@ -55,32 +55,32 @@
   --color-warning-light: #FEF3C7;
   --color-error: #EF4444;
   --color-error-light: #FEE2E2;
-  --color-info: #3B82F6;
-  --color-info-light: #DBEAFE;
+  --color-info: #0A66C2;
+  --color-info-light: #E8F0FE;
 
-  /* Estados de citas */
+  /* Estados de contenido */
   --color-pending: #F59E0B;
-  --color-confirmed: #2563EB;
+  --color-confirmed: #0A66C2;
   --color-completed: #10B981;
   --color-paid: #8B5CF6;
   --color-cancelled: #EF4444;
 
   /* Superficies */
-  --color-background: #FAFBFC;
+  --color-background: #F3F2EF;
   --color-surface: #FFFFFF;
   --color-surface-elevated: #FFFFFF;
-  --color-foreground: #1A1A2E;
-  --color-foreground-secondary: #64748B;
-  --color-foreground-muted: #94A3B8;
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
+  --color-foreground: #333333;
+  --color-foreground-secondary: #666666;
+  --color-foreground-muted: #999999;
+  --color-border: #E0E0E0;
+  --color-border-light: #EEEEEE;
 
   /* Sombras */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 8px 24px -4px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.03);
+  --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.12);
+  --shadow-glass: 0 4px 30px rgb(0 0 0 / 0.05);
 }
 
 html {
@@ -102,29 +102,29 @@ body {
 }
 
 ::selection {
-  background-color: #1E3A5F;
+  background-color: #0A66C2;
   color: white;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 4px;
+  background: #C0C0C0;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #999999;
 }
 
-/* Tipografía para headings */
+/* Headings */
 h1, h2, h3, h4, h5, h6, .heading {
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-weight: 600;
@@ -132,7 +132,6 @@ h1, h2, h3, h4, h5, h6, .heading {
 }
 
 @layer base {
-  /* Estados de citas - clases base */
   .status-pending { color: var(--color-pending); }
   .status-confirmed { color: var(--color-confirmed); }
   .status-completed { color: var(--color-completed); }
@@ -141,14 +140,14 @@ h1, h2, h3, h4, h5, h6, .heading {
 }
 
 @layer components {
-  /* Card con efecto glass */
+  /* Liquid Glass: card */
   .card-glass {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: var(--shadow-glass);
-    border-radius: 16px;
+    border-radius: 20px;
   }
 
   /* Card elevada */
@@ -159,14 +158,14 @@ h1, h2, h3, h4, h5, h6, .heading {
     border: 1px solid var(--color-border-light);
   }
 
-  /* Badge de estado de cita */
+  /* Badges */
   .badge-pending {
     background-color: var(--color-warning-light);
     color: #B45309;
   }
   .badge-confirmed {
     background-color: var(--color-info-light);
-    color: #1D4ED8;
+    color: #004182;
   }
   .badge-completed {
     background-color: var(--color-success-light);
@@ -196,7 +195,7 @@ h1, h2, h3, h4, h5, h6, .heading {
   }
   .nav-item.active {
     background: rgba(255, 255, 255, 0.15);
-    border-left: 3px solid var(--color-secondary);
+    border-left: 3px solid rgba(255, 255, 255, 0.6);
   }
 
   /* Stat card */
@@ -229,7 +228,7 @@ h1, h2, h3, h4, h5, h6, .heading {
     border-left: 3px solid var(--color-pending);
   }
   .calendar-event.confirmed {
-    background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+    background: linear-gradient(135deg, #E8F0FE 0%, #C2D8F7 100%);
     border-left: 3px solid var(--color-confirmed);
   }
   .calendar-event.completed {
@@ -248,24 +247,54 @@ h1, h2, h3, h4, h5, h6, .heading {
 }
 
 @layer utilities {
+  /* Liquid Glass: navigation surfaces */
   .glass {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.5);
   }
 
   .glass-dark {
-    background: rgba(30, 58, 95, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 65, 130, 0.92);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
+  .glass-sidebar {
+    background: rgba(0, 65, 130, 0.88);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-header {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  /* LinkedIn accent bar (replaces gold-accent) */
+  .linkedin-accent {
+    position: relative;
+  }
+  .linkedin-accent::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #0A66C2 0%, #70B5F9 100%);
+    border-radius: 2px;
+  }
+
+  /* Keep gold-accent as alias for backward compat during migration */
   .gold-accent {
     position: relative;
   }
-
   .gold-accent::before {
     content: '';
     position: absolute;
@@ -273,26 +302,38 @@ h1, h2, h3, h4, h5, h6, .heading {
     top: 0;
     bottom: 0;
     width: 4px;
-    background: linear-gradient(180deg, #D4A853 0%, #E7D5A5 100%);
+    background: linear-gradient(180deg, #0A66C2 0%, #70B5F9 100%);
     border-radius: 2px;
   }
 
-  .gradient-gold {
-    background: linear-gradient(135deg, #D4A853 0%, #E7C570 50%, #D4A853 100%);
+  /* Gradients */
+  .gradient-linkedin {
+    background: linear-gradient(135deg, #0A66C2 0%, #70B5F9 50%, #0A66C2 100%);
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, #1E3A5F 0%, #2D4A6F 100%);
+    background: linear-gradient(135deg, #004182 0%, #0A66C2 100%);
   }
 
-  .text-gradient-gold {
-    background: linear-gradient(135deg, #D4A853 0%, #E7C570 100%);
+  .gradient-gold {
+    background: linear-gradient(135deg, #0A66C2 0%, #70B5F9 50%, #0A66C2 100%);
+  }
+
+  .text-gradient-linkedin {
+    background: linear-gradient(135deg, #0A66C2 0%, #70B5F9 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Animaciones */
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #0A66C2 0%, #70B5F9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animations */
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
   }
@@ -316,7 +357,7 @@ h1, h2, h3, h4, h5, h6, .heading {
     to { opacity: 1; transform: scale(1); }
   }
 
-  /* Utilidades de layout */
+  /* Layout utilities */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -325,7 +366,6 @@ h1, h2, h3, h4, h5, h6, .heading {
     display: none;
   }
 
-  /* Mobile menu slide-in animation */
   .animate-slide-in-right {
     animation: slideInRight 0.3s ease-out;
   }

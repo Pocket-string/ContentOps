@@ -311,7 +311,7 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
       {/* Main content */}
       <article className="space-y-4">
         {/* Header card */}
-        <Card variant="gold-accent">
+        <Card variant="accent">
           <CardContent>
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="flex-1 min-w-0">

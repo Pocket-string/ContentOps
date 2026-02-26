@@ -66,7 +66,7 @@ export function Sidebar() {
 
   const getRoleBadge = (role: UserRole) => {
     const badges: Record<UserRole, { label: string; color: string }> = {
-      admin: { label: 'Admin', color: 'bg-secondary-500' },
+      admin: { label: 'Admin', color: 'bg-white/20' },
       editor: { label: 'Editor', color: 'bg-accent-500' },
       collaborator: { label: 'Collab', color: 'bg-success-500' },
     }
@@ -76,11 +76,11 @@ export function Sidebar() {
   const roleBadge = getRoleBadge(userRole)
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-primary-500 text-white flex flex-col z-40">
+    <aside className="fixed left-0 top-0 bottom-0 w-64 glass-sidebar text-white flex flex-col z-40">
       {/* Logo */}
-      <div className="p-6 border-b border-white/10">
+      <div className="p-6 border-b border-white/6">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-secondary-500 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center">
             <ContentIcon className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -91,7 +91,7 @@ export function Sidebar() {
       </div>
 
       {/* User Info */}
-      <div className="px-4 py-4 border-b border-white/10">
+      <div className="px-4 py-4 border-b border-white/6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
             <span className="text-sm font-semibold">
@@ -134,7 +134,7 @@ export function Sidebar() {
                     ${item.disabled
                       ? 'text-white/30 cursor-not-allowed'
                       : isActive
-                        ? 'bg-white/15 text-white border-l-4 border-secondary-500'
+                        ? 'bg-white/15 text-white border-l-4 border-white/60'
                         : 'text-white/70 hover:bg-white/10 hover:text-white'
                     }
                   `}
@@ -155,7 +155,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/6">
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200"

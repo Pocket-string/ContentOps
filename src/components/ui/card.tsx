@@ -1,7 +1,7 @@
 import { forwardRef, type HTMLAttributes } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'elevated' | 'bordered' | 'gold-accent'
+  variant?: 'default' | 'elevated' | 'bordered' | 'accent' | 'gold-accent' | 'glass'
   clickable?: boolean
   padding?: 'none' | 'sm' | 'md' | 'lg'
 }
@@ -10,7 +10,12 @@ const variantStyles = {
   default: 'bg-surface border border-border shadow-card',
   elevated: 'bg-surface shadow-elevated',
   bordered: 'bg-surface border-2 border-border',
+  // LinkedIn accent bar (left blue stripe)
+  accent: 'bg-surface border border-border shadow-card linkedin-accent pl-6',
+  // Backward-compat alias — maps to the same CSS class
   'gold-accent': 'bg-surface border border-border shadow-card gold-accent pl-6',
+  // Frosted glass surface
+  glass: 'card-glass shadow-glass',
 }
 
 const paddingStyles = {

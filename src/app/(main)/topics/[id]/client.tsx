@@ -241,7 +241,7 @@ export function TopicDetailClient({ topic }: Props) {
           </button>
         </nav>
 
-        <Card variant="gold-accent">
+        <Card variant="accent">
           <CardContent>
             <h1 className="text-xl font-bold text-foreground mb-6">
               Editar tema
@@ -278,7 +278,7 @@ export function TopicDetailClient({ topic }: Props) {
 
       <article className="space-y-4">
         {/* Header card */}
-        <Card variant="gold-accent">
+        <Card variant="accent">
           <CardContent>
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
