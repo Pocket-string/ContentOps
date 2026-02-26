@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
+import { getWorkspaceId } from '@/lib/workspace'
 import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
 // Shared visual prompt schema (mirrors generate-visual-json output)
@@ -82,12 +83,16 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Generate with AI (structured iteration via generateObject)
+  // 4. Get workspace context
+  const workspaceId = await getWorkspaceId()
+
+  // 5. Generate with AI (structured iteration via generateObject)
   try {
     const { current_prompt_json, feedback } = parsed.data
 
     const result = await generateObjectWithFallback({
       task: 'iterate-visual',
+      workspaceId,
       schema: iterateOutputSchema,
       system: `Eres un director de arte experto que itera sobre prompts visuales para LinkedIn de la marca Bitalize (O&M fotovoltaico).
 

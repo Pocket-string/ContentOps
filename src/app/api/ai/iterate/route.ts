@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
+import { getWorkspaceId } from '@/lib/workspace'
 import { getModel } from '@/shared/lib/ai-router'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
@@ -58,7 +59,10 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
+  // 4. Get workspace context
+  const workspaceId = await getWorkspaceId()
+
+  // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
     const { current_content, feedback, variant, score } = parsed.data
 
@@ -74,7 +78,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const result = await generateText({
-      model: getModel('iterate'),
+      model: await getModel('iterate', workspaceId),
       system: `Eres un editor experto de copy para LinkedIn en el sector O&M fotovoltaico.
 Tu trabajo es iterar sobre un post existente aplicando el feedback del usuario.
 Mantén el estilo de la variante (${variant}) mientras mejoras según las indicaciones.

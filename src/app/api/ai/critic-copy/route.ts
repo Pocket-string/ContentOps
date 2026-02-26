@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
+import { getWorkspaceId } from '@/lib/workspace'
 import { weeklyBriefSchema } from '@/shared/types/content-ops'
 import { getModel } from '@/shared/lib/ai-router'
 
@@ -77,7 +78,10 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Evaluate with AI (text-based JSON)
+  // 4. Get workspace context
+  const workspaceId = await getWorkspaceId()
+
+  // 5. Evaluate with AI (text-based JSON)
   try {
     const { variants, funnel_stage, weekly_brief, keyword, topic, context } = parsed.data
 
@@ -93,7 +97,7 @@ export async function POST(request: Request): Promise<Response> {
     }).join('\n\n')
 
     const result = await generateText({
-      model: getModel('critic-copy'),
+      model: await getModel('critic-copy', workspaceId),
       system: `Eres un critico experto de copy LinkedIn para O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 Eres exigente pero justo. Tu mision: que cada post sea excelente antes de publicarse.
 

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
+import { getWorkspaceId } from '@/lib/workspace'
 import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
@@ -55,12 +56,16 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Evaluate with AI (structured output via generateObject)
+  // 4. Get workspace context
+  const workspaceId = await getWorkspaceId()
+
+  // 5. Evaluate with AI (structured output via generateObject)
   try {
     const { prompt_json, post_content, concept_type, format } = parsed.data
 
     const result = await generateObjectWithFallback({
       task: 'critic-visual',
+      workspaceId,
       schema: criticOutputSchema,
       system: `Eres un critico experto de QA visual para contenido LinkedIn de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 

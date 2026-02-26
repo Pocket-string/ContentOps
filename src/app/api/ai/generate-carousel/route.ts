@@ -3,7 +3,7 @@ import { generateImage } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
-import { google } from '@/shared/lib/gemini'
+import { getImageModel } from '@/shared/lib/ai-router'
 import { buildCarouselSlidePrompt } from '@/features/visuals/services/carousel-prompt-builder'
 import { uploadImageToStorage } from '@/features/visuals/services/image-storage-service'
 import { updateSlideImageUrl } from '@/features/visuals/services/carousel-service'
@@ -61,7 +61,10 @@ export async function POST(request: Request): Promise<Response> {
 
   const { visual_version_id, slide, topic, total_slides, model_id } = parsed.data
 
-  // 4. Build prompt with carousel narrative context
+  // 4. Get workspace context for BYOK
+  const workspaceId = await getWorkspaceId()
+
+  // 4b. Build prompt with carousel narrative context
   const textPrompt = buildCarouselSlidePrompt(
     {
       slide_index: slide.slide_index,
@@ -75,7 +78,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     // 5. Generate image — 4:5 → 3:4 (closest supported)
     const result = await generateImage({
-      model: google.image(model_id),
+      model: await getImageModel(model_id, workspaceId),
       prompt: textPrompt,
       aspectRatio: '3:4',
       providerOptions: {
@@ -84,7 +87,6 @@ export async function POST(request: Request): Promise<Response> {
     })
 
     // 6. Upload with slide-specific path
-    const workspaceId = await getWorkspaceId()
     const storagePath = `${visual_version_id}/slide-${slide.slide_index}`
     const uploadResult = await uploadImageToStorage(
       workspaceId,

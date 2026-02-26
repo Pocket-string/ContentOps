@@ -2,7 +2,8 @@ import { z } from 'zod'
 import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { researchRateLimiter } from '@/lib/rate-limit'
-import { google, GEMINI_MODEL } from '@/shared/lib/gemini'
+import { GEMINI_MODEL } from '@/shared/lib/gemini'
+import { getGoogleProvider } from '@/shared/lib/ai-router'
 import { createClient } from '@/lib/supabase/server'
 import { buildResearchPrompt } from '@/features/research/services/research-prompt-builder'
 import { getWorkspaceId } from '@/lib/workspace'
@@ -62,6 +63,10 @@ export async function POST(request: Request): Promise<Response> {
 
   const { tema, buyer_persona, region, research_id } = parsed.data
 
+  // 4. Get workspace context and Google provider (needed for BYOK)
+  const workspaceId = await getWorkspaceId()
+  const googleProvider = await getGoogleProvider(workspaceId)
+
   try {
     // 4a. Build optimized prompt via ChatGPT
     const promptData = await buildResearchPrompt(tema, buyer_persona, region)
@@ -82,9 +87,9 @@ ${buyer_persona ? `- Enfoca para el perfil: ${buyer_persona}` : ''}
 ${region ? `- Region de interes: ${region}` : ''}`
 
     const { text: groundedText } = await generateText({
-      model: google(GEMINI_MODEL),
+      model: googleProvider(GEMINI_MODEL),
       tools: {
-        google_search: google.tools.googleSearch({}),
+        google_search: googleProvider.tools.googleSearch({}),
       },
       system: systemPrompt,
       prompt: researchPrompt,
@@ -97,7 +102,7 @@ ${region ? `- Region de interes: ${region}` : ''}`
 
     // 4c. Step 2: Structure into JSON via text mode (generateObject fails with long inputs)
     const { text: jsonText } = await generateText({
-      model: google(GEMINI_MODEL),
+      model: googleProvider(GEMINI_MODEL),
       system: `Responde UNICAMENTE con un objeto JSON valido. Sin markdown, sin backticks, sin texto antes o despues.
 El JSON debe seguir esta estructura EXACTA:
 {
@@ -155,7 +160,6 @@ REGLAS:
     } else {
       // Auto-create a new research report so results are never lost
       try {
-        const workspaceId = await getWorkspaceId()
         const supabase = await createClient()
 
         const { data: newReport, error: insertError } = await supabase

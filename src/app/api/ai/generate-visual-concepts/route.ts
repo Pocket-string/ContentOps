@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
+import { getWorkspaceId } from '@/lib/workspace'
 import { weeklyBriefSchema } from '@/shared/types/content-ops'
 import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 
@@ -51,11 +52,14 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
+  const workspaceId = await getWorkspaceId()
+
   try {
     const { post_content, funnel_stage, topic, keyword, weekly_brief } = parsed.data
 
     const result = await generateObjectWithFallback({
       task: 'generate-visual-concepts',
+      workspaceId,
       schema: conceptOutputSchema,
       system: `Eres un director creativo experto en contenido visual para LinkedIn en el sector de O&M fotovoltaico (Bitalize).
 

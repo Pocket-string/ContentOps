@@ -2,8 +2,10 @@ import { z } from 'zod'
 import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
+import { getWorkspaceId } from '@/lib/workspace'
 import { createClient } from '@/lib/supabase/server'
-import { google, GEMINI_MODEL } from '@/shared/lib/gemini'
+import { GEMINI_MODEL } from '@/shared/lib/gemini'
+import { getGoogleProvider } from '@/shared/lib/ai-router'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const synthesisOutputSchema = z.object({
@@ -62,13 +64,18 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Generate with AI (text-based JSON — generateObject fails with Gemini on long inputs)
+  // 4. Get workspace context
+  const workspaceId = await getWorkspaceId()
+
+  // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long inputs)
   try {
     const { raw_text, key_takeaways, title, market_region, buyer_persona, research_id } =
       parsed.data
 
+    const googleProvider = await getGoogleProvider(workspaceId)
+
     const { text: jsonText } = await generateText({
-      model: google(GEMINI_MODEL),
+      model: googleProvider(GEMINI_MODEL),
       system: `Eres un experto en estrategia de contenido para LinkedIn especializado en el sector de O&M fotovoltaico.
 
 Responde UNICAMENTE con un objeto JSON valido. Sin markdown, sin backticks, sin texto antes o despues.

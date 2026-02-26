@@ -1,22 +1,26 @@
 import { generateObject } from 'ai'
 import { openai, OPENAI_REVIEW_MODEL } from './openai-client'
+import { getOpenAIProvider } from './ai-router'
 import { copyReviewSchema, visualReviewSchema } from '../types/ai-review'
 import type { CopyReview, VisualReview } from '../types/ai-review'
 
 /**
  * Reviews generated copy using ChatGPT (gpt-4o-mini).
- * Returns null gracefully if OPENAI_API_KEY is missing or call fails.
+ * Returns null gracefully if no OpenAI key is available.
+ * Supports BYOK via optional workspaceId.
  */
 export async function reviewCopy(
   content: string,
   variant: string,
-  funnelStage: string
+  funnelStage: string,
+  workspaceId?: string
 ): Promise<CopyReview | null> {
-  if (!process.env.OPENAI_API_KEY) return null
+  const provider = await getOpenAIProvider(workspaceId)
+  if (!provider) return null
 
   try {
     const result = await generateObject({
-      model: openai(OPENAI_REVIEW_MODEL),
+      model: provider(OPENAI_REVIEW_MODEL),
       schema: copyReviewSchema,
       system: `Eres un editor senior de contenido LinkedIn para el sector de O&M fotovoltaico (Bitalize).
 Tu trabajo es dar una segunda opinion rapida sobre un copy generado por IA.
@@ -49,17 +53,20 @@ Proporciona score (0-10), fortalezas, debilidades, recomendacion y resumen de un
 
 /**
  * Reviews generated visual prompt JSON using ChatGPT (gpt-4o-mini).
- * Returns null gracefully if OPENAI_API_KEY is missing or call fails.
+ * Returns null gracefully if no OpenAI key is available.
+ * Supports BYOK via optional workspaceId.
  */
 export async function reviewVisualJson(
   promptJson: Record<string, unknown>,
-  postContent: string
+  postContent: string,
+  workspaceId?: string
 ): Promise<VisualReview | null> {
-  if (!process.env.OPENAI_API_KEY) return null
+  const provider = await getOpenAIProvider(workspaceId)
+  if (!provider) return null
 
   try {
     const result = await generateObject({
-      model: openai(OPENAI_REVIEW_MODEL),
+      model: provider(OPENAI_REVIEW_MODEL),
       schema: visualReviewSchema,
       system: `Eres un director de arte senior que revisa prompts visuales para LinkedIn de Bitalize (O&M fotovoltaico).
 Tu trabajo es dar una segunda opinion rapida sobre un prompt visual generado por IA.

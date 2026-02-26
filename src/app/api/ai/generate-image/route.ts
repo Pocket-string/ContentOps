@@ -3,7 +3,7 @@ import { generateImage } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
-import { google } from '@/shared/lib/gemini'
+import { getImageModel } from '@/shared/lib/ai-router'
 import { buildImagePrompt } from '@/features/visuals/services/image-prompt-builder'
 import { uploadImageToStorage } from '@/features/visuals/services/image-storage-service'
 import { updateVisualImageUrl } from '@/features/visuals/services/visual-service'
@@ -54,10 +54,13 @@ export async function POST(request: Request): Promise<Response> {
   const textPrompt = buildImagePrompt(prompt_json, format as VisualFormat)
   const aspectRatio = FORMAT_TO_ASPECT_RATIO[format as VisualFormat]
 
+  // 4b. Get workspace context for BYOK
+  const workspaceId = await getWorkspaceId()
+
   try {
     // 5. Generate image
     const result = await generateImage({
-      model: google.image(model_id),
+      model: await getImageModel(model_id, workspaceId),
       prompt: textPrompt,
       aspectRatio,
       providerOptions: {
@@ -66,7 +69,6 @@ export async function POST(request: Request): Promise<Response> {
     })
 
     // 6. Upload to Supabase Storage
-    const workspaceId = await getWorkspaceId()
     const uploadResult = await uploadImageToStorage(
       workspaceId,
       visual_version_id,

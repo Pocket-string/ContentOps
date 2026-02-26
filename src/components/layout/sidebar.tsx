@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
   { href: '/patterns', label: 'Patrones', icon: PatternsIcon, roles: ['admin', 'editor', 'collaborator'] },
   { href: '/insights', label: 'Insights', icon: InsightsIcon, roles: ['admin', 'editor', 'collaborator'] },
   { href: '/settings/brand', label: 'Marca', icon: BrandIcon, roles: ['admin', 'editor'] },
+  { href: '/settings/api-keys', label: 'API Keys', icon: ApiKeyIcon, roles: ['admin'] },
   { href: '/settings', label: 'Settings', icon: SettingsIcon, roles: ['admin'] },
 ]
 
@@ -245,6 +246,14 @@ function BrandIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+    </svg>
+  )
+}
+
+function ApiKeyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
     </svg>
   )
 }

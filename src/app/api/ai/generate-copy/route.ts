@@ -182,7 +182,7 @@ Responde con este JSON exacto:
 }`
 
     const result = await generateText({
-      model: getModel('generate-copy'),
+      model: await getModel('generate-copy', workspaceId),
       system: systemPrompt,
       prompt: userPrompt,
     })
@@ -218,7 +218,8 @@ Responde con este JSON exacto:
     const review = await reviewCopy(
       firstVariant.content,
       firstVariant.variant,
-      parsed.data.funnel_stage
+      parsed.data.funnel_stage,
+      workspaceId
     )
 
     return Response.json({ data: validated.data, review })

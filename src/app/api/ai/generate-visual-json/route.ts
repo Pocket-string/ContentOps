@@ -126,6 +126,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const result = await generateObjectWithFallback({
       task: 'generate-visual-json',
+      workspaceId,
       schema: visualPromptSchema,
       system: `Eres un director de arte experto en contenido visual para LinkedIn especializado en la marca Bitalize, empresa de O&M fotovoltaico (operaciones y mantenimiento de plantas solares).
 
@@ -183,7 +184,8 @@ El JSON debe describir con precisión todos los elementos visuales para que un d
     // 6. ChatGPT review (optional — non-blocking on failure)
     const review = await reviewVisualJson(
       result.object as unknown as Record<string, unknown>,
-      parsed.data.post_content
+      parsed.data.post_content,
+      workspaceId
     )
 
     return Response.json({ data: result.object, review })

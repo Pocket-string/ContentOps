@@ -4,7 +4,7 @@ import { chatRateLimiter } from '@/lib/rate-limit'
 import { getModel } from '@/shared/lib/ai-router'
 import { createClient } from '@/lib/supabase/server'
 import { chatInputSchema } from '@/features/orchestrator/types'
-import { specialistTools } from '@/features/orchestrator/tools/specialist-tools'
+import { getSpecialistTools } from '@/features/orchestrator/tools/specialist-tools'
 import { getRecentLearnings } from '@/features/orchestrator/services/learning-service'
 
 // Human-readable labels for each module
@@ -236,10 +236,10 @@ export async function POST(request: Request): Promise<Response> {
 
   // 8. Stream response with tool calling + action logging
   const result = streamText({
-    model: getModel('orchestrator'),
+    model: await getModel('orchestrator', workspaceId ?? undefined),
     system: systemPrompt,
     messages,
-    tools: specialistTools,
+    tools: getSpecialistTools(workspaceId ?? undefined),
     stopWhen: stepCountIs(3),
     onStepFinish: async (step) => {
       // Log each tool call to orchestrator_actions
