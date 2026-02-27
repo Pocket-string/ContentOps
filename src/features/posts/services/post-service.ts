@@ -473,3 +473,38 @@ export async function updatePostDayOfWeek(
     return { error: 'Error inesperado al actualizar el dia del post' }
   }
 }
+
+/**
+ * Select a copy variant for publication on a post.
+ */
+export async function selectVariant(
+  postId: string,
+  variant: string
+): Promise<ServiceResult<Post>> {
+  try {
+    const supabase = await createClient()
+
+    const { data: row, error } = await supabase
+      .from('posts')
+      .update({ selected_variant: variant })
+      .eq('id', postId)
+      .select()
+      .single()
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    const parsed = postSchema.safeParse(row)
+
+    if (!parsed.success) {
+      console.error('[post-service] selectVariant parse error', parsed.error.flatten())
+      return { error: 'Error al parsear la variante seleccionada' }
+    }
+
+    return { data: parsed.data }
+  } catch (err) {
+    console.error('[post-service] selectVariant unexpected error', err)
+    return { error: 'Error inesperado al seleccionar la variante' }
+  }
+}

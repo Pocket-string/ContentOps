@@ -41,6 +41,7 @@ const visualPromptSchema = z.object({
     resolution_notes: z.string(),
   }),
   negative_prompts: z.array(z.string()),
+  prompt_overall: z.string().describe('Complete flat-text prompt for image generation — this is the most important field'),
 })
 
 export type VisualPromptJson = z.infer<typeof visualPromptSchema>
@@ -132,6 +133,28 @@ export async function POST(request: Request): Promise<Response> {
 
 Tu trabajo es generar un prompt JSON estructurado que un diseñador pueda usar en herramientas como Nano Banana Pro para crear el visual del post de LinkedIn.
 
+## CRITICO: Campo prompt_overall
+
+El campo **prompt_overall** es EL MAS IMPORTANTE del JSON. Debe ser un prompt completo, detallado y autocontenido en texto plano (no JSON) que describa exactamente la imagen a generar. Este campo se envia directamente al modelo de generacion de imagen. Debe incluir:
+- Descripcion completa de la composicion y layout
+- Colores especificos con hex codes
+- Texto exacto que debe aparecer en la imagen
+- Estilo visual detallado
+- Ubicacion del logo y elementos de marca
+- Todo lo necesario para que el modelo genere la imagen sin ambiguedades
+
+## Estetica Default: NotebookLM Educativo + Periodico Nuevo
+
+El estilo visual por defecto es **infografia educativa estilo NotebookLM** con estetica de **periodico nuevo moderno**:
+- Siempre full color (nunca blanco y negro)
+- Layout tipo editorial/revista con jerarquia tipografica clara
+- Graficos de datos limpios y legibles
+- Divisores finos tipo hairline rules
+- Fondo paper-white o dark navy con panel central
+- Iconos flat a todo color, consistentes
+- Texto grande y legible en movil
+- Sin fotos stock — solo infografia editorial
+
 ## Identidad de Marca Bitalize
 
 **Colores de marca**:
@@ -141,7 +164,7 @@ Tu trabajo es generar un prompt JSON estructurado que un diseñador pueda usar e
 
 **Tipografia**: ${brandTypographyHeading}, moderna y limpia. Jerarquia clara: headline bold, subheadline medium, cta semibold.
 
-**Estilo visual**: ${brand?.imagery.style ?? 'Editorial con toques graficos. Fotografia profesional de alta calidad. Composicion limpia y sin ruido visual.'}.
+**Estilo visual**: ${brand?.imagery.style ?? 'Infografia educativa estilo NotebookLM con estetica de periodico nuevo. Siempre full color.'}.
 
 **Sujetos permitidos**: ${brandImagerySubjects.join(', ')}.
 
@@ -154,18 +177,18 @@ Tu trabajo es generar un prompt JSON estructurado que un diseñador pueda usar e
 **Negative prompts base** (siempre incluir):
 ${brandNegativePrompts.map((p) => `- ${p}`).join('\n')}
 
-## Reglas de composición por formato
+## Reglas de composicion por formato
 
-- **1:1 (cuadrado)**: focal point centrado, texto en zona inferior o superior, márgenes generosos
-- **4:5 (vertical)**: composición en tercios, texto en tercio inferior, imagen en dos tercios superiores
-- **16:9 (horizontal)**: composición panorámica, texto a la izquierda o derecha, imagen ocupa el fondo
+- **1:1 (cuadrado)**: focal point centrado, texto en zona inferior o superior, margenes generosos
+- **4:5 (vertical)**: composicion en tercios, texto en tercio inferior, imagen en dos tercios superiores
+- **16:9 (horizontal)**: composicion panoramica, texto a la izquierda o derecha, imagen ocupa el fondo
 - **9:16 (stories)**: full bleed, texto centrado en zona media, imagen de fondo con overlay
 
-## Adecuación por etapa del funnel
+## Adecuacion por etapa del funnel
 
-- **TOFU (awareness)**: imágenes impactantes, visuales de escala (plantas grandes, datos sorprendentes), colores vibrantes del naranja/verde
-- **MOFU (consideration)**: infografías, gráficos de rendimiento, comparativas visuales, azul dominante
-- **BOFU (decision)**: casos de éxito, testimonios visuales, resultados concretos, combinación de los tres colores de marca`,
+- **TOFU (awareness)**: imagenes impactantes, visuales de escala (plantas grandes, datos sorprendentes), colores vibrantes del naranja/verde
+- **MOFU (consideration)**: infografias, graficos de rendimiento, comparativas visuales, azul dominante
+- **BOFU (decision)**: casos de exito, testimonios visuales, resultados concretos, combinacion de los tres colores de marca`,
       prompt: `Genera el prompt JSON estructurado para el visual de este post de LinkedIn:
 
 **Contenido del post**:

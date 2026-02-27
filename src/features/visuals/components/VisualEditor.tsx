@@ -10,6 +10,7 @@ import {
   FORMAT_LABELS,
   DEFAULT_FORMAT,
   QA_CHECKLIST,
+  CAROUSEL_CONFIG,
   type VisualFormat,
 } from '../constants/brand-rules'
 import type { VisualVersion, VisualStatus, CarouselSlide } from '@/shared/types/content-ops'
@@ -73,6 +74,13 @@ const QA_CATEGORY_LABELS: Record<string, string> = {
 }
 
 const FORMAT_OPTIONS = VISUAL_FORMATS.map((f) => ({ value: f, label: FORMAT_LABELS[f] }))
+
+const VISUAL_TYPES = [
+  { value: 'single', label: 'Imagen unica' },
+  { value: 'carousel', label: 'Carrusel' },
+] as const
+
+type VisualType = 'single' | 'carousel'
 
 const DAY_LABELS: Record<number, string> = {
   1: 'Lunes',
@@ -206,6 +214,7 @@ export function VisualEditor({
   const [jsonText, setJsonText] = useState('')
   const [jsonError, setJsonError] = useState('')
   const [format, setFormat] = useState<VisualFormat>(DEFAULT_FORMAT)
+  const [visualType, setVisualType] = useState<VisualType>('single')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isIterating, setIsIterating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -236,8 +245,38 @@ export function VisualEditor({
   const [carouselSlideCount, setCarouselSlideCount] = useState(5)
 
   const selectedVisual = visuals.find((v) => v.id === selectedVisualId) ?? null
-  const isCarousel = selectedVisual?.concept_type === 'carousel_4x5' || (selectedVisual?.slide_count && selectedVisual.slide_count >= 2)
+  const isCarousel = visualType === 'carousel' || selectedVisual?.concept_type === 'carousel_4x5' || (selectedVisual?.slide_count && selectedVisual.slide_count >= 2)
   const sortedVisuals = sortedNewestFirst(visuals)
+
+  // Parse the live-edited JSON to pass to ImageGenerator
+  const livePromptJson: Record<string, unknown> | null = (() => {
+    if (!jsonText) return null
+    try { return JSON.parse(jsonText) as Record<string, unknown> }
+    catch { return null }
+  })()
+
+  // Compute progress step: 1=prompt, 2=image, 3=QA
+  const progressStep = !jsonText || jsonError ? 1 : !(selectedVisual?.image_url || imageUrl.trim()) ? 2 : 3
+
+  // Auto-create version and return the new ID (for ImageGenerator when no version exists)
+  const handleAutoCreateVersion = useCallback(async (): Promise<string | null> => {
+    if (!jsonText || jsonError) return null
+    setIsCreating(true); setError('')
+    try {
+      const fd = new FormData()
+      fd.set('post_id', postId); fd.set('format', format); fd.set('prompt_json', jsonText)
+      if (visualType === 'carousel') {
+        fd.set('concept_type', 'carousel_4x5')
+        fd.set('slide_count', String(carouselSlideCount))
+      }
+      const res = await onCreateVisual(fd)
+      if (res.error) { setError(res.error); return null }
+      // The new version should appear in visuals after revalidation.
+      // For now, return success signal — the parent will revalidate and pass new visuals.
+      showSuccess('Version visual creada')
+      return 'pending-revalidation'
+    } finally { setIsCreating(false) }
+  }, [postId, format, jsonText, jsonError, visualType, carouselSlideCount, onCreateVisual])
 
   // Load selected visual into editor
   useEffect(() => {
@@ -462,8 +501,32 @@ export function VisualEditor({
                   {keyword && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-50 text-accent-600 border border-accent-200">#{keyword}</span>}
                 </div>
               )}
-              <div className="mt-4 max-w-xs">
-                <Select label="Formato" options={FORMAT_OPTIONS} value={format} onChange={(e) => setFormat(e.target.value as VisualFormat)} aria-label="Formato del visual" />
+              <div className="mt-4 flex flex-wrap gap-4">
+                <div className="max-w-xs flex-1 min-w-[160px]">
+                  <Select label="Tipo" options={VISUAL_TYPES.map((t) => ({ value: t.value, label: t.label }))} value={visualType} onChange={(e) => { setVisualType(e.target.value as VisualType); if (e.target.value === 'carousel') setFormat(CAROUSEL_CONFIG.format) }} aria-label="Tipo de visual" />
+                </div>
+                <div className="max-w-xs flex-1 min-w-[160px]">
+                  <Select label="Formato" options={FORMAT_OPTIONS} value={format} onChange={(e) => setFormat(e.target.value as VisualFormat)} aria-label="Formato del visual" disabled={visualType === 'carousel'} />
+                </div>
+              </div>
+
+              {/* Progress indicator */}
+              <div className="mt-4 flex items-center gap-2" role="navigation" aria-label="Progreso del visual">
+                {[
+                  { step: 1, label: 'Prompt' },
+                  { step: 2, label: 'Imagen' },
+                  { step: 3, label: 'QA' },
+                ].map(({ step, label: stepLabel }) => (
+                  <div key={step} className="flex items-center gap-2">
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${progressStep >= step ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}>
+                      <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold ${progressStep > step ? 'bg-primary-500 text-white' : progressStep === step ? 'bg-primary-200 text-primary-700' : 'bg-gray-200 text-gray-400'}`}>
+                        {progressStep > step ? '\u2713' : step}
+                      </span>
+                      {stepLabel}
+                    </div>
+                    {step < 3 && <span className={`text-xs ${progressStep > step ? 'text-primary-400' : 'text-gray-300'}`} aria-hidden="true">&rarr;</span>}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -704,10 +767,10 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 3. Image Generation / Carousel Editor */}
-            {selectedVisualId && isCarousel ? (
+            {/* 3. Image Generation / Carousel Editor — ALWAYS VISIBLE */}
+            {isCarousel ? (
               <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
-                {carouselSlides.length > 0 ? (
+                {selectedVisualId && carouselSlides.length > 0 ? (
                   <CarouselEditor
                     visualVersionId={selectedVisualId}
                     slides={carouselSlides}
@@ -719,7 +782,9 @@ export function VisualEditor({
                   <div className="space-y-3">
                     <h2 className="text-sm font-semibold text-foreground">Inicializar Carrusel</h2>
                     <p className="text-xs text-foreground-muted">
-                      Este visual es un carrusel. Configura el numero de slides para empezar.
+                      {selectedVisualId
+                        ? 'Configura el numero de slides para empezar.'
+                        : 'Primero crea un prompt JSON, luego podras crear los slides del carrusel.'}
                     </p>
                     <Select
                       label="Numero de slides"
@@ -736,24 +801,30 @@ export function VisualEditor({
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={handleInitCarousel}
-                      isLoading={isInitCarousel}
+                      onClick={selectedVisualId ? handleInitCarousel : async () => {
+                        const id = await handleAutoCreateVersion()
+                        if (id) showSuccess('Version carrusel creada. Recarga para inicializar slides.')
+                      }}
+                      isLoading={isInitCarousel || isCreating}
+                      disabled={!isJsonValid}
                       leftIcon={<PlusIcon />}
                       className="w-full"
                     >
-                      Crear Slides
+                      {selectedVisualId ? 'Crear Slides' : 'Crear Version Carrusel'}
                     </Button>
                   </div>
                 )}
               </div>
-            ) : selectedVisualId ? (
+            ) : (
               <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
                 <ImageGenerator
                   visualVersionId={selectedVisualId}
                   promptJson={selectedVisual?.prompt_json ?? {}}
+                  promptJsonOverride={livePromptJson}
                   format={format}
                   currentImageUrl={selectedVisual?.image_url ?? null}
                   onImageGenerated={(url) => setImageUrl(url)}
+                  onAutoCreateVersion={selectedVisualId ? undefined : handleAutoCreateVersion}
                   label={topicTitle ? `${topicTitle} dia-${dayOfWeek}` : `visual-dia-${dayOfWeek}`}
                 />
                 <details className="mt-3 text-xs text-foreground-muted">
@@ -764,7 +835,7 @@ export function VisualEditor({
                   </div>
                 </details>
               </div>
-            ) : null}
+            )}
 
             {/* 4. QA Checklist (only when image exists) */}
             {selectedVisualId && hasImage && (

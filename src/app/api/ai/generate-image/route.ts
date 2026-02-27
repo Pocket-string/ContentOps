@@ -16,7 +16,7 @@ const inputSchema = z.object({
   format: z.enum(['1:1', '4:5', '16:9', '9:16']),
   model_id: z
     .enum(['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'])
-    .default('gemini-2.5-flash-image'),
+    .default('gemini-3-pro-image-preview'),
 })
 
 export async function POST(request: Request): Promise<Response> {

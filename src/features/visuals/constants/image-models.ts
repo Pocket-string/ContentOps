@@ -17,7 +17,7 @@ export const IMAGE_MODELS = {
 
 export type ImageModelId = keyof typeof IMAGE_MODELS
 
-export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gemini-2.5-flash-image'
+export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gemini-3-pro-image-preview'
 
 /**
  * Maps our visual formats to supported image generation aspect ratios.

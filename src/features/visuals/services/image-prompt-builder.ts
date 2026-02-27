@@ -1,4 +1,4 @@
-import { BRAND_STYLE, NEGATIVE_PROMPTS } from '../constants/brand-rules'
+import { BRAND_STYLE, NEGATIVE_PROMPTS, DEFAULT_STYLE_ANCHORS } from '../constants/brand-rules'
 import type { VisualFormat } from '../constants/brand-rules'
 
 interface VisualPromptJson {
@@ -9,17 +9,70 @@ interface VisualPromptJson {
   brand?: { logo_placement?: string; typography_notes?: string }
   technical?: { format?: string; dimensions?: string }
   negative_prompts?: string[]
+  prompt_overall?: string
+  rules?: string[]
 }
 
 /**
  * Converts a structured prompt_json into a flat text prompt for generateImage().
- * Combines scene, style, composition, text overlay, brand rules, and negatives.
+ *
+ * Strategy:
+ * 1. If `prompt_overall` exists, use it as primary prompt (user's curated directive)
+ * 2. Otherwise, fall back to concatenating individual fields
+ * 3. Always append style anchors + brand identity + negative prompts
  */
 export function buildImagePrompt(
   promptJson: Record<string, unknown>,
   format: VisualFormat
 ): string {
   const p = promptJson as VisualPromptJson
+
+  // --- Primary prompt: prefer prompt_overall if available ---
+  if (p.prompt_overall && typeof p.prompt_overall === 'string' && p.prompt_overall.trim().length > 50) {
+    return buildFromPromptOverall(p, format)
+  }
+
+  // --- Fallback: build from individual fields ---
+  return buildFromFields(p, format)
+}
+
+/**
+ * Uses the user's curated `prompt_overall` as the primary directive.
+ * Appends style anchors and negative prompts.
+ */
+function buildFromPromptOverall(p: VisualPromptJson, format: VisualFormat): string {
+  const parts: string[] = []
+
+  // Primary directive
+  parts.push(p.prompt_overall!.trim())
+
+  // Style anchors (if not already present in prompt_overall)
+  const promptLower = p.prompt_overall!.toLowerCase()
+  for (const anchor of DEFAULT_STYLE_ANCHORS) {
+    if (!promptLower.includes(anchor.toLowerCase())) {
+      parts.push(anchor + '.')
+    }
+  }
+
+  // Format
+  parts.push(`Output format: ${format} aspect ratio for LinkedIn.`)
+
+  // Rules from JSON (if any)
+  if (p.rules?.length) {
+    parts.push(`Rules: ${p.rules.join(' ')}`)
+  }
+
+  // Negative prompts
+  const negatives = p.negative_prompts?.length ? p.negative_prompts : [...NEGATIVE_PROMPTS]
+  parts.push(`Avoid: ${negatives.join(', ')}.`)
+
+  return parts.join(' ')
+}
+
+/**
+ * Fallback: builds prompt from individual structured fields.
+ */
+function buildFromFields(p: VisualPromptJson, format: VisualFormat): string {
   const parts: string[] = []
 
   // Scene
@@ -50,6 +103,11 @@ export function buildImagePrompt(
   // Brand
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
   if (p.brand?.logo_placement) parts.push(`Logo: ${p.brand.logo_placement}.`)
+
+  // Style anchors
+  for (const anchor of DEFAULT_STYLE_ANCHORS) {
+    parts.push(anchor + '.')
+  }
 
   // Format
   parts.push(`Format: ${format} for LinkedIn.`)

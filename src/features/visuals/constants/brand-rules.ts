@@ -52,7 +52,7 @@ export const BRAND_STYLE = {
     includeAlways: true,
   },
   imagery: {
-    style: 'editorial, fotografico con toques graficos',
+    style: 'Infografia educativa estilo NotebookLM con estetica de periodico nuevo. Siempre full color. Composicion limpia tipo revista cientifica moderna con graficos de datos y tipografia prominente legible.',
     subjects: [
       'plantas solares',
       'paneles fotovoltaicos',
@@ -63,6 +63,17 @@ export const BRAND_STYLE = {
     mood: 'profesional, innovador, sostenible',
   },
 } as const
+
+// ============================================
+// Default Style Anchors
+// ============================================
+
+export const DEFAULT_STYLE_ANCHORS = [
+  'Educational infographic style inspired by NotebookLM',
+  'Modern newspaper editorial aesthetic with full vivid color',
+  'Clean data visualization with bold readable typography',
+  'Professional magazine layout with clear visual hierarchy',
+] as const
 
 // ============================================
 // Negative Prompts

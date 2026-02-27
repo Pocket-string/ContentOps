@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { requireAuth } from '@/lib/auth'
 import { getWorkspaceId } from '@/lib/workspace'
 import { hasRequiredApiKeys } from '@/features/settings/services/api-key-service'
-import type { AppRole } from '@/lib/auth'
 
 export const metadata = {
   title: 'Configuracion | ContentOps',
@@ -13,7 +12,6 @@ interface SettingsCard {
   title: string
   description: string
   href: string
-  roles: AppRole[]
   icon: ReactNode
   badge?: ReactNode
 }
@@ -61,7 +59,7 @@ function ApiKeyIcon() {
 }
 
 export default async function SettingsPage() {
-  const user = await requireAuth()
+  await requireAuth()
   const workspaceId = await getWorkspaceId()
   const hasKeys = await hasRequiredApiKeys(workspaceId)
 
@@ -70,14 +68,12 @@ export default async function SettingsPage() {
       title: 'Perfil de Marca',
       description: 'Colores, tipografia, tono y reglas visuales para la generacion de contenido.',
       href: '/settings/brand',
-      roles: ['admin', 'editor'],
       icon: <BrandIcon />,
     },
     {
       title: 'API Keys',
       description: 'Configura tus claves de acceso para los modelos de IA.',
       href: '/settings/api-keys',
-      roles: ['admin'],
       icon: <ApiKeyIcon />,
       badge: !hasKeys ? (
         <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-warning-100 text-warning-700">
@@ -87,7 +83,7 @@ export default async function SettingsPage() {
     },
   ]
 
-  const visibleCards = cards.filter(card => card.roles.includes(user.role))
+  const visibleCards = cards
 
   return (
     <main className="p-6 max-w-4xl mx-auto">

@@ -90,6 +90,10 @@ function extractIdsFromPath(pathname: string): Partial<PageContext> {
   const postDayMatch = pathname.match(/\/posts\/(\d+)/)
   if (postDayMatch) ids.dayOfWeek = parseInt(postDayMatch[1], 10)
 
+  // /campaigns/[id]/visuals/[day]
+  const visualDayMatch = pathname.match(/\/visuals\/(\d+)/)
+  if (visualDayMatch) ids.dayOfWeek = parseInt(visualDayMatch[1], 10)
+
   // /topics/[id]
   const topicMatch = pathname.match(/\/topics\/([a-f0-9-]+)/)
   if (topicMatch) ids.topicId = topicMatch[1]

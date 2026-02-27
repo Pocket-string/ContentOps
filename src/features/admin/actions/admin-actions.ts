@@ -3,39 +3,34 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth'
-import { getWorkspaceId } from '@/lib/workspace'
 import { createClient } from '@/lib/supabase/server'
 
-const updateRoleSchema = z.object({
-  userId: z.string().uuid(),
-  newRole: z.enum(['admin', 'editor', 'collaborator']),
+const toggleAdminSchema = z.object({
+  targetUserId: z.string().uuid(),
 })
 
 /**
- * Update a workspace member's role.
- * 4-step pattern: Auth(admin) → Validate → Execute → Side effects
+ * Toggle platform admin status for a target user.
+ * 4-step pattern: Auth(platform admin) → Validate → Execute → Side effects
  */
-export async function updateMemberRoleAction(input: {
-  userId: string
-  newRole: string
+export async function togglePlatformAdminAction(input: {
+  targetUserId: string
 }): Promise<{ error?: string; success?: boolean }> {
-  // Step 1: Auth (admin only)
-  await requireAdmin()
+  // Step 1: Auth (platform admin only)
+  const caller = await requireAdmin()
 
   // Step 2: Validate
-  const parsed = updateRoleSchema.safeParse(input)
+  const parsed = toggleAdminSchema.safeParse(input)
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Datos invalidos' }
   }
 
-  // Step 3: Execute
-  const workspaceId = await getWorkspaceId()
+  // Step 3: Execute via SECURITY DEFINER RPC
   const supabase = await createClient()
 
-  const { error } = await supabase.rpc('update_member_role', {
-    p_workspace_id: workspaceId,
-    p_user_id: parsed.data.userId,
-    p_new_role: parsed.data.newRole,
+  const { error } = await supabase.rpc('toggle_platform_admin', {
+    p_caller_id: caller.id,
+    p_target_user_id: parsed.data.targetUserId,
   })
 
   if (error) {

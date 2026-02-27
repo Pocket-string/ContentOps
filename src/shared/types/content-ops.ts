@@ -193,6 +193,7 @@ export const postSchema = z.object({
   funnel_stage: z.enum(FUNNEL_STAGES),
   objective: z.string().nullable(),
   status: z.enum(POST_STATUSES),
+  selected_variant: z.enum(POST_VARIANTS).nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })

@@ -25,6 +25,8 @@ export interface PageContext {
   researchId?: string
   dayOfWeek?: number
   funnelStage?: string
+  selectedVariant?: string
+  visualFormat?: string
 }
 
 // Chat message
@@ -53,6 +55,8 @@ export const chatInputSchema = z.object({
     researchId: z.string().optional(),
     dayOfWeek: z.number().optional(),
     funnelStage: z.string().optional(),
+    selectedVariant: z.string().optional(),
+    visualFormat: z.string().optional(),
   }),
   // Previous messages for context (last 10 max for token efficiency)
   history: z

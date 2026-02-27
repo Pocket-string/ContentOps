@@ -3,12 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 
 export type AppRole = 'admin' | 'editor' | 'collaborator'
 
-interface UserProfile {
+export interface UserProfile {
   id: string
   email: string
   role: AppRole
   full_name: string | null
   workspace_id: string | null
+  is_platform_admin?: boolean
 }
 
 export async function requireAuth(): Promise<UserProfile> {
@@ -21,7 +22,7 @@ export async function requireAuth(): Promise<UserProfile> {
 
   const { data: membership } = await supabase
     .from('workspace_members')
-    .select('workspace_id, role')
+    .select('workspace_id, role, is_platform_admin')
     .eq('user_id', user.id)
     .limit(1)
     .single()
@@ -32,6 +33,7 @@ export async function requireAuth(): Promise<UserProfile> {
     role: (membership?.role as AppRole) ?? 'admin',
     full_name: (user.user_metadata?.full_name as string) ?? null,
     workspace_id: membership?.workspace_id ?? null,
+    is_platform_admin: (membership?.is_platform_admin as boolean | undefined) ?? false,
   }
 }
 
@@ -43,7 +45,7 @@ export async function getProfile(): Promise<UserProfile | null> {
 
   const { data: membership } = await supabase
     .from('workspace_members')
-    .select('workspace_id, role')
+    .select('workspace_id, role, is_platform_admin')
     .eq('user_id', user.id)
     .limit(1)
     .single()
@@ -54,13 +56,24 @@ export async function getProfile(): Promise<UserProfile | null> {
     role: (membership?.role as AppRole) ?? 'admin',
     full_name: (user.user_metadata?.full_name as string) ?? null,
     workspace_id: membership?.workspace_id ?? null,
+    is_platform_admin: (membership?.is_platform_admin as boolean | undefined) ?? false,
   }
 }
 
+/**
+ * Requires the caller to be a platform admin (is_platform_admin = true).
+ * Falls back to role === 'admin' if is_platform_admin column is not yet
+ * present in the response (pre-migration compatibility).
+ */
 export async function requireAdmin(): Promise<UserProfile> {
   const profile = await requireAuth()
 
-  if (profile.role !== 'admin') {
+  const isPlatformAdmin =
+    profile.is_platform_admin === true ||
+    // Backwards-compat: column not yet in DB response
+    (profile.is_platform_admin === undefined && profile.role === 'admin')
+
+  if (!isPlatformAdmin) {
     redirect('/dashboard')
   }
 

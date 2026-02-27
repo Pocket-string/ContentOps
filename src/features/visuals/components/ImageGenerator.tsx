@@ -7,11 +7,15 @@ import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL, type ImageModelId } from '../constan
 import type { VisualFormat } from '../constants/brand-rules'
 
 interface ImageGeneratorProps {
-  visualVersionId: string
+  visualVersionId: string | null
   promptJson: Record<string, unknown>
+  /** Live-edited JSON from the textarea — takes priority over promptJson when provided */
+  promptJsonOverride?: Record<string, unknown> | null
   format: VisualFormat
   currentImageUrl: string | null
   onImageGenerated: (imageUrl: string) => void
+  /** Called when no version exists and user wants to generate — parent should create version first */
+  onAutoCreateVersion?: () => Promise<string | null>
   label?: string
 }
 
@@ -42,9 +46,11 @@ function DownloadIcon() {
 export function ImageGenerator({
   visualVersionId,
   promptJson,
+  promptJsonOverride,
   format,
   currentImageUrl,
   onImageGenerated,
+  onAutoCreateVersion,
   label,
 }: ImageGeneratorProps) {
   const [modelId, setModelId] = useState<ImageModelId>(DEFAULT_IMAGE_MODEL)
@@ -53,16 +59,33 @@ export function ImageGenerator({
   const [error, setError] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl)
 
+  // Use the live-edited JSON when available, otherwise fall back to saved
+  const effectivePromptJson = promptJsonOverride ?? promptJson
+
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true)
     setError('')
     try {
+      // If no version exists, auto-create one first
+      let versionId = visualVersionId
+      if (!versionId && onAutoCreateVersion) {
+        versionId = await onAutoCreateVersion()
+        if (!versionId) {
+          setError('No se pudo crear la version visual')
+          return
+        }
+      }
+      if (!versionId) {
+        setError('No hay version visual seleccionada')
+        return
+      }
+
       const res = await fetch('/api/ai/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          visual_version_id: visualVersionId,
-          prompt_json: promptJson,
+          visual_version_id: versionId,
+          prompt_json: effectivePromptJson,
           format,
           model_id: modelId,
         }),
@@ -80,21 +103,19 @@ export function ImageGenerator({
     } finally {
       setIsGenerating(false)
     }
-  }, [visualVersionId, promptJson, format, modelId, onImageGenerated])
+  }, [visualVersionId, effectivePromptJson, format, modelId, onImageGenerated, onAutoCreateVersion])
 
   const handleDownload = useCallback(async () => {
     if (!previewUrl) return
     setIsDownloading(true)
     setError('')
     try {
-      // Derive extension from URL path (more reliable than blob.type)
       const urlPath = new URL(previewUrl).pathname
       const urlExt = urlPath.split('.').pop()?.toLowerCase()
       const ext = urlExt === 'jpg' || urlExt === 'jpeg' ? 'jpg'
         : urlExt === 'webp' ? 'webp'
         : 'png'
 
-      // Build a human-readable filename
       const safeName = (label || 'visual')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -114,14 +135,13 @@ export function ImageGenerator({
       document.body.removeChild(a)
       URL.revokeObjectURL(blobUrl)
     } catch {
-      // Fallback: open in new tab so the user can right-click > Save As
       window.open(previewUrl, '_blank')
     } finally {
       setIsDownloading(false)
     }
   }, [previewUrl, label, format])
 
-  const hasPrompt = Object.keys(promptJson).length > 0
+  const hasPrompt = Object.keys(effectivePromptJson).length > 0
 
   return (
     <div className="space-y-3">

@@ -2,6 +2,13 @@
 
 import { useState } from 'react'
 import type { BrandProfile, UpdateBrandProfileInput } from '@/shared/types/content-ops'
+import { LogoUploader, type LogoEntry } from '@/features/brand/components/LogoUploader'
+import { PaletteSelector, type PaletteOption } from '@/features/brand/components/PaletteSelector'
+import {
+  uploadLogoAction,
+  removeLogoAction,
+  analyzeLogoAction,
+} from '@/features/brand/actions/brand-actions'
 
 interface BrandEditorProps {
   profiles: BrandProfile[]
@@ -107,6 +114,26 @@ function TagList({
   )
 }
 
+/** Reads logo_urls from the raw profile data (JSONB column not yet in the Zod schema). */
+function getLogoUrls(profile: BrandProfile): LogoEntry[] {
+  const raw = (profile as unknown as { logo_urls?: unknown }).logo_urls
+  if (!Array.isArray(raw)) return []
+  return raw.filter(
+    (item): item is LogoEntry =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof (item as { url?: unknown }).url === 'string' &&
+      typeof (item as { name?: unknown }).name === 'string'
+  )
+}
+
+/** Reads ai_palettes from the raw profile data (JSONB column not yet in the Zod schema). */
+function getAiPalettes(profile: BrandProfile): PaletteOption[] {
+  const raw = (profile as unknown as { ai_palettes?: unknown }).ai_palettes
+  if (!Array.isArray(raw)) return []
+  return raw as PaletteOption[]
+}
+
 export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) {
   const activeProfile = profiles.find((p) => p.is_active) ?? profiles[0]
   const [selected, setSelected] = useState<BrandProfile | null>(activeProfile ?? null)
@@ -114,6 +141,21 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
   const [creating, setCreating] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+
+  // Logo state
+  const [logoUrls, setLogoUrls] = useState<LogoEntry[]>(
+    selected ? getLogoUrls(selected) : []
+  )
+  const [isUploading, setIsUploading] = useState(false)
+  const [logoError, setLogoError] = useState<string | null>(null)
+
+  // AI palette state
+  const [aiPalettes, setAiPalettes] = useState<PaletteOption[]>(
+    selected ? getAiPalettes(selected) : []
+  )
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isApplyingPalette, setIsApplyingPalette] = useState(false)
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
 
   // Local editable state
   const [form, setForm] = useState<UpdateBrandProfileInput>(
@@ -138,6 +180,10 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
     setSelected(profile)
     setSaveError(null)
     setSaveSuccess(false)
+    setLogoError(null)
+    setAnalyzeError(null)
+    setLogoUrls(getLogoUrls(profile))
+    setAiPalettes(getAiPalettes(profile))
     setForm({
       name: profile.name,
       colors: { ...profile.colors },
@@ -170,6 +216,62 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
     const result = await onCreate()
     setCreating(false)
     if (result.error) setSaveError(result.error)
+  }
+
+  const handleUpload = async (file: File) => {
+    if (!selected) return
+    setIsUploading(true)
+    setLogoError(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const result = await uploadLogoAction(selected.id, formData)
+    setIsUploading(false)
+
+    if (result.error) {
+      setLogoError(result.error)
+    } else if (result.data) {
+      setLogoUrls(result.data)
+    }
+  }
+
+  const handleRemoveLogo = async (index: number) => {
+    if (!selected) return
+    setIsUploading(true)
+    setLogoError(null)
+
+    const result = await removeLogoAction(selected.id, index)
+    setIsUploading(false)
+
+    if (result.error) {
+      setLogoError(result.error)
+    } else if (result.data) {
+      setLogoUrls(result.data)
+    }
+  }
+
+  const handleAnalyze = async () => {
+    if (!selected) return
+    setIsAnalyzing(true)
+    setAnalyzeError(null)
+
+    const result = await analyzeLogoAction(selected.id)
+    setIsAnalyzing(false)
+
+    if (result.error) {
+      setAnalyzeError(result.error)
+    } else if (result.data) {
+      setAiPalettes(result.data)
+    }
+  }
+
+  const handleApplyPalette = async (palette: PaletteOption) => {
+    setIsApplyingPalette(true)
+    setForm((f) => ({ ...f, colors: { ...palette.colors } }))
+    // Small delay to show feedback before the state settles
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    setIsApplyingPalette(false)
   }
 
   if (profiles.length === 0 || !selected) {
@@ -238,6 +340,118 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
             placeholder="Ej. Bitalize v2 — Verano 2026"
           />
         </div>
+
+        {/* Logo Upload */}
+        <div className="bg-surface border border-border rounded-2xl shadow-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-heading font-semibold text-foreground">Logos de Marca</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Sube hasta 2 logos. La IA los analizara para sugerir paletas de color.
+              </p>
+            </div>
+            {logoUrls.length > 0 && (
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={isAnalyzing || isUploading}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+                      />
+                    </svg>
+                    Analizando...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                    Analizar con IA
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          <LogoUploader
+            logoUrls={logoUrls}
+            onUpload={handleUpload}
+            onRemove={handleRemoveLogo}
+            isUploading={isUploading}
+            maxLogos={2}
+          />
+
+          {logoError && (
+            <p className="text-sm text-red-500 mt-2" role="alert">
+              {logoError}
+            </p>
+          )}
+        </div>
+
+        {/* AI Palette Suggestions — shown only when palettes exist */}
+        {aiPalettes.length > 0 && (
+          <div className="bg-surface border border-border rounded-2xl shadow-card p-6">
+            <div className="mb-4">
+              <h3 className="font-heading font-semibold text-foreground">Paletas Sugeridas por IA</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Basadas en el analisis visual de tus logos. Al aplicar, se rellenan los colores
+                manuales — puedes ajustarlos despues.
+              </p>
+            </div>
+            <PaletteSelector
+              palettes={aiPalettes}
+              onApply={handleApplyPalette}
+              isApplying={isApplyingPalette}
+            />
+            {analyzeError && (
+              <p className="text-sm text-red-500 mt-2" role="alert">
+                {analyzeError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* analyze error when no palettes yet */}
+        {analyzeError && aiPalettes.length === 0 && (
+          <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-2xl p-4">
+            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+              {analyzeError}
+            </p>
+          </div>
+        )}
 
         {/* Colors */}
         <div className="bg-surface border border-border rounded-2xl shadow-card p-6">

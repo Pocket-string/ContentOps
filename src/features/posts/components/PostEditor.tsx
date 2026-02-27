@@ -41,6 +41,7 @@ interface PostEditorProps {
   onStatusChange: (postId: string, status: string) => Promise<{ success?: true; error?: string }>
   onObjectiveChange: (postId: string, objective: string) => Promise<{ success?: true; error?: string }>
   onDayChange?: (postId: string, dayOfWeek: number) => Promise<{ success?: true; error?: string }>
+  onSelectVariant?: (postId: string, variant: string) => Promise<{ success?: true; error?: string }>
 }
 
 interface IterationResult {
@@ -289,6 +290,7 @@ export function PostEditor({
   onStatusChange,
   onObjectiveChange,
   onDayChange,
+  onSelectVariant,
 }: PostEditorProps) {
   // --- Core state ---
   const [activeVariant, setActiveVariant] = useState<PostVariant>('contrarian')
@@ -304,6 +306,10 @@ export function PostEditor({
   const [importPreview, setImportPreview] = useState<ReturnType<typeof parseCopyVariants> | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
   const [copyReview, setCopyReview] = useState<CopyReview | null>(null)
+  const [selectedVariant, setSelectedVariant] = useState<PostVariant | null>(
+    (post as Post & { selected_variant?: PostVariant | null }).selected_variant ?? null
+  )
+  const [isSelectingVariant, setIsSelectingVariant] = useState(false)
 
   // --- Objective state ---
   const [objective, setObjective] = useState(post.objective ?? '')
@@ -691,6 +697,7 @@ export function PostEditor({
                       const hasVersion =
                         getVariantVersions(post.versions, variant).length > 0
                       const isActive = activeVariant === variant
+                      const isSelected = selectedVariant === variant
                       return (
                         <button
                           key={variant}
@@ -704,14 +711,21 @@ export function PostEditor({
                             border-b-2 transition-all duration-150
                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-inset
                             ${
-                              isActive
-                                ? 'border-primary-500 text-primary-600 bg-primary-50'
-                                : 'border-transparent text-foreground-muted hover:text-foreground hover:bg-gray-50'
+                              isSelected
+                                ? 'border-green-500 text-green-700 bg-green-50'
+                                : isActive
+                                  ? 'border-primary-500 text-primary-600 bg-primary-50'
+                                  : 'border-transparent text-foreground-muted hover:text-foreground hover:bg-gray-50'
                             }
                           `}
                         >
                           {VARIANT_LABELS[variant]}
-                          {hasVersion && (
+                          {isSelected && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200" title="Elegida para publicar">
+                              ELEGIDA
+                            </span>
+                          )}
+                          {!isSelected && hasVersion && (
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-primary-500' : 'bg-gray-400'}`}
                               aria-hidden="true"
@@ -895,6 +909,40 @@ export function PostEditor({
                     label="Copiar Prompt"
                   />
                 </div>
+
+                {/* Select variant for publication */}
+                {onSelectVariant && editContent.trim() && (
+                  <div className="flex items-center gap-3 pt-1">
+                    <Button
+                      variant={selectedVariant === activeVariant ? 'outline' : 'primary'}
+                      size="sm"
+                      onClick={async () => {
+                        setIsSelectingVariant(true)
+                        try {
+                          const res = await onSelectVariant(post.id, activeVariant)
+                          if ('error' in res && res.error) {
+                            setError(res.error)
+                          } else {
+                            setSelectedVariant(activeVariant)
+                            setSuccessMsg(`Variante "${VARIANT_LABELS[activeVariant]}" elegida para publicar`)
+                            setTimeout(() => setSuccessMsg(''), 3000)
+                          }
+                        } finally {
+                          setIsSelectingVariant(false)
+                        }
+                      }}
+                      isLoading={isSelectingVariant}
+                      disabled={selectedVariant === activeVariant}
+                    >
+                      {selectedVariant === activeVariant ? 'Elegida para publicar' : 'Elegir para publicar'}
+                    </Button>
+                    {selectedVariant && selectedVariant !== activeVariant && (
+                      <span className="text-xs text-foreground-muted">
+                        Actualmente elegida: <span className="font-medium text-green-600">{VARIANT_LABELS[selectedVariant]}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* AI Review badge */}
                 {copyReview && (

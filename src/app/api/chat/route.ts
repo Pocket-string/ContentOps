@@ -222,6 +222,8 @@ export async function POST(request: Request): Promise<Response> {
   if (context.researchId) contextDescription += `\nResearch ID: ${context.researchId}`
   if (context.dayOfWeek !== undefined) contextDescription += `\nDia: ${context.dayOfWeek}`
   if (context.funnelStage) contextDescription += `\nFunnel: ${context.funnelStage}`
+  if (context.selectedVariant) contextDescription += `\nEstas trabajando con la variante: ${context.selectedVariant}`
+  if (context.visualFormat) contextDescription += `\nFormato visual: ${context.visualFormat}`
 
   const systemPrompt = buildSystemPrompt(contextDescription, learningsSection)
 

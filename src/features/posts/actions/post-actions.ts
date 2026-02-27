@@ -18,6 +18,7 @@ import {
   updatePostStatus,
   updatePostObjective,
   updatePostDayOfWeek,
+  selectVariant,
 } from '../services/post-service'
 
 // ============================================
@@ -296,6 +297,46 @@ export async function updatePostDayAction(
     user_id: user.id,
     post_id: postId,
     new_day: dayOfWeek,
+  })
+
+  revalidatePath('/campaigns')
+
+  return { success: true }
+}
+
+/**
+ * Select a copy variant for publication.
+ *
+ * Step 1 — Auth:     requireAuth().
+ * Step 2 — Validate: postId non-empty, variant in POST_VARIANTS.
+ * Step 3 — Execute:  selectVariant() patches selected_variant column.
+ * Step 4 — Side fx:  track + revalidate.
+ */
+export async function selectVariantAction(
+  postId: string,
+  variant: string
+): Promise<ActionResult> {
+  const user = await requireAuth()
+
+  if (!postId || typeof postId !== 'string') {
+    return { error: 'ID de post requerido' }
+  }
+
+  const variantSchema = z.enum(['contrarian', 'story', 'data_driven'])
+  const parsedVariant = variantSchema.safeParse(variant)
+  if (!parsedVariant.success) {
+    return { error: 'Variante invalida' }
+  }
+
+  const result = await selectVariant(postId, parsedVariant.data)
+  if (result.error) {
+    return { error: result.error }
+  }
+
+  track('post.variant_selected', {
+    user_id: user.id,
+    post_id: postId,
+    variant: parsedVariant.data,
   })
 
   revalidatePath('/campaigns')

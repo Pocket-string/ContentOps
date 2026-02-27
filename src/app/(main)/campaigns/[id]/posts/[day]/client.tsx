@@ -8,6 +8,7 @@ import {
   updatePostStatusAction,
   updatePostObjectiveAction,
   updatePostDayAction,
+  selectVariantAction,
 } from '@/features/posts/actions/post-actions'
 import type { Post, PostVersion, WeeklyBrief } from '@/shared/types/content-ops'
 
@@ -69,6 +70,14 @@ export function PostEditorClient({ post, campaignId, topicTitle, keyword, weekly
     return { success: true as const }
   }
 
+  async function handleSelectVariant(postId: string, variant: string) {
+    const result = await selectVariantAction(postId, variant)
+    if ('error' in result) {
+      return { error: result.error }
+    }
+    return { success: true as const }
+  }
+
   return (
     <PostEditor
       post={post}
@@ -83,6 +92,7 @@ export function PostEditorClient({ post, campaignId, topicTitle, keyword, weekly
       onStatusChange={handleStatusChange}
       onObjectiveChange={handleObjectiveChange}
       onDayChange={handleDayChange}
+      onSelectVariant={handleSelectVariant}
     />
   )
 }
