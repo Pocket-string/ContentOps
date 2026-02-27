@@ -6,12 +6,10 @@ export type UserRole = 'admin' | 'editor' | 'collaborator'
 
 export interface Profile {
   id: string
-  email: string
+  email?: string
   full_name: string | null
-  avatar_url: string | null
   role: UserRole
-  created_at: string
-  updated_at: string
+  workspace_id: string | null
 }
 
 // Permisos por Rol

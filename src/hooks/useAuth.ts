@@ -13,21 +13,28 @@ export function useAuth() {
   useEffect(() => {
     const supabase = createClient()
 
-    async function getProfile(userId: string) {
+    async function fetchMembership(currentUser: User) {
       const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
+        .from('workspace_members')
+        .select('workspace_id, role')
+        .eq('user_id', currentUser.id)
+        .limit(1)
         .single()
 
-      setProfile(data)
+      setProfile({
+        id: currentUser.id,
+        email: currentUser.email,
+        full_name: (currentUser.user_metadata?.full_name as string) ?? null,
+        role: (data?.role as Profile['role']) ?? 'admin',
+        workspace_id: data?.workspace_id ?? null,
+      })
     }
 
     // Get initial user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       if (user) {
-        getProfile(user.id)
+        fetchMembership(user)
       }
       setLoading(false)
     })
@@ -38,7 +45,7 @@ export function useAuth() {
         const currentUser = session?.user ?? null
         setUser(currentUser)
         if (currentUser) {
-          getProfile(currentUser.id)
+          fetchMembership(currentUser)
         } else {
           setProfile(null)
         }

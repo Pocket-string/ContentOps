@@ -19,18 +19,19 @@ export async function requireAuth(): Promise<UserProfile> {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, full_name')
-    .eq('id', user.id)
+  const { data: membership } = await supabase
+    .from('workspace_members')
+    .select('workspace_id, role')
+    .eq('user_id', user.id)
+    .limit(1)
     .single()
 
   return {
     id: user.id,
     email: user.email!,
-    role: (profile?.role as AppRole) ?? 'collaborator',
-    full_name: profile?.full_name ?? null,
-    workspace_id: null,
+    role: (membership?.role as AppRole) ?? 'admin',
+    full_name: (user.user_metadata?.full_name as string) ?? null,
+    workspace_id: membership?.workspace_id ?? null,
   }
 }
 
@@ -40,18 +41,19 @@ export async function getProfile(): Promise<UserProfile | null> {
 
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, full_name')
-    .eq('id', user.id)
+  const { data: membership } = await supabase
+    .from('workspace_members')
+    .select('workspace_id, role')
+    .eq('user_id', user.id)
+    .limit(1)
     .single()
 
   return {
     id: user.id,
     email: user.email!,
-    role: (profile?.role as AppRole) ?? 'collaborator',
-    full_name: profile?.full_name ?? null,
-    workspace_id: null,
+    role: (membership?.role as AppRole) ?? 'admin',
+    full_name: (user.user_metadata?.full_name as string) ?? null,
+    workspace_id: membership?.workspace_id ?? null,
   }
 }
 

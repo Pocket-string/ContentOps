@@ -171,3 +171,18 @@ export async function touchKeyUsage(
     .eq('workspace_id', workspaceId)
     .eq('provider', provider)
 }
+
+/**
+ * Check whether a workspace has at least one valid API key configured.
+ * Used by the onboarding banner to prompt users who have not set up keys yet.
+ */
+export async function hasRequiredApiKeys(workspaceId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { count } = await supabase
+    .from('api_keys')
+    .select('*', { count: 'exact', head: true })
+    .eq('workspace_id', workspaceId)
+    .eq('is_valid', true)
+
+  return (count ?? 0) > 0
+}

@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { requireAuth } from '@/lib/auth'
 import { getWorkspaceId } from '@/lib/workspace'
 import { createClient } from '@/lib/supabase/server'
+import { hasRequiredApiKeys } from '@/features/settings/services/api-key-service'
+import { ApiKeysBanner } from '@/features/settings/components/ApiKeysBanner'
 
 export const metadata = {
   title: 'Dashboard | LinkedIn ContentOps',
@@ -37,30 +39,36 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const workspaceId = await getWorkspaceId()
 
-  const [{ count: activeCampaigns }, { data: draftPostsData }, { data: scoreData }, { data: recentCampaigns }] =
-    await Promise.all([
-      supabase
-        .from('campaigns')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', workspaceId)
-        .in('status', ['draft', 'in_progress']),
-      supabase
-        .from('posts')
-        .select('id, campaigns!inner(workspace_id)')
-        .eq('status', 'draft')
-        .eq('campaigns.workspace_id', workspaceId),
-      supabase
-        .from('post_versions')
-        .select('score_json, posts!inner(campaigns!inner(workspace_id))')
-        .eq('posts.campaigns.workspace_id', workspaceId)
-        .not('score_json', 'is', null),
-      supabase
-        .from('campaigns')
-        .select('id, week_start, keyword, status, topics(title)')
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: false })
-        .limit(3),
-    ])
+  const [
+    { count: activeCampaigns },
+    { data: draftPostsData },
+    { data: scoreData },
+    { data: recentCampaigns },
+    hasKeys,
+  ] = await Promise.all([
+    supabase
+      .from('campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId)
+      .in('status', ['draft', 'in_progress']),
+    supabase
+      .from('posts')
+      .select('id, campaigns!inner(workspace_id)')
+      .eq('status', 'draft')
+      .eq('campaigns.workspace_id', workspaceId),
+    supabase
+      .from('post_versions')
+      .select('score_json, posts!inner(campaigns!inner(workspace_id))')
+      .eq('posts.campaigns.workspace_id', workspaceId)
+      .not('score_json', 'is', null),
+    supabase
+      .from('campaigns')
+      .select('id, week_start, keyword, status, topics(title)')
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: false })
+      .limit(3),
+    hasRequiredApiKeys(workspaceId),
+  ])
 
   let avgScore = 0
   let hasScores = false
@@ -88,6 +96,8 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-foreground-secondary mt-1">Tu centro de operaciones de contenido LinkedIn</p>
       </div>
+
+      {!hasKeys && <ApiKeysBanner />}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Campanas Activas" value={String(activeCampaigns ?? 0)} subtitle="draft + in_progress" />

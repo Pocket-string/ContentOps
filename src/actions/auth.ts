@@ -74,19 +74,11 @@ export async function updatePassword(formData: FormData) {
 
 export async function updateProfile(formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const fullName = formData.get('full_name') as string
 
-  if (!user) {
-    return { error: 'Not authenticated' }
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      full_name: formData.get('full_name') as string,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id)
+  const { error } = await supabase.auth.updateUser({
+    data: { full_name: fullName },
+  })
 
   if (error) {
     return { error: error.message }

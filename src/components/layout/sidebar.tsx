@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -21,40 +20,23 @@ const navItems: NavItem[] = [
   { href: '/campaigns', label: 'Campaigns', icon: CalendarIcon, roles: ['admin', 'editor', 'collaborator'] },
   { href: '/patterns', label: 'Patrones', icon: PatternsIcon, roles: ['admin', 'editor', 'collaborator'] },
   { href: '/insights', label: 'Insights', icon: InsightsIcon, roles: ['admin', 'editor', 'collaborator'] },
-  { href: '/settings/brand', label: 'Marca', icon: BrandIcon, roles: ['admin', 'editor'] },
-  { href: '/settings/api-keys', label: 'API Keys', icon: ApiKeyIcon, roles: ['admin'] },
-  { href: '/settings', label: 'Settings', icon: SettingsIcon, roles: ['admin'] },
 ]
 
-export function Sidebar() {
+const configItems: NavItem[] = [
+  { href: '/settings', label: 'Settings', icon: SettingsIcon, roles: ['admin'] },
+  { href: '/settings/brand', label: 'Marca', icon: BrandIcon, roles: ['admin', 'editor'] },
+  { href: '/settings/api-keys', label: 'API Keys', icon: ApiKeyIcon, roles: ['admin'] },
+  { href: '/admin', label: 'Admin', icon: AdminIcon, roles: ['admin'] },
+]
+
+interface SidebarProps {
+  userRole: UserRole
+  userName: string
+}
+
+export function Sidebar({ userRole, userName }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const [userRole, setUserRole] = useState<UserRole>('collaborator')
-  const [userName, setUserName] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, full_name')
-          .eq('id', user.id)
-          .single()
-
-        if (profile) {
-          setUserRole(profile.role as UserRole)
-          setUserName(profile.full_name || user.email?.split('@')[0] || 'Usuario')
-        }
-      }
-      setIsLoading(false)
-    }
-
-    fetchUserRole()
-  }, [])
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -63,6 +45,7 @@ export function Sidebar() {
   }
 
   const filteredNavItems = navItems.filter(item => item.roles.includes(userRole))
+  const filteredConfigItems = configItems.filter(item => item.roles.includes(userRole))
 
   const getRoleBadge = (role: UserRole) => {
     const badges: Record<UserRole, { label: string; color: string }> = {
@@ -74,6 +57,37 @@ export function Sidebar() {
   }
 
   const roleBadge = getRoleBadge(userRole)
+
+  const renderNavLink = (item: NavItem) => {
+    const isActive = pathname === item.href ||
+      (item.href !== '/dashboard' && item.href !== '/settings' && pathname.startsWith(item.href))
+    const Icon = item.icon
+    return (
+      <Link
+        key={item.href}
+        href={item.disabled ? '#' : item.href}
+        className={`
+          flex items-center gap-3 px-4 py-3 rounded-xl
+          transition-all duration-200
+          ${item.disabled
+            ? 'text-white/30 cursor-not-allowed'
+            : isActive
+              ? 'bg-white/15 text-white border-l-4 border-white/60'
+              : 'text-white/70 hover:bg-white/10 hover:text-white'
+          }
+        `}
+        onClick={item.disabled ? (e) => e.preventDefault() : undefined}
+      >
+        <Icon className="w-5 h-5" />
+        <span className="font-medium">{item.label}</span>
+        {item.disabled && (
+          <span className="ml-auto text-[10px] bg-white/10 px-1.5 py-0.5 rounded">
+            Soon
+          </span>
+        )}
+      </Link>
+    )
+  }
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 glass-sidebar text-white flex flex-col z-40">
@@ -109,48 +123,19 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-12 bg-white/10 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div>
+        <p className="text-[10px] uppercase tracking-wider text-white/40 px-4 mb-2">
+          Content Pipeline
+        </p>
+        {filteredNavItems.map(renderNavLink)}
+
+        {filteredConfigItems.length > 0 && (
+          <>
+            <div className="my-3 border-t border-white/6" />
             <p className="text-[10px] uppercase tracking-wider text-white/40 px-4 mb-2">
-              Content Pipeline
+              Configuracion
             </p>
-            {filteredNavItems.map((item) => {
-              const isActive = pathname === item.href ||
-                (item.href !== '/dashboard' && pathname.startsWith(item.href))
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.href}
-                  href={item.disabled ? '#' : item.href}
-                  className={`
-                    flex items-center gap-3 px-4 py-3 rounded-xl
-                    transition-all duration-200
-                    ${item.disabled
-                      ? 'text-white/30 cursor-not-allowed'
-                      : isActive
-                        ? 'bg-white/15 text-white border-l-4 border-white/60'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white'
-                    }
-                  `}
-                  onClick={item.disabled ? (e) => e.preventDefault() : undefined}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                  {item.disabled && (
-                    <span className="ml-auto text-[10px] bg-white/10 px-1.5 py-0.5 rounded">
-                      Soon
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
+            {filteredConfigItems.map(renderNavLink)}
+          </>
         )}
       </nav>
 
@@ -254,6 +239,14 @@ function ApiKeyIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+    </svg>
+  )
+}
+
+function AdminIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   )
 }
