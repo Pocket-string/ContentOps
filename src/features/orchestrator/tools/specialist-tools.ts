@@ -211,6 +211,134 @@ export const listRecentCampaigns = tool({
 })
 
 // ============================================
+// Tool: Get Campaign Metrics
+// ============================================
+export const getCampaignMetrics = tool({
+  description:
+    'Obtiene las metricas de rendimiento (impresiones, comentarios, guardados, compartidos, leads) de los posts de una campana. Usa esta herramienta cuando el usuario pregunte por aprendizajes semanales, rendimiento, o metricas.',
+  inputSchema: z.object({
+    campaignId: z.string().uuid().describe('ID de la campana'),
+  }),
+  execute: async ({ campaignId }) => {
+    const supabase = await createClient()
+
+    // 1. Get campaign info + posts
+    const { data: campaign } = await supabase
+      .from('campaigns')
+      .select('id, week_start, keyword, status, topics(title)')
+      .eq('id', campaignId)
+      .single()
+
+    if (!campaign) return { error: 'Campana no encontrada' }
+
+    const { data: posts } = await supabase
+      .from('posts')
+      .select('id, day_of_week, funnel_stage, status, objective')
+      .eq('campaign_id', campaignId)
+      .order('day_of_week', { ascending: true })
+
+    if (!posts || posts.length === 0) return { error: 'Sin posts en esta campana' }
+
+    const postIds = posts.map((p) => p.id)
+
+    // 2. Fetch metrics for all posts in one query
+    const { data: metricsRows } = await supabase
+      .from('metrics')
+      .select('post_id, impressions, comments, saves, shares, leads, notes, captured_at')
+      .in('post_id', postIds)
+
+    // 3. Build a map of post_id -> metrics
+    const metricsMap = new Map<string, {
+      impressions: number
+      comments: number
+      saves: number
+      shares: number
+      leads: number
+      notes: string | null
+      captured_at: string
+    }>()
+
+    if (metricsRows) {
+      for (const m of metricsRows as Array<{
+        post_id: string
+        impressions: number
+        comments: number
+        saves: number
+        shares: number
+        leads: number
+        notes: string | null
+        captured_at: string
+      }>) {
+        metricsMap.set(m.post_id, {
+          impressions: m.impressions,
+          comments: m.comments,
+          saves: m.saves,
+          shares: m.shares,
+          leads: m.leads,
+          notes: m.notes,
+          captured_at: m.captured_at,
+        })
+      }
+    }
+
+    // 4. Assemble per-post data
+    const DAY_NAMES = ['', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo']
+
+    const postMetrics = posts.map((p) => {
+      const m = metricsMap.get(p.id)
+      return {
+        day: DAY_NAMES[p.day_of_week as number] ?? `Dia ${p.day_of_week}`,
+        dayOfWeek: p.day_of_week,
+        funnel: p.funnel_stage,
+        status: p.status,
+        objective: p.objective,
+        hasMetrics: !!m,
+        impressions: m?.impressions ?? 0,
+        comments: m?.comments ?? 0,
+        saves: m?.saves ?? 0,
+        shares: m?.shares ?? 0,
+        leads: m?.leads ?? 0,
+        notes: m?.notes ?? null,
+      }
+    })
+
+    // 5. Calculate totals
+    const postsWithMetrics = postMetrics.filter((p) => p.hasMetrics)
+    const totals = {
+      impressions: postsWithMetrics.reduce((s, p) => s + p.impressions, 0),
+      comments: postsWithMetrics.reduce((s, p) => s + p.comments, 0),
+      saves: postsWithMetrics.reduce((s, p) => s + p.saves, 0),
+      shares: postsWithMetrics.reduce((s, p) => s + p.shares, 0),
+      leads: postsWithMetrics.reduce((s, p) => s + p.leads, 0),
+    }
+    const totalInteractions = totals.comments + totals.saves + totals.shares
+    const engagementRate = totals.impressions > 0
+      ? ((totalInteractions / totals.impressions) * 100).toFixed(1)
+      : '0'
+
+    const topicsArr = campaign.topics as unknown as Array<Record<string, unknown>> | null
+    const topicTitle = topicsArr?.[0]?.title ?? 'Sin tema'
+
+    return {
+      campaign: {
+        id: campaign.id,
+        topic: topicTitle,
+        keyword: campaign.keyword,
+        weekStart: campaign.week_start,
+        status: campaign.status,
+      },
+      posts: postMetrics,
+      totals: {
+        ...totals,
+        engagementRate: `${engagementRate}%`,
+        postsWithMetrics: postsWithMetrics.length,
+        totalPosts: posts.length,
+      },
+    }
+  },
+})
+
+// ============================================
 // Tool: Get Workspace Patterns
 // ============================================
 export const getTopPatterns = tool({
@@ -434,6 +562,7 @@ key_findings: 3-8 items, suggested_topics: 3-6 items. Todos strings.`,
 export function getSpecialistTools(workspaceId: string | undefined) {
   return {
     getCampaignStatus,
+    getCampaignMetrics,
     getPostContent,
     getResearchSummary,
     getTopicDetails,

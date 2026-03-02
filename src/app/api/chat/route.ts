@@ -81,7 +81,8 @@ ${contextDescription}
 - **runGroundedResearch**: EJECUTAR investigacion con IA + Google Search. USA ESTA cuando el usuario pida investigar.
 
 ### Consultas (leer datos reales del sistema)
-- **getCampaignStatus**: Estado de una campana con posts y scores
+- **getCampaignStatus**: Estado de una campana con posts y scores D/G/P/I
+- **getCampaignMetrics**: Metricas de rendimiento de una campana (impresiones, comentarios, guardados, compartidos, leads, engagement rate). USA ESTA cuando el usuario pregunte por aprendizajes semanales, rendimiento, metricas, o que funciono bien/mal.
 - **getPostContent**: Contenido de un post con variantes y scores D/G/P/I
 - **getResearchSummary**: Resumen de investigacion con hallazgos
 - **getTopicDetails**: Detalles de un tema (hipotesis, evidencia, senales)
@@ -95,7 +96,7 @@ ${contextDescription}
 ## Reglas Criticas de Uso de Herramientas
 1. **NUNCA inventes datos, metricas, hooks, CTAs, o keywords.** Si el usuario pide recomendaciones de CTAs, hooks, o patrones, USA getTopPatterns PRIMERO para consultar datos reales.
 2. Cuando el usuario pida investigar, USA runGroundedResearch directamente — no le pidas que vaya a otro modulo.
-3. Cuando pregunte sobre campanas, posts o temas, USA las herramientas de consulta para obtener datos reales.
+3. Cuando pregunte sobre campanas, posts, temas, metricas, rendimiento o aprendizajes, USA las herramientas de consulta para obtener datos reales. Para metricas y aprendizajes semanales usa getCampaignMetrics.
 4. Si no hay datos en el sistema (herramienta devuelve vacio), dilo honestamente y ofrece sugerencias basadas en tu conocimiento del sector, pero ACLARA que son sugerencias tuyas, no datos del workspace.
 ${learningsSection}
 ## Reglas Generales
@@ -224,6 +225,12 @@ export async function POST(request: Request): Promise<Response> {
   if (context.funnelStage) contextDescription += `\nFunnel: ${context.funnelStage}`
   if (context.selectedVariant) contextDescription += `\nEstas trabajando con la variante: ${context.selectedVariant}`
   if (context.visualFormat) contextDescription += `\nFormato visual: ${context.visualFormat}`
+  if (context.formContext && Object.keys(context.formContext).length > 0) {
+    contextDescription += `\n\nDatos del formulario actual:`
+    for (const [key, value] of Object.entries(context.formContext)) {
+      if (value) contextDescription += `\n- ${key}: ${value}`
+    }
+  }
 
   const systemPrompt = buildSystemPrompt(contextDescription, learningsSection)
 

@@ -30,6 +30,7 @@ interface ChatState {
   setMessages: (messages: ChatMessage[]) => void
   updateLastAssistantMessage: (content: string) => void
   setPageContext: (context: PageContext) => void
+  setFormContext: (formContext: Record<string, string>) => void
   setFeedback: (messageId: string, positive: boolean) => void
   clearMessages: () => void
 }
@@ -67,6 +68,11 @@ export const useChatStore = create<ChatState>((set) => ({
     }),
 
   setPageContext: (context) => set({ pageContext: context }),
+
+  setFormContext: (formContext) =>
+    set((state) => ({
+      pageContext: { ...state.pageContext, formContext },
+    })),
 
   setFeedback: (messageId, positive) =>
     set((state) => ({

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { useChatStore } from '@/features/orchestrator/store/chat-store'
 import type { CreateCampaignInput, PostFrequency } from '@/shared/types/content-ops'
 import { WEEKLY_PLAN, DEFAULT_DAYS_3, DEFAULT_DAYS_5 } from '@/shared/types/content-ops'
 
@@ -52,6 +53,21 @@ export function CampaignForm({ topics = [], onSubmit, onSuccess }: CampaignFormP
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ week_start?: string }>({})
+
+  // Sync form state to orchestrator so the AI can see what the user is configuring
+  const setFormContext = useChatStore((s) => s.setFormContext)
+  const selectedTopicLabel = topics.find((t) => t.id === topicId)?.title ?? ''
+
+  useEffect(() => {
+    const ctx: Record<string, string> = {
+      pagina: 'Crear nueva campana',
+      frecuencia: `${frequency} dias`,
+    }
+    if (weekStart) ctx.semana_inicio = weekStart
+    if (selectedTopicLabel) ctx.tema_asociado = selectedTopicLabel
+    if (keyword.trim()) ctx.keyword_cta = keyword.trim()
+    setFormContext(ctx)
+  }, [weekStart, topicId, selectedTopicLabel, keyword, frequency, setFormContext])
 
   // Build options for topic select
   const topicOptions = [

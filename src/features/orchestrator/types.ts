@@ -27,6 +27,8 @@ export interface PageContext {
   funnelStage?: string
   selectedVariant?: string
   visualFormat?: string
+  // Generic form context — any page can push its current form state here
+  formContext?: Record<string, string>
 }
 
 // Chat message
@@ -57,6 +59,7 @@ export const chatInputSchema = z.object({
     funnelStage: z.string().optional(),
     selectedVariant: z.string().optional(),
     visualFormat: z.string().optional(),
+    formContext: z.record(z.string(), z.string()).optional(),
   }),
   // Previous messages for context (last 10 max for token efficiency)
   history: z
