@@ -35,7 +35,17 @@ export interface CampaignFilters {
  * Campaign with its parent topic title attached via join.
  */
 export type CampaignWithTopic = Campaign & {
-  topics: { title: string; hypothesis: string | null; evidence: string | null; anti_myth: string | null; signals_json: string[]; silent_enemy_name: string | null } | null
+  topics: {
+    title: string
+    hypothesis: string | null
+    evidence: string | null
+    anti_myth: string | null
+    signals_json: string[]
+    silent_enemy_name: string | null
+    minimal_proof: string | null
+    failure_modes: string[]
+    expected_business_impact: string | null
+  } | null
 }
 
 /**
@@ -63,6 +73,9 @@ const campaignWithTopicSchema = campaignSchema.extend({
     anti_myth: z.string().nullable(),
     signals_json: z.array(z.string()),
     silent_enemy_name: z.string().nullable(),
+    minimal_proof: z.string().nullable(),
+    failure_modes: z.array(z.string()).default([]),
+    expected_business_impact: z.string().nullable(),
   }).nullable(),
 })
 
@@ -101,7 +114,7 @@ export async function getCampaignList(
 
     let query = supabase
       .from('campaigns')
-      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name)')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact)')
       .eq('workspace_id', workspaceId)
       .order('week_start', { ascending: false })
 
@@ -140,7 +153,7 @@ export async function getCampaignById(
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
       .eq('id', id)
       .single()
 
@@ -251,12 +264,12 @@ export async function createCampaignWithPosts(
     }
 
     // Fetch topic fields if topic_id was provided
-    let topicData: { title: string; hypothesis: string | null; evidence: string | null; anti_myth: string | null; signals_json: string[]; silent_enemy_name: string | null } | null = null
+    let topicData: CampaignWithTopic['topics'] = null
 
     if (parsedCampaign.data.topic_id) {
       const { data: topicRow } = await supabase
         .from('topics')
-        .select('title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name')
+        .select('title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact')
         .eq('id', parsedCampaign.data.topic_id)
         .single()
 
@@ -268,6 +281,9 @@ export async function createCampaignWithPosts(
           anti_myth: topicRow.anti_myth ?? null,
           signals_json: Array.isArray(topicRow.signals_json) ? (topicRow.signals_json as string[]) : [],
           silent_enemy_name: topicRow.silent_enemy_name ?? null,
+          minimal_proof: topicRow.minimal_proof ?? null,
+          failure_modes: Array.isArray(topicRow.failure_modes) ? (topicRow.failure_modes as string[]) : [],
+          expected_business_impact: topicRow.expected_business_impact ?? null,
         }
       }
     }

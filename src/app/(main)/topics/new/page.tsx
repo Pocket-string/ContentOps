@@ -32,12 +32,43 @@ export default async function NewTopicPage({ searchParams }: Props) {
       // angle → hypothesis (the angle/thesis for this topic)
       if (angle) initialData.hypothesis = angle
 
-      // hook_idea → evidence (the hook serves as evidence/data point)
-      if (hook_idea) initialData.evidence = hook_idea
+      // Extract ai_synthesis for rich field population
+      const synthesis = research.ai_synthesis as Record<string, unknown> | null
 
-      // Enrich from research metadata — extract key_takeaways as signals
+      // Build RICH evidence from ALL key findings (not just one hook_idea)
+      // This is the core of "richer topic descriptions"
+      if (synthesis && Array.isArray(synthesis['key_findings'])) {
+        const findings = synthesis['key_findings'] as Array<Record<string, string>>
+        const richEvidence = findings
+          .map(f => {
+            const src = f.source || f.source_hint
+            return `${f.finding}${src ? ` (Fuente: ${src})` : ''}`
+          })
+          .join('\n\n')
+        initialData.evidence = richEvidence.slice(0, 2000)
+      } else if (hook_idea) {
+        // Fallback to single hook_idea if no synthesis findings
+        initialData.evidence = hook_idea
+      } else if (research.raw_text) {
+        // Last resort: raw text truncated
+        initialData.evidence = research.raw_text.slice(0, 1000)
+      }
+
+      // Enrich signals from key_takeaways + finding relevance
+      const signals: string[] = []
       if (research.key_takeaways.length > 0) {
-        initialData.signals_json = research.key_takeaways.slice(0, 5)
+        signals.push(...research.key_takeaways.slice(0, 5))
+      }
+      if (synthesis && Array.isArray(synthesis['key_findings'])) {
+        const findings = synthesis['key_findings'] as Array<Record<string, string>>
+        for (const f of findings) {
+          if (f.relevance && signals.length < 8) {
+            signals.push(f.relevance)
+          }
+        }
+      }
+      if (signals.length > 0) {
+        initialData.signals_json = signals.slice(0, 8)
       }
 
       // Carry over fit_score from research if present
@@ -45,22 +76,24 @@ export default async function NewTopicPage({ searchParams }: Props) {
         initialData.fit_score = research.fit_score
       }
 
-      // Build richer evidence from research if hook_idea alone isn't enough
-      if (!hook_idea && research.raw_text) {
-        initialData.evidence = research.raw_text.slice(0, 800)
+      // Extract sources for minimal_proof (V2 sources[] or evidence_links)
+      if (synthesis && Array.isArray(synthesis['sources']) && (synthesis['sources'] as string[]).length > 0) {
+        initialData.minimal_proof = (synthesis['sources'] as string[]).slice(0, 5).join('\n')
+      } else if (research.evidence_links.length > 0) {
+        initialData.minimal_proof = research.evidence_links.slice(0, 5).join('\n')
       }
 
-      // Extract anti_myth from ai_synthesis if available (look for contrarian angles)
-      const synthesis = research.ai_synthesis as Record<string, unknown> | null
+      // Richer business impact from summary + market_context
       if (synthesis) {
-        // Build business impact from synthesis summary
+        const impactParts: string[] = []
         if (typeof synthesis['summary'] === 'string') {
-          initialData.expected_business_impact = (synthesis['summary'] as string).slice(0, 500)
+          impactParts.push(synthesis['summary'] as string)
         }
-
-        // Auto-populate evidence_links → minimal_proof if available
-        if (research.evidence_links.length > 0) {
-          initialData.minimal_proof = research.evidence_links.slice(0, 3).join('\n')
+        if (typeof synthesis['market_context'] === 'string') {
+          impactParts.push(synthesis['market_context'] as string)
+        }
+        if (impactParts.length > 0) {
+          initialData.expected_business_impact = impactParts.join('\n\n').slice(0, 1000)
         }
       }
 

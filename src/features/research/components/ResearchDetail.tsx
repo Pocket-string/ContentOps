@@ -17,7 +17,8 @@ import { buildResearchPromptTemplate } from '@/features/prompts/templates/resear
 interface KeyFinding {
   finding: string
   relevance: string
-  source_hint?: string
+  source?: string      // V2: required source attribution
+  source_hint?: string // V1: backward compat
 }
 
 interface SuggestedTopic {
@@ -40,6 +41,7 @@ interface AiSynthesis {
   key_findings: KeyFinding[]
   suggested_topics: SuggestedTopic[]
   bullets: SynthesisBullet[]
+  sources: string[]
 }
 
 function parseSynthesis(raw: Record<string, unknown> | null): AiSynthesis | null {
@@ -55,6 +57,7 @@ function parseSynthesis(raw: Record<string, unknown> | null): AiSynthesis | null
           return [{
             finding: item['finding'] as string,
             relevance: typeof item['relevance'] === 'string' ? item['relevance'] as string : '',
+            source: typeof item['source'] === 'string' ? item['source'] as string : undefined,
             source_hint: typeof item['source_hint'] === 'string' ? item['source_hint'] as string : undefined,
           }]
         }
@@ -94,12 +97,17 @@ function parseSynthesis(raw: Record<string, unknown> | null): AiSynthesis | null
       })
     : []
 
+  // Parse consolidated sources list (V2)
+  const sources: string[] = Array.isArray(raw['sources'])
+    ? (raw['sources'] as unknown[]).filter((s): s is string => typeof s === 'string')
+    : []
+
   // Must have at least something meaningful
   if (!summary && keyFindings.length === 0 && suggestedTopics.length === 0 && bullets.length === 0) {
     return null
   }
 
-  return { summary, market_context: marketContext, key_findings: keyFindings, suggested_topics: suggestedTopics, bullets }
+  return { summary, market_context: marketContext, key_findings: keyFindings, suggested_topics: suggestedTopics, bullets, sources }
 }
 
 // -----------------------------------------------------------------------
@@ -592,13 +600,53 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
                         <p className="text-xs text-foreground-secondary mt-1">
                           {finding.relevance}
                         </p>
-                        {finding.source_hint && (
-                          <p className="text-xs text-foreground-muted mt-1 italic">
-                            Fuente: {finding.source_hint}
+                        {(finding.source || finding.source_hint) && (
+                          <p className="text-xs text-foreground-secondary mt-1.5 flex items-center gap-1">
+                            <ExternalLinkIcon className="w-3 h-3 shrink-0" />
+                            {isUrl(finding.source || finding.source_hint || '') ? (
+                              <a
+                                href={finding.source || finding.source_hint}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-accent-600 hover:underline truncate"
+                              >
+                                {finding.source || finding.source_hint}
+                              </a>
+                            ) : (
+                              <span>{finding.source || finding.source_hint}</span>
+                            )}
                           </p>
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Consolidated Sources (V2 — from grounded research) */}
+                {synthesis.sources.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-foreground-muted font-medium uppercase tracking-wider">
+                      Fuentes ({synthesis.sources.length})
+                    </p>
+                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1.5">
+                      {synthesis.sources.map((src, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-sm">
+                          <ExternalLinkIcon className="w-3.5 h-3.5 text-foreground-muted shrink-0" />
+                          {isUrl(src) ? (
+                            <a
+                              href={src}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-accent-600 hover:underline truncate"
+                            >
+                              {src}
+                            </a>
+                          ) : (
+                            <span className="text-foreground">{src}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

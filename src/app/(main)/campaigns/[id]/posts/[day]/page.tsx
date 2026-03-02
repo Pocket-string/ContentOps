@@ -32,15 +32,18 @@ export default async function PostEditorPage({ params }: Props) {
   const keyword = campaign.keyword ?? undefined
   const weeklyBrief = campaign.weekly_brief ?? undefined
 
-  // Build additional context from topic data for richer copy generation
+  // Build rich context from ALL topic fields for grounded copy generation
   const topicContext = campaign.topics
     ? [
         campaign.topics.hypothesis ? `Hipotesis: ${campaign.topics.hypothesis}` : '',
-        campaign.topics.evidence ? `Evidencia: ${campaign.topics.evidence}` : '',
+        campaign.topics.evidence ? `Evidencia verificada:\n${campaign.topics.evidence}` : '',
         campaign.topics.anti_myth ? `Anti-mito: ${campaign.topics.anti_myth}` : '',
         campaign.topics.silent_enemy_name ? `Enemigo silencioso: ${campaign.topics.silent_enemy_name}` : '',
-        campaign.topics.signals_json.length > 0 ? `Senales: ${campaign.topics.signals_json.join(', ')}` : '',
-      ].filter(Boolean).join('\n')
+        campaign.topics.signals_json.length > 0 ? `Senales del mercado: ${campaign.topics.signals_json.join(', ')}` : '',
+        campaign.topics.minimal_proof ? `Fuentes verificadas:\n${campaign.topics.minimal_proof}` : '',
+        campaign.topics.expected_business_impact ? `Impacto de negocio: ${campaign.topics.expected_business_impact}` : '',
+        campaign.topics.failure_modes?.length > 0 ? `Modos de falla: ${campaign.topics.failure_modes.join(', ')}` : '',
+      ].filter(Boolean).join('\n\n')
     : undefined
 
   return (

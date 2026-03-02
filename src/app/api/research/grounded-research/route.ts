@@ -20,7 +20,7 @@ const researchOutputSchema = z.object({
   key_findings: z.array(z.object({
     finding: z.string(),
     relevance: z.string(),
-    source_hint: z.string().optional(),
+    source: z.string().describe('Source name, report title, or URL where this finding comes from'),
   })).min(1).max(10),
   suggested_topics: z.array(z.object({
     title: z.string(),
@@ -28,6 +28,8 @@ const researchOutputSchema = z.object({
     hook_idea: z.string(),
   })).min(1).max(8),
   market_context: z.string().optional(),
+  sources: z.array(z.string()).default([])
+    .describe('Consolidated list of all unique source URLs or report names referenced'),
 })
 
 export type GroundedResearchOutput = z.infer<typeof researchOutputSchema>
@@ -80,9 +82,11 @@ Tu mision es investigar temas del sector y producir un reporte detallado con hal
 Reglas:
 - Basa tus hallazgos en informacion verificable y reciente
 - Cada finding debe incluir datos especificos (numeros, porcentajes, nombres de empresas)
+- Para CADA hallazgo, indica claramente la fuente (URL, nombre del reporte, organizacion, o estudio)
 - Los topics sugeridos deben seguir la metodologia D/G/P/I (Detener scroll, Ganar atencion, Provocar reaccion, Iniciar conversacion)
 - Los hooks deben ser especificos y con datos, no genericos
 - Prioriza informacion cuantitativa sobre opiniones
+- NO inventes datos ni fuentes — solo incluye informacion verificable
 ${buyer_persona ? `- Enfoca para el perfil: ${buyer_persona}` : ''}
 ${region ? `- Region de interes: ${region}` : ''}`
 
@@ -108,17 +112,21 @@ El JSON debe seguir esta estructura EXACTA:
 {
   "summary": "resumen ejecutivo (1-3 parrafos)",
   "key_findings": [
-    {"finding": "hallazgo con datos", "relevance": "por que importa", "source_hint": "fuente opcional"}
+    {"finding": "hallazgo con datos especificos", "relevance": "por que importa", "source": "nombre del reporte, organizacion, o URL de la fuente"}
   ],
   "suggested_topics": [
     {"title": "titulo del post", "angle": "angulo editorial", "hook_idea": "idea de gancho con dato"}
   ],
-  "market_context": "contexto de mercado"
+  "market_context": "contexto de mercado",
+  "sources": ["fuente 1 (URL o nombre del reporte)", "fuente 2"]
 }
 REGLAS:
 - key_findings: minimo 3, maximo 8 items
 - suggested_topics: minimo 3, maximo 6 items
-- Todos los valores deben ser strings, no arrays ni objetos anidados`,
+- Todos los valores deben ser strings, no arrays ni objetos anidados
+- CADA key_finding DEBE tener un campo "source" con la fuente especifica (URL, nombre del reporte, organizacion)
+- El campo "sources" debe listar TODAS las fuentes unicas referenciadas en los hallazgos
+- NO inventes fuentes — si no puedes atribuir un hallazgo, indica "Conocimiento del sector"`,
       prompt: `Estructura esta investigacion en JSON:\n\n${textForStructuring.slice(0, 6000)}`,
     })
 
@@ -136,8 +144,10 @@ REGLAS:
     const rawParsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
     const findings = Array.isArray(rawParsed.key_findings) ? rawParsed.key_findings.slice(0, 10) : []
     const topics = Array.isArray(rawParsed.suggested_topics) ? rawParsed.suggested_topics.slice(0, 8) : []
+    const sources = Array.isArray(rawParsed.sources) ? rawParsed.sources.slice(0, 20) : []
     rawParsed.key_findings = findings
     rawParsed.suggested_topics = topics
+    rawParsed.sources = sources
 
     const validated = researchOutputSchema.safeParse(rawParsed)
     if (!validated.success) {
