@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import {
   brandProfileSchema,
   type BrandProfile,
@@ -154,7 +154,8 @@ export async function uploadLogoFile(
   file: File
 ): Promise<ServiceResult<string>> {
   try {
-    const supabase = await createClient()
+    // Use service client for storage operations to bypass storage RLS
+    const supabase = createServiceClient()
 
     const ext = file.name.split('.').pop() ?? 'png'
     const safeName = sanitizeFilename(file.name.replace(/\.[^.]+$/, ''))
@@ -171,7 +172,10 @@ export async function uploadLogoFile(
         upsert: false,
       })
 
-    if (uploadError) return { error: uploadError.message }
+    if (uploadError) {
+      console.error('[brand-service] Storage upload error:', uploadError)
+      return { error: `Error al subir: ${uploadError.message}` }
+    }
 
     const {
       data: { publicUrl },
@@ -190,7 +194,8 @@ export async function uploadLogoFile(
  */
 export async function removeLogoFile(logoUrl: string): Promise<ServiceResult<void>> {
   try {
-    const supabase = await createClient()
+    // Use service client for storage operations to bypass storage RLS
+    const supabase = createServiceClient()
 
     // Extract the path after "/brand-logos/" from the public URL
     const marker = '/brand-logos/'

@@ -223,16 +223,22 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
     setIsUploading(true)
     setLogoError(null)
 
-    const formData = new FormData()
-    formData.append('file', file)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
 
-    const result = await uploadLogoAction(selected.id, formData)
-    setIsUploading(false)
+      const result = await uploadLogoAction(selected.id, formData)
 
-    if (result.error) {
-      setLogoError(result.error)
-    } else if (result.data) {
-      setLogoUrls(result.data)
+      if (result.error) {
+        setLogoError(result.error)
+      } else if (result.data) {
+        setLogoUrls(result.data)
+      }
+    } catch (err) {
+      console.error('[BrandEditor] upload error:', err)
+      setLogoError('Error al subir el logo. Verifica tu conexion e intenta de nuevo.')
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -241,13 +247,19 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
     setIsUploading(true)
     setLogoError(null)
 
-    const result = await removeLogoAction(selected.id, index)
-    setIsUploading(false)
+    try {
+      const result = await removeLogoAction(selected.id, index)
 
-    if (result.error) {
-      setLogoError(result.error)
-    } else if (result.data) {
-      setLogoUrls(result.data)
+      if (result.error) {
+        setLogoError(result.error)
+      } else if (result.data) {
+        setLogoUrls(result.data)
+      }
+    } catch (err) {
+      console.error('[BrandEditor] remove logo error:', err)
+      setLogoError('Error al eliminar el logo. Intenta de nuevo.')
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -256,13 +268,19 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
     setIsAnalyzing(true)
     setAnalyzeError(null)
 
-    const result = await analyzeLogoAction(selected.id)
-    setIsAnalyzing(false)
+    try {
+      const result = await analyzeLogoAction(selected.id)
 
-    if (result.error) {
-      setAnalyzeError(result.error)
-    } else if (result.data) {
-      setAiPalettes(result.data)
+      if (result.error) {
+        setAnalyzeError(result.error)
+      } else if (result.data) {
+        setAiPalettes(result.data)
+      }
+    } catch (err) {
+      console.error('[BrandEditor] analyze error:', err)
+      setAnalyzeError('Error al analizar logos. Intenta de nuevo.')
+    } finally {
+      setIsAnalyzing(false)
     }
   }
 
@@ -644,8 +662,11 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
           />
         </div>
 
-        {/* Save actions */}
-        <div className="flex items-center justify-between bg-surface border border-border rounded-2xl shadow-card p-4">
+      </div>
+
+      {/* Sticky save bar — spans full width below the grid */}
+      <div className="lg:col-span-4 col-span-1 sticky bottom-0 z-10">
+        <div className="flex items-center justify-between bg-surface/95 backdrop-blur-sm border border-border rounded-2xl shadow-lg p-4">
           <div>
             {saveError && <p className="text-sm text-red-500">{saveError}</p>}
             {saveSuccess && (
@@ -655,7 +676,7 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
           <button
             onClick={handleSave}
             disabled={saving || !selected}
-            className="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
