@@ -145,12 +145,18 @@ export function CarouselEditor({
     setIsGeneratingAll(true)
     setError('')
 
-    for (let i = 0; i < slides.length; i++) {
-      if (slides[i].image_url) continue // Skip already generated
-      await generateSlide(i)
+    try {
+      for (let i = 0; i < slides.length; i++) {
+        if (slides[i].image_url) continue // Skip already generated
+        setActiveSlide(i) // Show which slide is being generated
+        await generateSlide(i)
+      }
+    } catch (err) {
+      console.error('[CarouselEditor] generateAllSlides error:', err)
+      setError('Error al generar slides. Intenta de nuevo.')
+    } finally {
+      setIsGeneratingAll(false)
     }
-
-    setIsGeneratingAll(false)
   }, [slides, generateSlide])
 
   const handleDownloadAll = useCallback(async () => {

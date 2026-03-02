@@ -188,12 +188,22 @@ export function CriticPanel({
     setAppliedScores(prev => new Set(prev).add(evaluation.variant))
   }
 
+  const [isApplyingAll, setIsApplyingAll] = useState(false)
+
   async function handleApplyAllScores() {
     if (!result || !onApplyScore) return
-    for (const evaluation of result.evaluations) {
-      if (!appliedScores.has(evaluation.variant)) {
-        await handleApplyScore(evaluation)
+    setIsApplyingAll(true)
+    try {
+      for (const evaluation of result.evaluations) {
+        if (!appliedScores.has(evaluation.variant)) {
+          await handleApplyScore(evaluation)
+        }
       }
+    } catch (err) {
+      console.error('[CriticPanel] apply all scores error:', err)
+      setError('Error al aplicar scores. Intenta de nuevo.')
+    } finally {
+      setIsApplyingAll(false)
     }
   }
 
@@ -241,6 +251,8 @@ export function CriticPanel({
               variant="secondary"
               size="sm"
               onClick={handleApplyAllScores}
+              isLoading={isApplyingAll}
+              disabled={isApplyingAll}
               leftIcon={<CheckCircleIcon className="w-4 h-4" />}
               className="w-full"
             >
