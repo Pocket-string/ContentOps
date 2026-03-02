@@ -91,6 +91,45 @@ export const NEGATIVE_PROMPTS = [
 ] as const
 
 // ============================================
+// V2: Extended Brand Constants
+// ============================================
+
+/** Exact textual description of the Bitalize logo for AI image models. */
+export const BRAND_LOGO_DESCRIPTION = {
+  reference_description:
+    'The Bitalize logo consists of the word "Bitalize" in a clean sans-serif font (Inter Bold), ' +
+    'with a geometric icon to the left made of four vertical bars of increasing height in brand blue (#1E3A5F), ' +
+    'resembling a bar chart or data growth icon. Below the name is the tagline "DATA-DRIVEN GROWTH, REVITALIZED" ' +
+    'in small uppercase letters. The text is dark navy (#1E3A5F) on light backgrounds or white on dark backgrounds.',
+  default_placement: 'bottom_left_on_white_band',
+  default_scale: 0.2,
+  default_band: {
+    use_band: true,
+    band_color: '#FFFFFF',
+    band_height_ratio: 0.12,
+  },
+} as const
+
+/** Author signature defaults. */
+export const BRAND_SIGNATURE = {
+  text: 'Jonathan Navarrete — Bitalize',
+  default_placement: 'bottom-left, small 10px, text color #94A3B8',
+} as const
+
+/** Extended semantic color map for V2 prompts. */
+export const BRAND_COLORS_SEMANTIC = {
+  primary: '#1E3A5F',         // brand_blue_dark — trust, depth
+  secondary: '#F97316',       // accent_energy — solar energy, action
+  accent: '#10B981',          // accent_growth — sustainability
+  text_main: '#1F2937',       // gray-800
+  text_secondary: '#94A3B8',  // gray-400, muted
+  background: '#FFFFFF',      // paper-white
+  background_dark: '#0F172A', // navy dark alternative
+  accent_warning: '#EAB308',  // yellow for data highlights
+  accent_danger: '#EF4444',   // red for critical metrics
+} as const
+
+// ============================================
 // QA Checklist
 // ============================================
 

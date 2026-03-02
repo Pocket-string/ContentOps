@@ -1,4 +1,4 @@
-import { BRAND_STYLE, NEGATIVE_PROMPTS } from '../constants/brand-rules'
+import { BRAND_STYLE, NEGATIVE_PROMPTS, BRAND_LOGO_DESCRIPTION, BRAND_SIGNATURE } from '../constants/brand-rules'
 
 interface SlideInput {
   slide_index: number
@@ -35,21 +35,39 @@ export function buildCarouselSlidePrompt(
   const role = getSlideRole(slide.slide_index, narrative.total_slides)
   parts.push(`This slide serves as the ${role}.`)
 
-  // Scene description from prompt_json
-  const scene = p.scene as Record<string, string> | undefined
-  if (scene?.description) parts.push(scene.description)
-  if (scene?.setting) parts.push(`Setting: ${scene.setting}.`)
-  if (scene?.mood) parts.push(`Mood: ${scene.mood}.`)
+  // Detect V2 content fields (meta/layout/content) vs V1 (scene/composition)
+  const isV2 = 'meta' in p && 'content' in p
 
-  // Style
-  const style = p.style as Record<string, unknown> | undefined
-  if (style?.aesthetic) parts.push(`Style: ${style.aesthetic}.`)
-  if (style?.photography_style) parts.push(`Photography: ${style.photography_style}.`)
-  if (style?.lighting) parts.push(`Lighting: ${style.lighting}.`)
+  if (isV2) {
+    // V2: extract from structured content fields
+    const content = p.content as Record<string, unknown> | undefined
+    const visualElements = content?.visual_elements as Record<string, unknown> | undefined
+    if (visualElements?.description) parts.push(`${visualElements.description}.`)
+    if (visualElements?.type) parts.push(`Visual type: ${visualElements.type}.`)
 
-  // Composition
-  const composition = p.composition as Record<string, string> | undefined
-  if (composition?.layout) parts.push(`Layout: ${composition.layout}.`)
+    const layout = p.layout as Record<string, unknown> | undefined
+    if (layout?.background_style) parts.push(`Background: ${layout.background_style}.`)
+
+    // V2 style guidelines
+    const guidelines = p.style_guidelines
+    if (Array.isArray(guidelines) && guidelines.length > 0) {
+      parts.push(`Style: ${guidelines.filter((g): g is string => typeof g === 'string').join('. ')}.`)
+    }
+  } else {
+    // V1: scene + style + composition
+    const scene = p.scene as Record<string, string> | undefined
+    if (scene?.description) parts.push(scene.description)
+    if (scene?.setting) parts.push(`Setting: ${scene.setting}.`)
+    if (scene?.mood) parts.push(`Mood: ${scene.mood}.`)
+
+    const style = p.style as Record<string, unknown> | undefined
+    if (style?.aesthetic) parts.push(`Style: ${style.aesthetic}.`)
+    if (style?.photography_style) parts.push(`Photography: ${style.photography_style}.`)
+    if (style?.lighting) parts.push(`Lighting: ${style.lighting}.`)
+
+    const composition = p.composition as Record<string, string> | undefined
+    if (composition?.layout) parts.push(`Layout: ${composition.layout}.`)
+  }
 
   // Text overlay — headline and body
   if (slide.headline) {
@@ -59,9 +77,11 @@ export function buildCarouselSlidePrompt(
     parts.push(`Body text: "${slide.body_text}".`)
   }
 
-  // Brand consistency
+  // Brand consistency + logo
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
   parts.push(`Colors: primary ${BRAND_STYLE.colors.primary}, accent ${BRAND_STYLE.colors.secondary}.`)
+  parts.push(`Logo: ${BRAND_LOGO_DESCRIPTION.reference_description} Place at bottom-left on white band, max 20% width.`)
+  parts.push(`Author signature: "${BRAND_SIGNATURE.text}" small muted near logo.`)
 
   // Format — all carousel slides are 4:5 (1080x1350)
   parts.push('Format: 4:5 vertical (1080x1350) for LinkedIn carousel.')

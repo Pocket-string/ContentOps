@@ -1,7 +1,18 @@
-import { BRAND_STYLE, NEGATIVE_PROMPTS, DEFAULT_STYLE_ANCHORS } from '../constants/brand-rules'
+import {
+  BRAND_STYLE,
+  NEGATIVE_PROMPTS,
+  DEFAULT_STYLE_ANCHORS,
+  BRAND_LOGO_DESCRIPTION,
+  BRAND_SIGNATURE,
+} from '../constants/brand-rules'
 import type { VisualFormat } from '../constants/brand-rules'
+import type { VisualPromptJsonV2 } from '../schemas/visual-prompt-schema'
 
-interface VisualPromptJson {
+// ============================================
+// V1 type (legacy — for backward compat)
+// ============================================
+
+interface VisualPromptJsonV1 {
   scene?: { description?: string; mood?: string; setting?: string }
   composition?: { layout?: string; focal_point?: string; text_placement?: string }
   text_overlay?: { headline?: string; subheadline?: string; cta_text?: string }
@@ -13,41 +24,60 @@ interface VisualPromptJson {
   rules?: string[]
 }
 
+// ============================================
+// Detection helpers
+// ============================================
+
+function isV2Schema(json: Record<string, unknown>): boolean {
+  return 'meta' in json && 'layout' in json && 'content' in json
+}
+
+function hasSubstantialPromptOverall(json: Record<string, unknown>): boolean {
+  const po = json.prompt_overall
+  return typeof po === 'string' && po.trim().length > 50
+}
+
+// ============================================
+// Main entry point
+// ============================================
+
 /**
  * Converts a structured prompt_json into a flat text prompt for generateImage().
  *
  * Strategy:
- * 1. If `prompt_overall` exists, use it as primary prompt (user's curated directive)
- * 2. Otherwise, fall back to concatenating individual fields
- * 3. Always append style anchors + brand identity + negative prompts
+ * 1. If `prompt_overall` exists (>50 chars), use it (both V1 and V2)
+ * 2. Detect V2 (has meta + layout + content) → buildFromV2Fields()
+ * 3. Fallback: V1 (has scene + composition) → buildFromFields()
+ * 4. Always append style anchors + brand identity + negative prompts
  */
 export function buildImagePrompt(
   promptJson: Record<string, unknown>,
   format: VisualFormat
 ): string {
-  const p = promptJson as VisualPromptJson
-
-  // --- Primary prompt: prefer prompt_overall if available ---
-  if (p.prompt_overall && typeof p.prompt_overall === 'string' && p.prompt_overall.trim().length > 50) {
-    return buildFromPromptOverall(p, format)
+  // 1. Prefer prompt_overall if substantial (works for V1 and V2)
+  if (hasSubstantialPromptOverall(promptJson)) {
+    return buildFromPromptOverall(promptJson, format)
   }
 
-  // --- Fallback: build from individual fields ---
-  return buildFromFields(p, format)
+  // 2. V2 schema detected → richer field extraction
+  if (isV2Schema(promptJson)) {
+    return buildFromV2Fields(promptJson as unknown as VisualPromptJsonV2, format)
+  }
+
+  // 3. V1 fallback
+  return buildFromFields(promptJson as VisualPromptJsonV1, format)
 }
 
-/**
- * Uses the user's curated `prompt_overall` as the primary directive.
- * Appends style anchors and negative prompts.
- */
-function buildFromPromptOverall(p: VisualPromptJson, format: VisualFormat): string {
-  const parts: string[] = []
+// ============================================
+// prompt_overall path (V1 + V2)
+// ============================================
 
-  // Primary directive
-  parts.push(p.prompt_overall!.trim())
+function buildFromPromptOverall(json: Record<string, unknown>, format: VisualFormat): string {
+  const promptOverall = (json.prompt_overall as string).trim()
+  const parts: string[] = [promptOverall]
 
-  // Style anchors (if not already present in prompt_overall)
-  const promptLower = p.prompt_overall!.toLowerCase()
+  // Style anchors (if not already present)
+  const promptLower = promptOverall.toLowerCase()
   for (const anchor of DEFAULT_STYLE_ANCHORS) {
     if (!promptLower.includes(anchor.toLowerCase())) {
       parts.push(anchor + '.')
@@ -57,22 +87,108 @@ function buildFromPromptOverall(p: VisualPromptJson, format: VisualFormat): stri
   // Format
   parts.push(`Output format: ${format} aspect ratio for LinkedIn.`)
 
-  // Rules from JSON (if any)
-  if (p.rules?.length) {
-    parts.push(`Rules: ${p.rules.join(' ')}`)
+  // Rules from V1 JSON (if any)
+  const rules = (json as VisualPromptJsonV1).rules
+  if (rules?.length) {
+    parts.push(`Rules: ${rules.join(' ')}`)
+  }
+
+  // Style guidelines from V2 (if present)
+  const styleGuidelines = json.style_guidelines
+  if (Array.isArray(styleGuidelines) && styleGuidelines.length > 0) {
+    const guidelinesStr = styleGuidelines
+      .filter((g): g is string => typeof g === 'string')
+      .join('. ')
+    if (guidelinesStr && !promptLower.includes(guidelinesStr.toLowerCase().slice(0, 30))) {
+      parts.push(`Style rules: ${guidelinesStr}.`)
+    }
   }
 
   // Negative prompts
-  const negatives = p.negative_prompts?.length ? p.negative_prompts : [...NEGATIVE_PROMPTS]
+  const negatives = Array.isArray(json.negative_prompts) && json.negative_prompts.length > 0
+    ? json.negative_prompts.filter((n): n is string => typeof n === 'string')
+    : [...NEGATIVE_PROMPTS]
   parts.push(`Avoid: ${negatives.join(', ')}.`)
 
   return parts.join(' ')
 }
 
-/**
- * Fallback: builds prompt from individual structured fields.
- */
-function buildFromFields(p: VisualPromptJson, format: VisualFormat): string {
+// ============================================
+// V2 field extraction
+// ============================================
+
+function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat): string {
+  const parts: string[] = []
+
+  // Visual type context
+  parts.push(`Create a ${p.meta.visual_type} visual for LinkedIn (${format}, ${p.meta.dimensions}).`)
+
+  // Title and text content
+  parts.push(`The image contains the headline "${p.content.title}" prominently displayed.`)
+  if (p.content.subtitle) {
+    parts.push(`Subtitle: "${p.content.subtitle}".`)
+  }
+  if (p.content.body_text) {
+    parts.push(`Body text: "${p.content.body_text}".`)
+  }
+
+  // CTA
+  if (p.content.cta) {
+    parts.push(`Call-to-action button: "${p.content.cta.text}" styled as ${p.content.cta.style}, placed at ${p.content.cta.placement}.`)
+  }
+
+  // Visual elements
+  parts.push(`Main visual element: ${p.content.visual_elements.type} — ${p.content.visual_elements.description}.`)
+  if (p.content.visual_elements.key_elements.length > 0) {
+    parts.push(`Key elements: ${p.content.visual_elements.key_elements.join(', ')}.`)
+  }
+
+  // Layout
+  parts.push(`Layout: ${p.layout.grid} grid. Background: ${p.layout.background_style}.`)
+  parts.push(`Title area: ${p.layout.title_area.position}, max width ${Math.round(p.layout.title_area.max_width_ratio * 100)}%, margin-top ${p.layout.title_area.margin_top}.`)
+  parts.push(`Visual area: ${p.layout.visual_area.position}, ${Math.round(p.layout.visual_area.height_ratio * 100)}% height — ${p.layout.visual_area.description}.`)
+
+  // Brand colors
+  parts.push(`Colors: primary ${p.brand.colors.primary}, secondary ${p.brand.colors.secondary}, accent ${p.brand.colors.accent}, text ${p.brand.colors.text_main}, background ${p.brand.colors.background}.`)
+
+  // Typography
+  parts.push(`Typography: titles in ${p.brand.typography.title_font} ${p.brand.typography.title_style}, body in ${p.brand.typography.body_font} ${p.brand.typography.body_style}.`)
+
+  // Logo
+  if (p.brand.logo.use_logo) {
+    parts.push(`Logo: ${p.brand.logo.reference_description || BRAND_LOGO_DESCRIPTION.reference_description} Placement: ${p.brand.logo.placement}, width ${Math.round(p.brand.logo.scale_relative_width * 100)}% of image.`)
+    if (p.brand.logo.background_band.use_band) {
+      parts.push(`White band behind logo: ${p.brand.logo.background_band.band_color}, height ${Math.round(p.brand.logo.background_band.band_height_ratio * 100)}% of image.`)
+    }
+  }
+
+  // Signature
+  if (p.content.signature?.use_signature) {
+    parts.push(`Author signature: "${p.content.signature.text}" at ${p.content.signature.placement}.`)
+  }
+
+  // Style guidelines (positive rules)
+  if (p.style_guidelines.length > 0) {
+    parts.push(`Style rules: ${p.style_guidelines.join('. ')}.`)
+  }
+
+  // Style anchors
+  for (const anchor of DEFAULT_STYLE_ANCHORS) {
+    parts.push(anchor + '.')
+  }
+
+  // Negative prompts
+  const negatives = p.negative_prompts.length > 0 ? p.negative_prompts : [...NEGATIVE_PROMPTS]
+  parts.push(`Avoid: ${negatives.join(', ')}.`)
+
+  return parts.join(' ')
+}
+
+// ============================================
+// V1 field extraction (unchanged for backward compat)
+// ============================================
+
+function buildFromFields(p: VisualPromptJsonV1, format: VisualFormat): string {
   const parts: string[] = []
 
   // Scene

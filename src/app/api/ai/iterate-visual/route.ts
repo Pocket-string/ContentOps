@@ -3,46 +3,17 @@ import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
 import { generateObjectWithFallback } from '@/shared/lib/ai-router'
+import { visualPromptSchemaV2 } from '@/features/visuals/schemas/visual-prompt-schema'
+import {
+  BRAND_LOGO_DESCRIPTION,
+  BRAND_SIGNATURE,
+  BRAND_COLORS_SEMANTIC,
+  NEGATIVE_PROMPTS,
+} from '@/features/visuals/constants/brand-rules'
 
-// Shared visual prompt schema (mirrors generate-visual-json output)
-const visualPromptSchema = z.object({
-  scene: z.object({
-    description: z.string(),
-    mood: z.string(),
-    setting: z.string(),
-  }),
-  composition: z.object({
-    layout: z.string(),
-    focal_point: z.string(),
-    text_placement: z.string(),
-  }),
-  text_overlay: z.object({
-    headline: z.string(),
-    subheadline: z.string().optional(),
-    cta_text: z.string().optional(),
-  }),
-  style: z.object({
-    aesthetic: z.string(),
-    color_palette: z.array(z.string()),
-    photography_style: z.string(),
-    lighting: z.string(),
-  }),
-  brand: z.object({
-    logo_placement: z.string(),
-    brand_colors_used: z.array(z.string()),
-    typography_notes: z.string(),
-  }),
-  technical: z.object({
-    format: z.string(),
-    dimensions: z.string(),
-    resolution_notes: z.string(),
-  }),
-  negative_prompts: z.array(z.string()),
-})
-
-// Output schema — updated prompt plus explicit changelog
+// Output schema — updated V2 prompt plus explicit changelog
 const iterateOutputSchema = z.object({
-  prompt: visualPromptSchema,
+  prompt: visualPromptSchemaV2,
   changes_made: z.array(z.string()).min(1),
 })
 
@@ -55,7 +26,7 @@ const iterateInputSchema = z.object({
 })
 
 export async function POST(request: Request): Promise<Response> {
-  // 1. Auth — redirect if unauthenticated (requireAuth throws/redirects)
+  // 1. Auth
   const user = await requireAuth()
 
   // 2. Rate limit (10 req/min per user)
@@ -67,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 3. Validate input with Zod — fail fast on bad data
+  // 3. Validate input with Zod
   let body: unknown
   try {
     body = await request.json()
@@ -86,38 +57,69 @@ export async function POST(request: Request): Promise<Response> {
   // 4. Get workspace context
   const workspaceId = await getWorkspaceId()
 
-  // 5. Generate with AI (structured iteration via generateObject)
-  try {
-    const { current_prompt_json, feedback } = parsed.data
+  // 5. Detect if input is V1 or V2 — inform the AI so it can upgrade
+  const { current_prompt_json, feedback } = parsed.data
+  const isV1Input = 'scene' in current_prompt_json && 'composition' in current_prompt_json
+  const isV2Input = 'meta' in current_prompt_json && 'layout' in current_prompt_json && 'content' in current_prompt_json
 
+  // 6. Generate with AI (V2 structured iteration)
+  try {
     const result = await generateObjectWithFallback({
       task: 'iterate-visual',
       workspaceId,
       schema: iterateOutputSchema,
-      system: `Eres un director de arte experto que itera sobre prompts visuales para LinkedIn de la marca Bitalize (O&M fotovoltaico).
+      system: `Eres el Director de Arte Senior de Bitalize que itera sobre prompts visuales para LinkedIn.
 
-Tu trabajo es aplicar el feedback del editor al prompt JSON visual existente y devolver una versión mejorada junto con una lista clara de los cambios realizados.
+Tu trabajo: aplicar el feedback del editor al prompt JSON visual existente y devolver una version MEJORADA en schema V2 junto con una lista de cambios.
 
-## Identidad de Marca Bitalize (restricciones inamovibles)
-- Colores: #1E3A5F (azul oscuro), #F97316 (naranja), #10B981 (verde)
-- Tipografia: Inter, sans-serif, moderna y limpia
-- Logo: esquina inferior derecha, discreto
-- Sujetos: plantas solares, paneles fotovoltaicos, equipos de mantenimiento, datos y graficos
-- Estilo: editorial, fotografico con toques graficos, profesional e innovador
-- Negative prompts permanentes: texto borroso, logos competidores, baja calidad, colores neon, infantil, sin relacion solar, marcas de agua, manos deformadas
+${isV1Input ? `## IMPORTANTE: UPGRADE V1 → V2
+El prompt actual usa el schema antiguo (V1: scene/composition/text_overlay/style/brand/technical). Tu output DEBE ser schema V2 (meta/brand/layout/content/style_guidelines/negative_prompts/prompt_overall). Migra toda la informacion del V1 al V2 y ademas aplica el feedback.` : ''}
 
-## Reglas de iteracion
-- Aplica SOLO los cambios que el feedback solicita — no alteres lo que no se pide cambiar
-- Mantén las restricciones de marca aunque el feedback contradiga alguna de ellas (explica en changes_made si hay conflicto)
-- Si el feedback es ambiguo, interpreta de la forma mas conservadora posible
-- Documenta cada cambio en changes_made con el formato: "[campo modificado]: [descripcion del cambio]"`,
-      prompt: `**Prompt visual actual**:
+## LOGO — OBLIGATORIO
+
+${BRAND_LOGO_DESCRIPTION.reference_description}
+
+- Ubicacion por defecto: esquina inferior izquierda sobre banda blanca solida
+- Banda blanca: ~12% del alto total
+- Logo: maximo 20% del ancho
+- Siempre \`use_logo: true\`
+
+## FIRMA DEL AUTOR
+
+Incluir: "${BRAND_SIGNATURE.text}" — ${BRAND_SIGNATURE.default_placement}
+
+## IDENTIDAD DE MARCA BITALIZE (restricciones inamovibles)
+
+- Primario: ${BRAND_COLORS_SEMANTIC.primary} (azul oscuro — confianza)
+- Secundario: ${BRAND_COLORS_SEMANTIC.secondary} (naranja — energia)
+- Acento: ${BRAND_COLORS_SEMANTIC.accent} (verde — sostenibilidad)
+- Texto principal: ${BRAND_COLORS_SEMANTIC.text_main}
+- Texto secundario: ${BRAND_COLORS_SEMANTIC.text_secondary}
+- Fondo: ${BRAND_COLORS_SEMANTIC.background} o ${BRAND_COLORS_SEMANTIC.background_dark}
+- Tipografia: Inter, sans-serif
+- Estilo: Infografia educativa estilo NotebookLM, editorial, siempre full color
+
+**Negative prompts permanentes**: ${NEGATIVE_PROMPTS.join(', ')}
+
+## REGLAS DE ITERACION
+
+1. Aplica SOLO los cambios que el feedback solicita — no alteres lo que no se pide cambiar
+2. Mantén las restricciones de marca aunque el feedback contradiga alguna (explica en changes_made)
+3. Si el feedback es ambiguo, interpreta de forma conservadora
+4. Documenta CADA cambio en changes_made: "[campo]: [descripcion]"
+5. SIEMPRE regenera prompt_overall completo incorporando todos los cambios
+6. prompt_overall debe ser exhaustivo: texto exacto, hex colors, posiciones con ratios, logo, firma, estilo
+
+## CHECKLIST para prompt_overall
+
+Verifica que incluye: texto exacto entre comillas, todos los hex colors, posiciones con %, logo Bitalize, firma autor, fondo + grid, elementos visuales, estilo, tipografia, negatives, formato.`,
+      prompt: `**Prompt visual actual** (${isV1Input ? 'schema V1 — migrar a V2' : isV2Input ? 'schema V2' : 'formato desconocido — migrar a V2'}):
 ${JSON.stringify(current_prompt_json, null, 2)}
 
 **Feedback del editor**:
 ${feedback}
 
-Genera la version actualizada del prompt aplicando exactamente el feedback indicado. Lista todos los cambios realizados en changes_made.`,
+Genera la version actualizada en schema V2 aplicando exactamente el feedback. Lista todos los cambios en changes_made.${isV1Input ? ' Incluye "V1→V2 migration" como primer item en changes_made.' : ''}`,
     })
 
     return Response.json({ data: result.object })

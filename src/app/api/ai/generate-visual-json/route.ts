@@ -6,45 +6,20 @@ import { weeklyBriefSchema } from '@/shared/types/content-ops'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 import { reviewVisualJson } from '@/shared/lib/ai-reviewer'
+import { visualPromptSchemaV2, VISUAL_TYPE_OPTIONS } from '@/features/visuals/schemas/visual-prompt-schema'
+import {
+  BRAND_LOGO_DESCRIPTION,
+  BRAND_SIGNATURE,
+  BRAND_COLORS_SEMANTIC,
+  BRAND_STYLE,
+  NEGATIVE_PROMPTS,
+  DEFAULT_STYLE_ANCHORS,
+  FORMAT_DIMENSIONS,
+  type VisualFormat,
+} from '@/features/visuals/constants/brand-rules'
 
-// Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
-const visualPromptSchema = z.object({
-  scene: z.object({
-    description: z.string(),
-    mood: z.string(),
-    setting: z.string(),
-  }),
-  composition: z.object({
-    layout: z.string(),
-    focal_point: z.string(),
-    text_placement: z.string(),
-  }),
-  text_overlay: z.object({
-    headline: z.string(),
-    subheadline: z.string().optional(),
-    cta_text: z.string().optional(),
-  }),
-  style: z.object({
-    aesthetic: z.string(),
-    color_palette: z.array(z.string()),
-    photography_style: z.string(),
-    lighting: z.string(),
-  }),
-  brand: z.object({
-    logo_placement: z.string(),
-    brand_colors_used: z.array(z.string()),
-    typography_notes: z.string(),
-  }),
-  technical: z.object({
-    format: z.string(),
-    dimensions: z.string(),
-    resolution_notes: z.string(),
-  }),
-  negative_prompts: z.array(z.string()),
-  prompt_overall: z.string().describe('Complete flat-text prompt for image generation — this is the most important field'),
-})
-
-export type VisualPromptJson = z.infer<typeof visualPromptSchema>
+// Re-export V1 type for backward compat (other files may import it)
+export type { VisualPromptJsonV2 } from '@/features/visuals/schemas/visual-prompt-schema'
 
 // Input schema — validated before touching the AI
 const inputSchema = z.object({
@@ -57,8 +32,184 @@ const inputSchema = z.object({
   weekly_brief: weeklyBriefSchema.optional(),
 })
 
+// ============================================
+// System prompt builder
+// ============================================
+
+function buildSystemPrompt(brandOverrides: {
+  colors: { primary: string; secondary: string; accent: string }
+  tone: string
+  imagerySubjects: string[]
+  mood: string
+  typographyHeading: string
+  imageryStyle: string
+  negativePrompts: string[]
+}): string {
+  const { colors, tone, imagerySubjects, mood, typographyHeading, imageryStyle, negativePrompts } = brandOverrides
+
+  return `## ROL
+
+Eres el **Director de Arte Senior** de Bitalize, empresa lider en O&M fotovoltaico. Generas prompt JSONs estructurados (schema V2) para crear visuales de LinkedIn con modelos de imagen AI (Gemini Imagen).
+
+## CRITICO: prompt_overall
+
+El campo **prompt_overall** es EL MAS IMPORTANTE del JSON. Es un prompt completo, autocontenido en texto plano que se envia DIRECTAMENTE al modelo de generacion de imagen. Debe ser extremadamente detallado e incluir:
+
+1. Texto exacto a renderizar (entre comillas)
+2. Todos los colores hex mencionados
+3. Posiciones espaciales con ratios (e.g. "top 8%", "center 55% height")
+4. Descripcion exacta del logo y su ubicacion
+5. Elementos visuales especificos (graficos, iconos, diagramas)
+6. Reglas de estilo positivas
+7. Cosas a evitar (negatives)
+8. Tipografia y tamanos
+9. Descripcion del fondo y grid
+10. Firma del autor si aplica
+11. CTA si aplica
+
+Si prompt_overall esta vago o generico, la imagen sera mala. Se PRECISO.
+
+## LOGO — OBLIGATORIO EN TODA IMAGEN
+
+${BRAND_LOGO_DESCRIPTION.reference_description}
+
+**Reglas de logo:**
+- Ubicacion por defecto: esquina inferior izquierda sobre banda blanca solida
+- La banda blanca mide ~12% del alto total de la imagen
+- El logo ocupa maximo 20% del ancho de la imagen
+- Siempre usar \`use_logo: true\` y describir el logo textualmente en prompt_overall
+- En fondos oscuros: logo en blanco. En fondos claros: logo en navy #1E3A5F
+
+## FIRMA DEL AUTOR
+
+Incluir siempre: "${BRAND_SIGNATURE.text}"
+- Ubicacion: ${BRAND_SIGNATURE.default_placement}
+- La firma va cerca del logo pero mas pequena y muted
+- En prompt_overall mencionar: "Small author signature '${BRAND_SIGNATURE.text}' in ${BRAND_COLORS_SEMANTIC.text_secondary} near the logo"
+
+## IDENTIDAD DE MARCA BITALIZE
+
+**Colores semanticos** (usar SIEMPRE con hex):
+- Primario (confianza): ${colors.primary}
+- Secundario (energia): ${colors.secondary}
+- Acento (crecimiento): ${colors.accent}
+- Texto principal: ${BRAND_COLORS_SEMANTIC.text_main}
+- Texto secundario: ${BRAND_COLORS_SEMANTIC.text_secondary}
+- Fondo claro: ${BRAND_COLORS_SEMANTIC.background}
+- Fondo oscuro: ${BRAND_COLORS_SEMANTIC.background_dark}
+- Highlight datos: ${BRAND_COLORS_SEMANTIC.accent_warning}
+- Metrica critica: ${BRAND_COLORS_SEMANTIC.accent_danger}
+
+**Tipografia**: ${typographyHeading}
+- Titulo: Inter Bold, 36-48px, uppercase o title-case segun contexto
+- Subtitulo: Inter Medium, 20-24px
+- Body: Inter Regular, 14-16px
+- CTA: Inter SemiBold, 16-18px
+
+**Estilo visual**: ${imageryStyle}
+
+**Sujetos permitidos**: ${imagerySubjects.join(', ')}
+
+**Mood global**: ${mood}
+
+**Tono de marca**: ${tone}
+
+## CLASIFICACION VISUAL (meta.visual_type)
+
+Clasifica cada visual segun su naturaleza. Esto guia la composicion:
+
+| Tipo | Cuando usar | Composicion tipica |
+|------|-------------|-------------------|
+| infographic | Datos multiples, proceso con numeros | Grid 12-col, secciones con iconos |
+| data_chart | Una metrica principal, grafico central | Chart centrado 60% height |
+| diagram | Flujo, ciclo, relaciones entre conceptos | Nodos + flechas, composicion abierta |
+| editorial_photo | Imagen conceptual con overlays de texto | Full bleed con overlay gradient |
+| text_poster | Frase impactante o cita como protagonista | Tipografia hero centrada |
+| comparison | Antes/despues, vs, opciones lado a lado | Split layout 50/50 |
+| timeline | Evolucion temporal, hitos | Linea horizontal o vertical con puntos |
+| process_flow | Pasos secuenciales | Numbered steps horizontal o vertical |
+| quote_card | Cita textual de experto o dato | Quote marks grandes + atribucion |
+| custom | Ninguno anterior aplica | Libre, describir en layout |
+
+**Mapeo por funnel:**
+- TOFU (awareness): text_poster, infographic, editorial_photo — impacto visual, datos sorprendentes
+- MOFU (consideration): data_chart, diagram, comparison, process_flow — profundidad tecnica
+- BOFU (decision): comparison, quote_card, infographic — prueba social, resultados concretos
+
+## LAYOUT PRECISION
+
+Usa ratios numericos, NO descripciones vagas:
+
+**Grid:** Preferir "rule_of_thirds" o "12_col". Nunca dejar sin grid.
+
+**Title area:**
+- position: "top-left" o "center-top"
+- margin_top: "8%" del borde superior
+- max_width_ratio: 0.8 (titulo no ocupa mas del 80% del ancho)
+
+**Visual area (grafico, diagrama, iconos):**
+- position: "center" o "below-title"
+- height_ratio: 0.55 a 0.65 (el contenido visual ocupa 55-65% del alto)
+
+**CTA (si aplica):**
+- placement: "bottom-center"
+- Estilo: rounded pill con color ${colors.secondary} y texto blanco
+
+**Logo + firma:**
+- Banda blanca inferior: 12% del alto total
+- Logo: bottom-left, 20% width max
+- Firma: junto al logo, mas pequena
+
+## ESTETICA DEFAULT
+
+${DEFAULT_STYLE_ANCHORS.join('. ')}:
+- Siempre **full color** (nunca blanco y negro salvo que se pida)
+- Layout tipo editorial/revista con jerarquia tipografica clara
+- Graficos de datos limpios y legibles con etiquetas
+- Divisores finos tipo hairline rules entre secciones
+- Fondo paper-white (#F8FAFC) o dark navy (#0F172A) con panel central
+- Iconos flat a todo color, stroke fino, consistentes entre si
+- Texto grande y legible en movil (min 14px body, 36px titulo)
+- Sin fotos stock — solo infografia editorial e ilustracion
+
+## NEGATIVE PROMPTS BASE
+
+Siempre incluir estos en negative_prompts:
+${negativePrompts.map((p) => `- ${p}`).join('\n')}
+
+## STYLE GUIDELINES FORMAT
+
+El campo style_guidelines debe ser una lista de reglas POSITIVAS explicitas:
+- "Flat color icons with thin stroke, no gradients"
+- "Hairline dividers between sections (#E2E8F0)"
+- "Data labels directly on chart elements, not in legend"
+- "Title in uppercase Inter Bold 42px"
+- Minimo 4 reglas, maximo 8
+
+## CHECKLIST FINAL PARA prompt_overall
+
+Antes de generar, verifica que prompt_overall incluye TODOS estos:
+[ ] Texto exacto a renderizar (headline, subtitle, CTA)
+[ ] Hex colors para todos los elementos
+[ ] Posiciones espaciales con porcentajes/ratios
+[ ] Descripcion del logo Bitalize + ubicacion
+[ ] Firma del autor
+[ ] Tipo de fondo y grid
+[ ] Elementos visuales especificos
+[ ] Estilo (editorial, infographic, etc.)
+[ ] Reglas de tipografia (font, size, weight)
+[ ] Negative prompts resumidos
+[ ] Formato y dimensiones
+
+Si falta alguno, el prompt sera de baja calidad. Se EXHAUSTIVO.`
+}
+
+// ============================================
+// POST handler
+// ============================================
+
 export async function POST(request: Request): Promise<Response> {
-  // 1. Auth — redirect if unauthenticated (requireAuth throws/redirects)
+  // 1. Auth
   const user = await requireAuth()
 
   // 2. Rate limit (10 req/min per user)
@@ -70,7 +221,7 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 3. Validate input with Zod — fail fast on bad data
+  // 3. Validate input with Zod
   let body: unknown
   try {
     body = await request.json()
@@ -86,125 +237,70 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Fetch active brand profile (fallback to hardcoded if none exists)
+  // 4. Fetch active brand profile (fallback to hardcoded constants)
   const workspaceId = await getWorkspaceId()
   const brandResult = await getActiveBrandProfile(workspaceId)
   const brand = brandResult.data
 
-  // Build brand context string — uses DB values when available, hardcoded fallback otherwise
   const brandColors = brand?.colors ?? {
-    primary: '#1E3A5F',
-    secondary: '#F97316',
-    accent: '#10B981',
+    primary: BRAND_COLORS_SEMANTIC.primary,
+    secondary: BRAND_COLORS_SEMANTIC.secondary,
+    accent: BRAND_COLORS_SEMANTIC.accent,
   }
-  const brandTone = brand?.tone ?? 'profesional, tecnico pero accesible, confiable'
-  const brandImagerySubjects = brand?.imagery.subjects ?? [
-    'plantas solares fotovoltaicas',
-    'paneles solares',
-    'equipos de mantenimiento en campo',
-    'datos y graficos de rendimiento',
-    'ingenieros y tecnicos en accion',
-  ]
-  const brandMood = brand?.imagery.mood ?? 'profesional, innovador, sostenible, confiable, tecnico pero accesible'
-  const brandLogoPlacement = brand?.logo_rules.placement ?? 'esquina inferior derecha'
-  const brandTypographyHeading = brand?.typography.heading ?? 'Inter, sans-serif'
-  const brandNegativePrompts = brand?.negative_prompts ?? [
-    'texto borroso o ilegible',
-    'logos de competidores',
-    'baja calidad o pixelado',
-    'colores neon o saturados artificialmente',
-    'estilo infantil o cartoon',
-    'imagenes sin relacion al sector solar',
-    'marcas de agua o watermarks',
-    'manos o figuras humanas deformadas',
-    'composicion saturada o desordenada',
-  ]
+  const brandTone = brand?.tone ?? BRAND_STYLE.tone
+  const brandImagerySubjects = brand?.imagery.subjects ?? [...BRAND_STYLE.imagery.subjects]
+  const brandMood = brand?.imagery.mood ?? BRAND_STYLE.imagery.mood
+  const brandTypographyHeading = brand?.typography.heading ?? BRAND_STYLE.typography.heading
+  const brandImageryStyle = brand?.imagery.style ?? BRAND_STYLE.imagery.style
+  const brandNegativePrompts = brand?.negative_prompts ?? [...NEGATIVE_PROMPTS]
 
-  // 5. Generate with AI (structured output via generateObject)
+  // 5. Build format context
+  const { post_content, funnel_stage, format, topic, keyword, additional_instructions, weekly_brief } =
+    parsed.data
+
+  const formatKey = format as VisualFormat
+  const dims = FORMAT_DIMENSIONS[formatKey] ?? FORMAT_DIMENSIONS['1:1']
+  const dimensionsStr = `${dims.width}x${dims.height}`
+
+  // 6. Generate with AI (V2 structured output)
   try {
-    const { post_content, funnel_stage, format, topic, keyword, additional_instructions, weekly_brief } =
-      parsed.data
+    const systemPrompt = buildSystemPrompt({
+      colors: brandColors,
+      tone: brandTone,
+      imagerySubjects: brandImagerySubjects,
+      mood: brandMood,
+      typographyHeading: brandTypographyHeading,
+      imageryStyle: brandImageryStyle,
+      negativePrompts: brandNegativePrompts,
+    })
 
     const result = await generateObjectWithFallback({
       task: 'generate-visual-json',
       workspaceId,
-      schema: visualPromptSchema,
-      system: `Eres un director de arte experto en contenido visual para LinkedIn especializado en la marca Bitalize, empresa de O&M fotovoltaico (operaciones y mantenimiento de plantas solares).
-
-Tu trabajo es generar un prompt JSON estructurado que un diseñador pueda usar en herramientas como Nano Banana Pro para crear el visual del post de LinkedIn.
-
-## CRITICO: Campo prompt_overall
-
-El campo **prompt_overall** es EL MAS IMPORTANTE del JSON. Debe ser un prompt completo, detallado y autocontenido en texto plano (no JSON) que describa exactamente la imagen a generar. Este campo se envia directamente al modelo de generacion de imagen. Debe incluir:
-- Descripcion completa de la composicion y layout
-- Colores especificos con hex codes
-- Texto exacto que debe aparecer en la imagen
-- Estilo visual detallado
-- Ubicacion del logo y elementos de marca
-- Todo lo necesario para que el modelo genere la imagen sin ambiguedades
-
-## Estetica Default: NotebookLM Educativo + Periodico Nuevo
-
-El estilo visual por defecto es **infografia educativa estilo NotebookLM** con estetica de **periodico nuevo moderno**:
-- Siempre full color (nunca blanco y negro)
-- Layout tipo editorial/revista con jerarquia tipografica clara
-- Graficos de datos limpios y legibles
-- Divisores finos tipo hairline rules
-- Fondo paper-white o dark navy con panel central
-- Iconos flat a todo color, consistentes
-- Texto grande y legible en movil
-- Sin fotos stock — solo infografia editorial
-
-## Identidad de Marca Bitalize
-
-**Colores de marca**:
-- Primario: ${brandColors.primary} (azul oscuro — confianza, profundidad, profesionalismo)
-- Secundario: ${brandColors.secondary} (naranja — energia, accion, innovacion)
-- Acento: ${brandColors.accent} (verde — sostenibilidad, eficiencia, crecimiento)
-
-**Tipografia**: ${brandTypographyHeading}, moderna y limpia. Jerarquia clara: headline bold, subheadline medium, cta semibold.
-
-**Estilo visual**: ${brand?.imagery.style ?? 'Infografia educativa estilo NotebookLM con estetica de periodico nuevo. Siempre full color.'}.
-
-**Sujetos permitidos**: ${brandImagerySubjects.join(', ')}.
-
-**Mood global**: ${brandMood}.
-
-**Tono de marca**: ${brandTone}.
-
-**Logo**: siempre en ${brandLogoPlacement}, discreto (maximo 15% del ancho), sobre fondo neutro o con padding blanco/oscuro.
-
-**Negative prompts base** (siempre incluir):
-${brandNegativePrompts.map((p) => `- ${p}`).join('\n')}
-
-## Reglas de composicion por formato
-
-- **1:1 (cuadrado)**: focal point centrado, texto en zona inferior o superior, margenes generosos
-- **4:5 (vertical)**: composicion en tercios, texto en tercio inferior, imagen en dos tercios superiores
-- **16:9 (horizontal)**: composicion panoramica, texto a la izquierda o derecha, imagen ocupa el fondo
-- **9:16 (stories)**: full bleed, texto centrado en zona media, imagen de fondo con overlay
-
-## Adecuacion por etapa del funnel
-
-- **TOFU (awareness)**: imagenes impactantes, visuales de escala (plantas grandes, datos sorprendentes), colores vibrantes del naranja/verde
-- **MOFU (consideration)**: infografias, graficos de rendimiento, comparativas visuales, azul dominante
-- **BOFU (decision)**: casos de exito, testimonios visuales, resultados concretos, combinacion de los tres colores de marca`,
-      prompt: `Genera el prompt JSON estructurado para el visual de este post de LinkedIn:
+      schema: visualPromptSchemaV2,
+      system: systemPrompt,
+      prompt: `Genera el prompt JSON V2 estructurado para el visual de este post de LinkedIn.
 
 **Contenido del post**:
 ${post_content}
 
 **Etapa del funnel**: ${funnel_stage}
-**Formato del visual**: ${format}
+**Formato del visual**: ${format} (${dimensionsStr})
+**Tipos visuales disponibles**: ${VISUAL_TYPE_OPTIONS.join(', ')}
 ${topic ? `**Tema principal**: ${topic}` : ''}
 ${keyword ? `**Palabra clave**: ${keyword}` : ''}
 ${additional_instructions ? `**Instrucciones adicionales del editor**: ${additional_instructions}` : ''}
 ${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer persona: ${weekly_brief.buyer_persona ?? 'No definido'}, Keyword: ${weekly_brief.keyword ?? 'No definida'}` : ''}
 
-El JSON debe describir con precisión todos los elementos visuales para que un diseñador pueda crear la imagen sin ambiguedades. El visual debe complementar el mensaje del post y reforzar la propuesta de valor de Bitalize en O&M fotovoltaico.`,
+RECUERDA:
+1. Clasifica el visual_type segun el contenido y funnel stage
+2. Incluye el logo Bitalize con banda blanca inferior
+3. Incluye la firma del autor "${BRAND_SIGNATURE.text}"
+4. Usa ratios numericos en layout (no texto vago)
+5. prompt_overall debe ser EXHAUSTIVO — es lo que genera la imagen`,
     })
 
-    // 6. ChatGPT review (optional — non-blocking on failure)
+    // 7. ChatGPT review (optional — non-blocking on failure)
     const review = await reviewVisualJson(
       result.object as unknown as Record<string, unknown>,
       parsed.data.post_content,
