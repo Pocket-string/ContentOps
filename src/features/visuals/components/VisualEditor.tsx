@@ -364,7 +364,7 @@ export function VisualEditor({
       const res = await fetch('/api/ai/generate-visual-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_content: postContent, funnel_stage: funnelStage, format, topic: topicTitle, keyword, additional_instructions: additionalInstructions || undefined, concept_type: isCarousel ? 'carousel_4x5' : undefined }),
+        body: JSON.stringify({ post_content: postContent, funnel_stage: funnelStage, format, topic: topicTitle, keyword, additional_instructions: additionalInstructions || undefined, concept_type: isCarousel ? 'carousel_4x5' : undefined, num_slides: isCarousel ? carouselSlideCount : undefined }),
       })
       const json: unknown = await res.json()
       if (!res.ok) { setError((json as { error?: string }).error ?? 'Error al generar'); return }
@@ -376,18 +376,23 @@ export function VisualEditor({
 
       // Carousel plan: auto-initialize slides from the AI-generated plan
       if (resp.type === 'carousel_plan' && selectedVisualId) {
-        const planResult = await initCarouselFromPlanAction(selectedVisualId, resp.data)
-        if ('error' in planResult) {
-          setError(planResult.error)
-        } else if (planResult.slides) {
-          setCarouselSlides(planResult.slides)
-          setCarouselSlideCount(planResult.slides.length)
-          showSuccess(`Carrusel de ${planResult.slides.length} slides generado con IA`)
+        try {
+          const planResult = await initCarouselFromPlanAction(selectedVisualId, resp.data)
+          if ('error' in planResult) {
+            setError(planResult.error)
+          } else if (planResult.slides) {
+            setCarouselSlides(planResult.slides)
+            setCarouselSlideCount(planResult.slides.length)
+            showSuccess(`Carrusel de ${planResult.slides.length} slides generado con IA`)
+          }
+        } catch (initErr) {
+          console.error('[VisualEditor] initCarouselFromPlan error:', initErr)
+          setError('Prompt generado correctamente. Error al inicializar slides — usa "Crear Slides" manualmente.')
         }
       }
     } catch { setError('Error de red al generar el prompt visual') }
     finally { setIsGenerating(false) }
-  }, [postContent, funnelStage, format, topicTitle, keyword, additionalInstructions, isCarousel, selectedVisualId])
+  }, [postContent, funnelStage, format, topicTitle, keyword, additionalInstructions, isCarousel, selectedVisualId, carouselSlideCount])
 
   const handleIterate = useCallback(async () => {
     if (!feedback.trim() || !jsonText) return

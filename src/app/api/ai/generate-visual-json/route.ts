@@ -30,6 +30,7 @@ const inputSchema = z.object({
   keyword: z.string().optional(),
   additional_instructions: z.string().optional(),
   concept_type: z.enum(['single', 'carousel_4x5']).optional(),
+  num_slides: z.number().int().min(3).max(10).optional(),
   weekly_brief: weeklyBriefSchema.optional(),
 })
 
@@ -355,7 +356,7 @@ export async function POST(request: Request): Promise<Response> {
   const brandNegativePrompts = brand?.negative_prompts ?? [...NEGATIVE_PROMPTS]
 
   // 5. Build format context
-  const { post_content, funnel_stage, format, topic, keyword, additional_instructions, concept_type, weekly_brief } =
+  const { post_content, funnel_stage, format, topic, keyword, additional_instructions, concept_type, num_slides, weekly_brief } =
     parsed.data
 
   const isCarousel = concept_type === 'carousel_4x5'
@@ -383,6 +384,7 @@ export async function POST(request: Request): Promise<Response> {
       const carouselSystem = buildCarouselSystemPrompt(brandConfig) +
         `\n\nCRITICO: Tu respuesta DEBE ser UNICAMENTE un objeto JSON valido. Sin markdown, sin backticks, sin texto adicional. Solo el JSON.`
 
+      const requestedSlides = num_slides ?? 5
       const carouselPrompt = `Genera un PLAN COMPLETO DE CARRUSEL para este post de LinkedIn.
 
 **Contenido del post**:
@@ -390,6 +392,7 @@ ${post_content}
 
 **Etapa del funnel**: ${funnel_stage}
 **Formato**: 4:5 vertical (1080x1350) — CARRUSEL
+**Numero EXACTO de slides**: ${requestedSlides}
 **Tipos visuales disponibles**: ${VISUAL_TYPE_OPTIONS.join(', ')}
 ${topic ? `**Tema principal**: ${topic}` : ''}
 ${keyword ? `**Palabra clave**: ${keyword}` : ''}
@@ -397,7 +400,7 @@ ${additional_instructions ? `**Instrucciones adicionales**: ${additional_instruc
 ${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer persona: ${weekly_brief.buyer_persona ?? 'No definido'}, Keyword: ${weekly_brief.keyword ?? 'No definida'}` : ''}
 
 INSTRUCCIONES:
-1. Decide cuantas slides necesitas (5-8 es ideal para LinkedIn)
+1. Genera EXACTAMENTE ${requestedSlides} slides — ni mas, ni menos. slides_total DEBE ser ${requestedSlides}
 2. Para CADA slide, genera headline, body_text, visual_type, visual_description, key_elements, y prompt_overall
 3. El arco narrativo debe ser: Hook → Problema → Evidencia/Datos → Solucion → CTA
 4. CADA prompt_overall debe ser EXHAUSTIVO — incluir texto exacto, colores hex, posiciones, logo, firma
@@ -435,10 +438,15 @@ Responde SOLO con el JSON. Estructura requerida:
         )
       }
 
-      // Lenient parse: trim arrays that exceed schema limits
+      // Lenient parse: enforce requested slide count and trim arrays that exceed schema limits
       const rawObj = rawJson as Record<string, unknown>
-      if (Array.isArray(rawObj.slides) && rawObj.slides.length > 10) {
-        rawObj.slides = rawObj.slides.slice(0, 10)
+      if (Array.isArray(rawObj.slides) && rawObj.slides.length > requestedSlides) {
+        rawObj.slides = rawObj.slides.slice(0, requestedSlides)
+      }
+      // Fix meta.slides_total to match actual slide count
+      if (rawObj.meta && typeof rawObj.meta === 'object') {
+        const meta = rawObj.meta as Record<string, unknown>
+        meta.slides_total = Array.isArray(rawObj.slides) ? rawObj.slides.length : requestedSlides
       }
       if (rawObj.global_style && typeof rawObj.global_style === 'object') {
         const gs = rawObj.global_style as Record<string, unknown>
