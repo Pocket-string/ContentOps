@@ -7,6 +7,8 @@ import { getImageModel } from '@/shared/lib/ai-router'
 import { buildCarouselSlidePrompt } from '@/features/visuals/services/carousel-prompt-builder'
 import { uploadImageToStorage } from '@/features/visuals/services/image-storage-service'
 import { updateSlideImageUrl } from '@/features/visuals/services/carousel-service'
+import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
+import { BRAND_LOGO_DESCRIPTION, BRAND_SIGNATURE } from '@/features/visuals/constants/brand-rules'
 
 const slideSchema = z.object({
   id: z.string().uuid(),
@@ -64,6 +66,14 @@ export async function POST(request: Request): Promise<Response> {
   // 4. Get workspace context for BYOK
   const workspaceId = await getWorkspaceId()
 
+  // 4a. Fetch brand profile for author signature + logo context
+  const brandResult = await getActiveBrandProfile(workspaceId)
+  const brand = brandResult.data
+  const authorSignature = brand?.author_signature ?? BRAND_SIGNATURE.text
+  const logoDescription = brand?.logo_urls?.length
+    ? `${brand.logo_urls.map(l => l.name).join(', ')} logo. ${BRAND_LOGO_DESCRIPTION.reference_description}`
+    : BRAND_LOGO_DESCRIPTION.reference_description
+
   // 4b. Build prompt with carousel narrative context
   const textPrompt = buildCarouselSlidePrompt(
     {
@@ -72,7 +82,8 @@ export async function POST(request: Request): Promise<Response> {
       body_text: slide.body_text,
       prompt_json: slide.prompt_json,
     },
-    { topic, total_slides }
+    { topic, total_slides },
+    { authorSignature, logoDescription }
   )
 
   try {

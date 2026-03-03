@@ -145,11 +145,58 @@ export function CarouselEditor({
     setIsGeneratingAll(true)
     setError('')
 
+    // Accumulate results locally to avoid stale closure overwriting previous slides.
+    // Each iteration reads `slides` once at the start; all image_urls are applied in ONE state update at the end.
+    const imageResults = new Map<number, string>()
+
     try {
       for (let i = 0; i < slides.length; i++) {
-        if (slides[i].image_url) continue // Skip already generated
-        setActiveSlide(i) // Show which slide is being generated
-        await generateSlide(i)
+        if (slides[i].image_url) continue
+        setActiveSlide(i)
+        setGeneratingSlides((prev) => new Set(prev).add(i))
+
+        try {
+          const slide = slides[i]
+          const res = await fetch('/api/ai/generate-carousel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visual_version_id: visualVersionId,
+              slide: {
+                id: slide.id,
+                slide_index: slide.slide_index,
+                headline: slide.headline,
+                body_text: slide.body_text,
+                prompt_json: slide.prompt_json,
+              },
+              topic,
+              total_slides: slides.length,
+              model_id: modelId,
+            }),
+          })
+
+          const json: unknown = await res.json()
+          if (res.ok) {
+            const { data } = json as { data: { slide_index: number; image_url: string } }
+            imageResults.set(i, data.image_url)
+          }
+        } catch {
+          // Individual slide error — continue with remaining slides
+        } finally {
+          setGeneratingSlides((prev) => {
+            const next = new Set(prev)
+            next.delete(i)
+            return next
+          })
+        }
+      }
+
+      // Apply ALL results in one state update — no stale closure issues
+      if (imageResults.size > 0) {
+        const updated = slides.map((s, i) =>
+          imageResults.has(i) ? { ...s, image_url: imageResults.get(i)! } : s
+        )
+        onSlidesChange(updated)
       }
     } catch (err) {
       console.error('[CarouselEditor] generateAllSlides error:', err)
@@ -157,7 +204,7 @@ export function CarouselEditor({
     } finally {
       setIsGeneratingAll(false)
     }
-  }, [slides, generateSlide])
+  }, [slides, visualVersionId, topic, modelId, onSlidesChange])
 
   const handleDownloadAll = useCallback(async () => {
     setIsDownloading(true)

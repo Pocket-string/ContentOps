@@ -50,29 +50,38 @@ function hasSubstantialPromptOverall(json: Record<string, unknown>): boolean {
  * 3. Fallback: V1 (has scene + composition) → buildFromFields()
  * 4. Always append style anchors + brand identity + negative prompts
  */
+export interface ImagePromptOptions {
+  authorSignature?: string
+  logoDescription?: string
+}
+
 export function buildImagePrompt(
   promptJson: Record<string, unknown>,
-  format: VisualFormat
+  format: VisualFormat,
+  options?: ImagePromptOptions
 ): string {
+  const sigText = options?.authorSignature ?? BRAND_SIGNATURE.text
+  const logoDesc = options?.logoDescription ?? BRAND_LOGO_DESCRIPTION.reference_description
+
   // 1. Prefer prompt_overall if substantial (works for V1 and V2)
   if (hasSubstantialPromptOverall(promptJson)) {
-    return buildFromPromptOverall(promptJson, format)
+    return buildFromPromptOverall(promptJson, format, sigText, logoDesc)
   }
 
   // 2. V2 schema detected → richer field extraction
   if (isV2Schema(promptJson)) {
-    return buildFromV2Fields(promptJson as unknown as VisualPromptJsonV2, format)
+    return buildFromV2Fields(promptJson as unknown as VisualPromptJsonV2, format, logoDesc)
   }
 
   // 3. V1 fallback
-  return buildFromFields(promptJson as VisualPromptJsonV1, format)
+  return buildFromFields(promptJson as VisualPromptJsonV1, format, logoDesc)
 }
 
 // ============================================
 // prompt_overall path (V1 + V2)
 // ============================================
 
-function buildFromPromptOverall(json: Record<string, unknown>, format: VisualFormat): string {
+function buildFromPromptOverall(json: Record<string, unknown>, format: VisualFormat, sigText: string, logoDesc: string): string {
   const promptOverall = (json.prompt_overall as string).trim()
   const parts: string[] = [promptOverall]
 
@@ -85,13 +94,14 @@ function buildFromPromptOverall(json: Record<string, unknown>, format: VisualFor
   }
 
   // ALWAYS inject logo if not already described in prompt_overall
-  if (!promptLower.includes('bitalize logo') && !promptLower.includes('bitalize brand')) {
-    parts.push(`MANDATORY LOGO: ${BRAND_LOGO_DESCRIPTION.reference_description} Place the logo at the bottom-left corner on a solid white band (12% of image height). Logo scale: max 20% of image width.`)
+  if (!promptLower.includes('logo') || !promptLower.includes('brand')) {
+    parts.push(`MANDATORY LOGO: ${logoDesc} Place the logo at the bottom-left corner on a solid white band (12% of image height). Logo scale: max 20% of image width.`)
   }
 
   // ALWAYS inject author signature if not mentioned
-  if (!promptLower.includes('jonathan navarrete') && !promptLower.includes('author signature')) {
-    parts.push(`Author signature: "${BRAND_SIGNATURE.text}" in small 10px text, color #94A3B8, near the logo.`)
+  const sigLower = sigText.toLowerCase().slice(0, 15)
+  if (!promptLower.includes(sigLower) && !promptLower.includes('author signature')) {
+    parts.push(`Author signature: "${sigText}" in small muted text near the logo.`)
   }
 
   // Format
@@ -127,7 +137,7 @@ function buildFromPromptOverall(json: Record<string, unknown>, format: VisualFor
 // V2 field extraction
 // ============================================
 
-function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat): string {
+function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat, logoDesc: string): string {
   const parts: string[] = []
 
   // Visual type context
@@ -165,7 +175,7 @@ function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat): string 
   parts.push(`Typography: titles in ${p.brand.typography.title_font} ${p.brand.typography.title_style}, body in ${p.brand.typography.body_font} ${p.brand.typography.body_style}.`)
 
   // Logo — ALWAYS include (brand requirement)
-  parts.push(`MANDATORY LOGO: ${p.brand.logo.reference_description || BRAND_LOGO_DESCRIPTION.reference_description} Placement: ${p.brand.logo.placement}, width ${Math.round(p.brand.logo.scale_relative_width * 100)}% of image.`)
+  parts.push(`MANDATORY LOGO: ${p.brand.logo.reference_description || logoDesc} Placement: ${p.brand.logo.placement}, width ${Math.round(p.brand.logo.scale_relative_width * 100)}% of image.`)
   if (p.brand.logo.background_band.use_band) {
     parts.push(`White band behind logo: ${p.brand.logo.background_band.band_color}, height ${Math.round(p.brand.logo.background_band.band_height_ratio * 100)}% of image.`)
   }
@@ -196,7 +206,7 @@ function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat): string 
 // V1 field extraction (unchanged for backward compat)
 // ============================================
 
-function buildFromFields(p: VisualPromptJsonV1, format: VisualFormat): string {
+function buildFromFields(p: VisualPromptJsonV1, format: VisualFormat, logoDesc: string): string {
   const parts: string[] = []
 
   // Scene
@@ -226,7 +236,7 @@ function buildFromFields(p: VisualPromptJsonV1, format: VisualFormat): string {
 
   // Brand — ALWAYS include logo
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
-  parts.push(`MANDATORY LOGO: ${BRAND_LOGO_DESCRIPTION.reference_description} Place the logo at the bottom-left on a solid white band (12% of image height).`)
+  parts.push(`MANDATORY LOGO: ${logoDesc} Place the logo at the bottom-left on a solid white band (12% of image height).`)
   if (p.brand?.logo_placement) parts.push(`Logo position: ${p.brand.logo_placement}.`)
 
   // Style anchors

@@ -685,6 +685,21 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
           />
         </div>
 
+        {/* Author Signature */}
+        <div className="bg-surface border border-border rounded-2xl shadow-card p-6">
+          <h3 className="font-heading font-semibold text-foreground mb-4">Firma del Autor</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Texto que aparece como firma en las imagenes generadas.
+          </p>
+          <input
+            type="text"
+            value={form.author_signature ?? selected?.author_signature ?? 'Jonathan Navarrete — Bitalize'}
+            onChange={(e) => setForm((f) => ({ ...f, author_signature: e.target.value }))}
+            className="w-full text-sm bg-surface border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            placeholder="Ej. Tu Nombre — Tu Empresa"
+          />
+        </div>
+
         {/* Negative Prompts */}
         <div className="bg-surface border border-border rounded-2xl shadow-card p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">Negative Prompts</h3>

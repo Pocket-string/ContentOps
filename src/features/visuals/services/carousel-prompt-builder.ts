@@ -15,6 +15,11 @@ interface CarouselNarrative {
   tone?: string
 }
 
+export interface CarouselPromptOptions {
+  authorSignature?: string
+  logoDescription?: string
+}
+
 /**
  * Builds a text prompt for a single carousel slide.
  *
@@ -25,17 +30,20 @@ interface CarouselNarrative {
  */
 export function buildCarouselSlidePrompt(
   slide: SlideInput,
-  narrative: CarouselNarrative
+  narrative: CarouselNarrative,
+  options?: CarouselPromptOptions
 ): string {
   const p = slide.prompt_json as Record<string, unknown>
+  const sigText = options?.authorSignature ?? BRAND_SIGNATURE.text
+  const logoDesc = options?.logoDescription ?? BRAND_LOGO_DESCRIPTION.reference_description
 
   // ── Priority 1: carousel plan prompt_overall (richest path) ──
   if (hasCarouselPlanData(p)) {
-    return buildFromCarouselPlan(slide, narrative, p)
+    return buildFromCarouselPlan(slide, narrative, p, sigText, logoDesc)
   }
 
   // ── Priority 2/3: V2 or V1 fields (legacy paths) ──
-  return buildFromLegacyFields(slide, narrative, p)
+  return buildFromLegacyFields(slide, narrative, p, sigText, logoDesc)
 }
 
 // ============================================
@@ -53,7 +61,9 @@ function hasCarouselPlanData(p: Record<string, unknown>): boolean {
 function buildFromCarouselPlan(
   slide: SlideInput,
   narrative: CarouselNarrative,
-  p: Record<string, unknown>
+  p: Record<string, unknown>,
+  sigText: string,
+  logoDesc: string
 ): string {
   const parts: string[] = []
 
@@ -80,13 +90,14 @@ function buildFromCarouselPlan(
   }
 
   // Ensure logo is always included
-  if (!promptLower.includes('bitalize logo') && !promptLower.includes('bitalize brand')) {
-    parts.push(`MANDATORY LOGO: ${BRAND_LOGO_DESCRIPTION.reference_description} Place at bottom-left on white band, max 20% width.`)
+  if (!promptLower.includes('logo') || !promptLower.includes('brand')) {
+    parts.push(`MANDATORY LOGO: ${logoDesc} Place at bottom-left on white band, max 20% width.`)
   }
 
   // Ensure signature is always included
-  if (!promptLower.includes('jonathan navarrete')) {
-    parts.push(`Author signature: "${BRAND_SIGNATURE.text}" small muted near logo.`)
+  const sigLower = sigText.toLowerCase().slice(0, 15)
+  if (!promptLower.includes(sigLower)) {
+    parts.push(`Author signature: "${sigText}" small muted near logo.`)
   }
 
   // Format
@@ -117,7 +128,9 @@ function buildFromCarouselPlan(
 function buildFromLegacyFields(
   slide: SlideInput,
   narrative: CarouselNarrative,
-  p: Record<string, unknown>
+  p: Record<string, unknown>,
+  sigText: string,
+  logoDesc: string
 ): string {
   const parts: string[] = []
 
@@ -172,8 +185,8 @@ function buildFromLegacyFields(
   // Brand consistency + logo
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
   parts.push(`Colors: primary ${BRAND_STYLE.colors.primary}, accent ${BRAND_STYLE.colors.secondary}.`)
-  parts.push(`Logo: ${BRAND_LOGO_DESCRIPTION.reference_description} Place at bottom-left on white band, max 20% width.`)
-  parts.push(`Author signature: "${BRAND_SIGNATURE.text}" small muted near logo.`)
+  parts.push(`Logo: ${logoDesc} Place at bottom-left on white band, max 20% width.`)
+  parts.push(`Author signature: "${sigText}" small muted near logo.`)
 
   // Format
   parts.push('Format: 4:5 vertical (1080x1350) for LinkedIn carousel.')

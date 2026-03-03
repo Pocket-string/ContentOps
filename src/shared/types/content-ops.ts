@@ -495,6 +495,7 @@ export const brandProfileSchema = z.object({
   qa_checklist: z.array(z.string()),
   logo_urls: z.array(logoEntrySchema).default([]),
   ai_palettes: z.array(paletteOptionSchema).default([]),
+  author_signature: z.string().default('Jonathan Navarrete — Bitalize'),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -516,6 +517,7 @@ export const updateBrandProfileSchema = z.object({
   tone: z.string().optional(),
   negative_prompts: z.array(z.string()).optional(),
   qa_checklist: z.array(z.string()).optional(),
+  author_signature: z.string().min(1).optional(),
 })
 
 export type UpdateBrandProfileInput = z.infer<typeof updateBrandProfileSchema>

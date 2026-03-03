@@ -404,7 +404,11 @@ export function VisualEditor({
       const res = await fetch('/api/ai/iterate-visual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current_prompt_json: currentPrompt, feedback }),
+        body: JSON.stringify({
+          current_prompt_json: currentPrompt,
+          feedback,
+          concept_type: isCarousel ? 'carousel_4x5' : 'single',
+        }),
       })
       const json: unknown = await res.json()
       if (!res.ok) { setError((json as { error?: string }).error ?? 'Error al iterar'); return }
@@ -412,7 +416,7 @@ export function VisualEditor({
       setIteratedJson(JSON.stringify(prompt, null, 2)); setIterationChanges(changes_made)
     } catch { setError('Error de red al iterar el prompt visual') }
     finally { setIsIterating(false) }
-  }, [feedback, jsonText])
+  }, [feedback, jsonText, isCarousel])
 
   const handleApplyIteration = useCallback(async () => {
     if (!selectedVisualId || !iteratedJson) return

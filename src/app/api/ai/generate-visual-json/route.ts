@@ -17,6 +17,7 @@ import {
   FORMAT_DIMENSIONS,
   type VisualFormat,
 } from '@/features/visuals/constants/brand-rules'
+import { normalizeCarouselPlan, coerceRole, coerceVisualType, clampArray } from '@/features/visuals/utils/normalize-carousel'
 
 // Re-export V1 type for backward compat (other files may import it)
 export type { VisualPromptJsonV2 } from '@/features/visuals/schemas/visual-prompt-schema'
@@ -46,8 +47,12 @@ function buildSystemPrompt(brandOverrides: {
   typographyHeading: string
   imageryStyle: string
   negativePrompts: string[]
+  authorSignature?: string
+  logoDescription?: string
 }): string {
   const { colors, tone, imagerySubjects, mood, typographyHeading, imageryStyle, negativePrompts } = brandOverrides
+  const sigText = brandOverrides.authorSignature ?? BRAND_SIGNATURE.text
+  const logoDesc = brandOverrides.logoDescription ?? BRAND_LOGO_DESCRIPTION.reference_description
 
   return `## ROL
 
@@ -55,25 +60,33 @@ Eres el **Director de Arte Senior** de Bitalize, empresa lider en O&M fotovoltai
 
 ## CRITICO: prompt_overall
 
-El campo **prompt_overall** es EL MAS IMPORTANTE del JSON. Es un prompt completo, autocontenido en texto plano que se envia DIRECTAMENTE al modelo de generacion de imagen. Debe ser extremadamente detallado e incluir:
+El campo **prompt_overall** es EL MAS IMPORTANTE del JSON. Es un prompt completo, autocontenido en texto plano que se envia DIRECTAMENTE al modelo de generacion de imagen (Gemini Imagen). Debe ser extremadamente detallado e incluir:
 
 1. Texto exacto a renderizar (entre comillas)
-2. Todos los colores hex mencionados
-3. Posiciones espaciales con ratios (e.g. "top 8%", "center 55% height")
+2. Colores descritos naturalmente (ej: "dark navy background", "bright orange accent")
+3. Layout descrito naturalmente (ej: "headline at the top", "chart centered below")
 4. Descripcion exacta del logo y su ubicacion
 5. Elementos visuales especificos (graficos, iconos, diagramas)
 6. Reglas de estilo positivas
 7. Cosas a evitar (negatives)
-8. Tipografia y tamanos
+8. Tipografia descrita naturalmente (ej: "large bold white title", "small muted caption")
 9. Descripcion del fondo y grid
 10. Firma del autor si aplica
 11. CTA si aplica
 
-Si prompt_overall esta vago o generico, la imagen sera mala. Se PRECISO.
+## REGLA CRITICA PARA prompt_overall
+
+El modelo de imagen interpreta CUALQUIER texto tecnico como texto a renderizar:
+- NUNCA escribir "Inter Bold, 48px, #FFFFFF" — aparecera LITERALMENTE como texto visible en la imagen
+- NUNCA escribir "font size 14px" o "color #94A3B8"
+- EN VEZ DE especificaciones CSS, describir visualmente: "Large bold white headline at the top of the slide"
+- Hex codes, font names, pixel sizes van en los campos ESTRUCTURADOS, NO en prompt_overall
+
+Si prompt_overall esta vago o generico, la imagen sera mala. Se PRECISO pero VISUAL, no tecnico.
 
 ## LOGO — OBLIGATORIO EN TODA IMAGEN
 
-${BRAND_LOGO_DESCRIPTION.reference_description}
+${logoDesc}
 
 **Reglas de logo:**
 - Ubicacion por defecto: esquina inferior izquierda sobre banda blanca solida
@@ -84,10 +97,10 @@ ${BRAND_LOGO_DESCRIPTION.reference_description}
 
 ## FIRMA DEL AUTOR
 
-Incluir siempre: "${BRAND_SIGNATURE.text}"
+Incluir siempre: "${sigText}"
 - Ubicacion: ${BRAND_SIGNATURE.default_placement}
 - La firma va cerca del logo pero mas pequena y muted
-- En prompt_overall mencionar: "Small author signature '${BRAND_SIGNATURE.text}' in ${BRAND_COLORS_SEMANTIC.text_secondary} near the logo"
+- En prompt_overall mencionar: "Small author signature '${sigText}' near the logo"
 
 ## IDENTIDAD DE MARCA BITALIZE
 
@@ -218,8 +231,12 @@ function buildCarouselSystemPrompt(brandOverrides: {
   typographyHeading: string
   imageryStyle: string
   negativePrompts: string[]
+  authorSignature?: string
+  logoDescription?: string
 }): string {
   const { colors, tone, imagerySubjects, mood, typographyHeading, imageryStyle, negativePrompts } = brandOverrides
+  const sigText = brandOverrides.authorSignature ?? BRAND_SIGNATURE.text
+  const logoDesc = brandOverrides.logoDescription ?? BRAND_LOGO_DESCRIPTION.reference_description
 
   return `## ROL
 
@@ -232,18 +249,29 @@ El carrusel cuenta una HISTORIA NARRATIVA — cada slide es un capitulo que llev
 
 ## CRITICO: prompt_overall POR SLIDE
 
-CADA slide tiene su propio **prompt_overall** — un prompt completo y autocontenido para generar esa imagen especifica. Debe incluir:
+CADA slide tiene su propio **prompt_overall** — un prompt completo y autocontenido para generar esa imagen especifica con un modelo de IA de generacion de imagenes. Debe incluir:
 
 1. Texto exacto a renderizar (headline, body text) entre comillas
-2. Todos los colores hex mencionados
-3. Posiciones espaciales con ratios
+2. Colores descritos naturalmente (ej: "dark navy background", "purple accent highlights", "white text")
+3. Layout descrito naturalmente (ej: "headline prominently at the top", "chart centered in the middle")
 4. Descripcion del logo Bitalize + ubicacion
 5. Elementos visuales especificos para ESE slide
 6. Fondo consistente con el resto del carrusel
 7. Referencia a "Slide N of M" para contexto narrativo
-8. Tipografia y tamanos
+8. Tipografia descrita naturalmente (ej: "large bold white title", "small muted gray caption")
 
-Si prompt_overall esta vago, la imagen sera mala. Se PRECISO y ESPECIFICO para cada slide.
+## REGLA CRITICA PARA prompt_overall
+
+prompt_overall se envia DIRECTAMENTE a un modelo de generacion de imagenes (Gemini Imagen). Este modelo interpreta CUALQUIER texto tecnico como texto a renderizar visualmente.
+
+- NUNCA escribir especificaciones CSS: "Inter Bold, 48px, #FFFFFF" aparecera LITERALMENTE como texto en la imagen
+- NUNCA escribir "font size 14px" o "color #94A3B8" — el modelo lo renderiza como texto visible
+- EN VEZ DE "Inter Bold, 48px, #FFFFFF, centered at x=0.5, y=0.2" → "Large bold white headline prominently centered at the top"
+- EN VEZ DE "Inter Regular, 14px, #94A3B8" → "Small muted gray signature text near the logo"
+- Los hex codes, font names, y pixel sizes van en los campos ESTRUCTURADOS del JSON (visual_description, key_elements), NO en prompt_overall
+- prompt_overall debe describir la imagen como si le explicaras a un artista: forma, color, composicion, mood
+
+Si prompt_overall esta vago, la imagen sera mala. Se PRECISO pero VISUAL, no tecnico.
 
 ## ARCO NARRATIVO DEL CARRUSEL
 
@@ -256,7 +284,7 @@ Distribuye los slides asi:
 
 ## LOGO — OBLIGATORIO EN TODA SLIDE
 
-${BRAND_LOGO_DESCRIPTION.reference_description}
+${logoDesc}
 
 - Ubicacion: esquina inferior izquierda sobre banda blanca solida
 - Banda blanca: ~12% del alto total
@@ -266,7 +294,7 @@ ${BRAND_LOGO_DESCRIPTION.reference_description}
 
 ## FIRMA DEL AUTOR
 
-Incluir en todas las slides: "${BRAND_SIGNATURE.text}"
+Incluir en todas las slides: "${sigText}"
 - Ubicacion: ${BRAND_SIGNATURE.default_placement}
 - Firma cerca del logo, pequena y muted
 
@@ -305,105 +333,7 @@ ${DEFAULT_STYLE_ANCHORS.join('. ')}.
 Siempre full color. Legible en movil. Sin fotos stock.`
 }
 
-// ============================================
-// Carousel plan normalizer — fixes common AI deviations before Zod
-// ============================================
-
-const VALID_ROLES = ['cover_hook', 'problem', 'evidence', 'supporting', 'solution', 'cta_close'] as const
-const VALID_VISUAL_TYPES = VISUAL_TYPE_OPTIONS
-
-/** Map common AI role variations to valid enum values */
-function coerceRole(raw: unknown, slideIndex: number, totalSlides: number): string {
-  if (typeof raw !== 'string') return slideIndex === 0 ? 'cover_hook' : 'supporting'
-  const lower = raw.toLowerCase().replace(/[\s_-]+/g, '_')
-  // Direct match
-  if ((VALID_ROLES as readonly string[]).includes(lower)) return lower
-  // Fuzzy mapping
-  if (lower.includes('hook') || lower.includes('cover') || lower.includes('intro')) return 'cover_hook'
-  if (lower.includes('cta') || lower.includes('close') || lower.includes('action') || lower.includes('conclusion')) return 'cta_close'
-  if (lower.includes('problem') || lower.includes('pain') || lower.includes('challenge')) return 'problem'
-  if (lower.includes('evidence') || lower.includes('data') || lower.includes('proof') || lower.includes('stat')) return 'evidence'
-  if (lower.includes('solution') || lower.includes('result') || lower.includes('outcome') || lower.includes('takeaway')) return 'solution'
-  // Positional fallback
-  if (slideIndex === 0) return 'cover_hook'
-  if (slideIndex === totalSlides - 1) return 'cta_close'
-  if (slideIndex === 1) return 'problem'
-  if (slideIndex === totalSlides - 2) return 'solution'
-  return 'supporting'
-}
-
-/** Map common AI visual_type variations to valid enum values */
-function coerceVisualType(raw: unknown): string {
-  if (typeof raw !== 'string') return 'custom'
-  const lower = raw.toLowerCase().replace(/[\s_-]+/g, '_')
-  if ((VALID_VISUAL_TYPES as readonly string[]).includes(lower)) return lower
-  if (lower.includes('infographic') || lower.includes('info_graphic')) return 'infographic'
-  if (lower.includes('chart') || lower.includes('graph') || lower.includes('metric')) return 'data_chart'
-  if (lower.includes('diagram') || lower.includes('flow') || lower.includes('cycle')) return 'diagram'
-  if (lower.includes('photo') || lower.includes('editorial') || lower.includes('image')) return 'editorial_photo'
-  if (lower.includes('poster') || lower.includes('text') || lower.includes('quote') || lower.includes('hero')) return 'text_poster'
-  if (lower.includes('compar') || lower.includes('versus') || lower.includes('split')) return 'comparison'
-  if (lower.includes('timeline') || lower.includes('history') || lower.includes('evolution')) return 'timeline'
-  if (lower.includes('process') || lower.includes('step') || lower.includes('workflow')) return 'process_flow'
-  if (lower.includes('quote') || lower.includes('testimonial') || lower.includes('cite')) return 'quote_card'
-  return 'custom'
-}
-
-/** Clamp array length: trim excess, pad with defaults if too few */
-function clampArray(arr: unknown, min: number, max: number, defaultVal = ''): string[] {
-  const items = Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : []
-  const trimmed = items.slice(0, max)
-  while (trimmed.length < min) trimmed.push(defaultVal || `Item ${trimmed.length + 1}`)
-  return trimmed
-}
-
-/** Comprehensive normalizer: coerces AI response to match carouselPlanSchema */
-function normalizeCarouselPlan(raw: Record<string, unknown>, requestedSlides: number): Record<string, unknown> {
-  // Meta
-  const rawMeta = (raw.meta && typeof raw.meta === 'object' ? raw.meta : {}) as Record<string, unknown>
-  const slides = Array.isArray(raw.slides) ? raw.slides.slice(0, requestedSlides) : []
-  const actualCount = slides.length
-
-  const meta = {
-    slides_total: actualCount,
-    narrative_arc: typeof rawMeta.narrative_arc === 'string' ? rawMeta.narrative_arc : 'Hook → Content → CTA',
-    topic: typeof rawMeta.topic === 'string' ? rawMeta.topic : 'LinkedIn carousel',
-    platform: 'linkedin' as const,
-    format: '4:5' as const,
-    dimensions: '1080x1350' as const,
-  }
-
-  // Global style
-  const rawGs = (raw.global_style && typeof raw.global_style === 'object' ? raw.global_style : {}) as Record<string, unknown>
-  const global_style = {
-    background_style: typeof rawGs.background_style === 'string' ? rawGs.background_style : 'Dark navy #0F172A',
-    color_usage: typeof rawGs.color_usage === 'string' ? rawGs.color_usage : 'Brand colors for emphasis',
-    consistency_rules: clampArray(rawGs.consistency_rules, 2, 5, 'Consistent typography across all slides'),
-  }
-
-  // Slides — normalize each
-  const normalizedSlides = slides.map((s: unknown, i: number) => {
-    const slide = (s && typeof s === 'object' ? s : {}) as Record<string, unknown>
-    return {
-      slide_index: typeof slide.slide_index === 'number' ? Math.min(Math.max(slide.slide_index, 0), 9) : i,
-      role: coerceRole(slide.role, i, actualCount),
-      headline: typeof slide.headline === 'string' ? slide.headline : `Slide ${i + 1}`,
-      body_text: typeof slide.body_text === 'string' ? slide.body_text : '',
-      visual_type: coerceVisualType(slide.visual_type),
-      visual_description: typeof slide.visual_description === 'string' ? slide.visual_description : '',
-      key_elements: clampArray(slide.key_elements, 2, 6, 'Visual element'),
-      prompt_overall: typeof slide.prompt_overall === 'string' ? slide.prompt_overall : '',
-    }
-  })
-
-  return {
-    meta,
-    global_style,
-    slides: normalizedSlides,
-    style_guidelines: clampArray(raw.style_guidelines, 3, 6, 'Clean, professional design'),
-    negative_prompts: clampArray(raw.negative_prompts, 3, 8, 'Low quality imagery'),
-  }
-}
+// Carousel normalizer imported from @/features/visuals/utils/normalize-carousel
 
 // ============================================
 // POST handler
@@ -454,6 +384,10 @@ export async function POST(request: Request): Promise<Response> {
   const brandTypographyHeading = brand?.typography.heading ?? BRAND_STYLE.typography.heading
   const brandImageryStyle = brand?.imagery.style ?? BRAND_STYLE.imagery.style
   const brandNegativePrompts = brand?.negative_prompts ?? [...NEGATIVE_PROMPTS]
+  const authorSignature = brand?.author_signature ?? BRAND_SIGNATURE.text
+  const logoDescription = brand?.logo_urls?.length
+    ? `${brand.logo_urls.map(l => l.name).join(', ')} logo. ${BRAND_LOGO_DESCRIPTION.reference_description}`
+    : BRAND_LOGO_DESCRIPTION.reference_description
 
   // 5. Build format context
   const { post_content, funnel_stage, format, topic, keyword, additional_instructions, concept_type, num_slides, weekly_brief } =
@@ -474,6 +408,8 @@ export async function POST(request: Request): Promise<Response> {
       typographyHeading: brandTypographyHeading,
       imageryStyle: brandImageryStyle,
       negativePrompts: brandNegativePrompts,
+      authorSignature,
+      logoDescription,
     }
 
     if (isCarousel) {
@@ -506,7 +442,7 @@ INSTRUCCIONES:
 4. CADA prompt_overall debe ser EXHAUSTIVO — incluir texto exacto, colores hex, posiciones, logo, firma
 5. Mantener CONSISTENCIA visual: mismo fondo, misma paleta, misma tipografia en todas las slides
 6. Logo Bitalize en CADA slide (esquina inferior izquierda, banda blanca)
-7. Firma "${BRAND_SIGNATURE.text}" en CADA slide
+7. Firma "${authorSignature}" en CADA slide
 8. Esquina inferior derecha SIEMPRE vacia en CADA slide
 
 Responde SOLO con el JSON. Estructura requerida:
@@ -578,7 +514,7 @@ ${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer pers
 RECUERDA:
 1. Clasifica el visual_type segun el contenido y funnel stage
 2. Incluye el logo Bitalize con banda blanca inferior
-3. Incluye la firma del autor "${BRAND_SIGNATURE.text}"
+3. Incluye la firma del autor "${authorSignature}"
 4. Usa ratios numericos en layout (no texto vago)
 5. prompt_overall debe ser EXHAUSTIVO — es lo que genera la imagen`,
     })
