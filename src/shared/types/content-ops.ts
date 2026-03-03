@@ -469,6 +469,17 @@ export const brandImagerySchema = z.object({
   mood: z.string(),
 })
 
+export const logoEntrySchema = z.object({
+  url: z.string(),
+  name: z.string(),
+})
+
+export const paletteOptionSchema = z.object({
+  name: z.string(),
+  rationale: z.string(),
+  colors: brandColorsSchema,
+})
+
 export const brandProfileSchema = z.object({
   id: z.string().uuid(),
   workspace_id: z.string().uuid(),
@@ -482,6 +493,8 @@ export const brandProfileSchema = z.object({
   tone: z.string(),
   negative_prompts: z.array(z.string()),
   qa_checklist: z.array(z.string()),
+  logo_urls: z.array(logoEntrySchema).default([]),
+  ai_palettes: z.array(paletteOptionSchema).default([]),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -491,6 +504,8 @@ export type BrandColors = z.infer<typeof brandColorsSchema>
 export type BrandTypography = z.infer<typeof brandTypographySchema>
 export type BrandLogoRules = z.infer<typeof brandLogoRulesSchema>
 export type BrandImagery = z.infer<typeof brandImagerySchema>
+export type LogoEntry = z.infer<typeof logoEntrySchema>
+export type PaletteOption = z.infer<typeof paletteOptionSchema>
 
 export const updateBrandProfileSchema = z.object({
   name: z.string().min(1).optional(),

@@ -57,7 +57,11 @@ export function TopicForm({ topic, initialData, onSubmit, onSuccess }: TopicForm
     topic ? topic.failure_modes.join(', ') : (initialData?.failure_modes ?? []).join(', ')
   )
   const [businessImpact, setBusinessImpact] = useState(topic?.expected_business_impact ?? initialData?.expected_business_impact ?? '')
-  const [showEnemySection, setShowEnemySection] = useState(false)
+  const hasEnemyData = Boolean(
+    topic?.silent_enemy_name || topic?.minimal_proof || topic?.expected_business_impact ||
+    initialData?.silent_enemy_name || initialData?.minimal_proof || initialData?.expected_business_impact
+  )
+  const [showEnemySection, setShowEnemySection] = useState(hasEnemyData)
 
   const [titleError, setTitleError] = useState('')
   const [fitScoreError, setFitScoreError] = useState('')

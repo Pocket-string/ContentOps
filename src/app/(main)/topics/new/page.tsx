@@ -29,26 +29,45 @@ export default async function NewTopicPage({ searchParams }: Props) {
       // Use query params first (specific topic selected), fall back to research title
       initialData.title = title || research.title
 
-      // angle → hypothesis (the angle/thesis for this topic)
-      if (angle) initialData.hypothesis = angle
-
       // Extract ai_synthesis for rich field population
       const synthesis = research.ai_synthesis as Record<string, unknown> | null
+      const suggestedTopics = (synthesis && Array.isArray(synthesis['suggested_topics']))
+        ? synthesis['suggested_topics'] as Array<Record<string, string>>
+        : []
 
-      // Build RICH evidence from ALL key findings (not just one hook_idea)
-      // This is the core of "richer topic descriptions"
+      // Hypothesis: angle param > recommended_angles[0] > first suggested topic angle
+      if (angle) {
+        initialData.hypothesis = angle
+      } else if (research.recommended_angles.length > 0) {
+        initialData.hypothesis = research.recommended_angles[0]
+      } else if (suggestedTopics.length > 0 && suggestedTopics[0].angle) {
+        initialData.hypothesis = suggestedTopics[0].angle
+      }
+
+      // Anti-myth: derive from recommended_angles (contrarian angles) or synthesis angles
+      // Use an angle different from the one used as hypothesis
+      const usedAngle = initialData.hypothesis
+      const otherAngles = research.recommended_angles.filter(a => a !== usedAngle)
+      if (otherAngles.length > 0) {
+        initialData.anti_myth = otherAngles[0]
+      } else if (suggestedTopics.length > 1 && suggestedTopics[1].angle) {
+        initialData.anti_myth = suggestedTopics[1].angle
+      }
+
+      // Build RICH evidence: hook_idea (if specific topic) + ALL key findings with sources
+      const evidenceParts: string[] = []
+      if (hook_idea) {
+        evidenceParts.push(hook_idea)
+      }
       if (synthesis && Array.isArray(synthesis['key_findings'])) {
         const findings = synthesis['key_findings'] as Array<Record<string, string>>
-        const richEvidence = findings
-          .map(f => {
-            const src = f.source || f.source_hint
-            return `${f.finding}${src ? ` (Fuente: ${src})` : ''}`
-          })
-          .join('\n\n')
-        initialData.evidence = richEvidence.slice(0, 2000)
-      } else if (hook_idea) {
-        // Fallback to single hook_idea if no synthesis findings
-        initialData.evidence = hook_idea
+        for (const f of findings) {
+          const src = f.source || f.source_hint
+          evidenceParts.push(`${f.finding}${src ? ` (Fuente: ${src})` : ''}`)
+        }
+      }
+      if (evidenceParts.length > 0) {
+        initialData.evidence = evidenceParts.join('\n\n').slice(0, 2000)
       } else if (research.raw_text) {
         // Last resort: raw text truncated
         initialData.evidence = research.raw_text.slice(0, 1000)

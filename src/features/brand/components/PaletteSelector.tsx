@@ -1,16 +1,6 @@
 'use client'
 
-export interface PaletteOption {
-  name: string
-  rationale: string
-  colors: {
-    primary: string
-    secondary: string
-    accent: string
-    background: string
-    text: string
-  }
-}
+import type { PaletteOption } from '@/shared/types/content-ops'
 
 interface PaletteSelectorProps {
   palettes: PaletteOption[]

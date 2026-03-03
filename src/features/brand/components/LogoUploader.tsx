@@ -2,11 +2,7 @@
 
 import { useRef } from 'react'
 import Image from 'next/image'
-
-export interface LogoEntry {
-  url: string
-  name: string
-}
+import type { LogoEntry } from '@/shared/types/content-ops'
 
 interface LogoUploaderProps {
   logoUrls: LogoEntry[]

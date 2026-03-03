@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import type { BrandProfile, UpdateBrandProfileInput } from '@/shared/types/content-ops'
-import { LogoUploader, type LogoEntry } from '@/features/brand/components/LogoUploader'
-import { PaletteSelector, type PaletteOption } from '@/features/brand/components/PaletteSelector'
+import { useState, useEffect, useRef } from 'react'
+import type { BrandProfile, UpdateBrandProfileInput, LogoEntry, PaletteOption } from '@/shared/types/content-ops'
+import { LogoUploader } from '@/features/brand/components/LogoUploader'
+import { PaletteSelector } from '@/features/brand/components/PaletteSelector'
 import {
   uploadLogoAction,
   removeLogoAction,
@@ -114,25 +114,6 @@ function TagList({
   )
 }
 
-/** Reads logo_urls from the raw profile data (JSONB column not yet in the Zod schema). */
-function getLogoUrls(profile: BrandProfile): LogoEntry[] {
-  const raw = (profile as unknown as { logo_urls?: unknown }).logo_urls
-  if (!Array.isArray(raw)) return []
-  return raw.filter(
-    (item): item is LogoEntry =>
-      typeof item === 'object' &&
-      item !== null &&
-      typeof (item as { url?: unknown }).url === 'string' &&
-      typeof (item as { name?: unknown }).name === 'string'
-  )
-}
-
-/** Reads ai_palettes from the raw profile data (JSONB column not yet in the Zod schema). */
-function getAiPalettes(profile: BrandProfile): PaletteOption[] {
-  const raw = (profile as unknown as { ai_palettes?: unknown }).ai_palettes
-  if (!Array.isArray(raw)) return []
-  return raw as PaletteOption[]
-}
 
 export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) {
   const activeProfile = profiles.find((p) => p.is_active) ?? profiles[0]
@@ -141,17 +122,18 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
   const [creating, setCreating] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const justCreatedRef = useRef(false)
 
-  // Logo state
+  // Logo state — now logo_urls is part of BrandProfile schema
   const [logoUrls, setLogoUrls] = useState<LogoEntry[]>(
-    selected ? getLogoUrls(selected) : []
+    selected?.logo_urls ?? []
   )
   const [isUploading, setIsUploading] = useState(false)
   const [logoError, setLogoError] = useState<string | null>(null)
 
-  // AI palette state
+  // AI palette state — now ai_palettes is part of BrandProfile schema
   const [aiPalettes, setAiPalettes] = useState<PaletteOption[]>(
-    selected ? getAiPalettes(selected) : []
+    selected?.ai_palettes ?? []
   )
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isApplyingPalette, setIsApplyingPalette] = useState(false)
@@ -176,14 +158,36 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
       : {}
   )
 
+  // Sync selected state when profiles prop updates (after revalidatePath)
+  useEffect(() => {
+    if (justCreatedRef.current) {
+      // After creating a new version, select the new active profile
+      justCreatedRef.current = false
+      const newActive = profiles.find((p) => p.is_active) ?? profiles[0]
+      if (newActive) selectProfile(newActive)
+      return
+    }
+
+    if (!selected) return
+
+    // Refresh selected profile's data from updated profiles
+    const updated = profiles.find((p) => p.id === selected.id)
+    if (updated) {
+      setSelected(updated)
+      setLogoUrls(updated.logo_urls ?? [])
+      setAiPalettes(updated.ai_palettes ?? [])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profiles])
+
   const selectProfile = (profile: BrandProfile) => {
     setSelected(profile)
     setSaveError(null)
     setSaveSuccess(false)
     setLogoError(null)
     setAnalyzeError(null)
-    setLogoUrls(getLogoUrls(profile))
-    setAiPalettes(getAiPalettes(profile))
+    setLogoUrls(profile.logo_urls ?? [])
+    setAiPalettes(profile.ai_palettes ?? [])
     setForm({
       name: profile.name,
       colors: { ...profile.colors },
@@ -215,7 +219,11 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
     setCreating(true)
     const result = await onCreate()
     setCreating(false)
-    if (result.error) setSaveError(result.error)
+    if (result.error) {
+      setSaveError(result.error)
+    } else {
+      justCreatedRef.current = true
+    }
   }
 
   const handleUpload = async (file: File) => {

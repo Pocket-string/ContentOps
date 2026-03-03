@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
 import { getModel } from '@/shared/lib/ai-router'
-import type { PaletteOption } from '@/features/brand/components/PaletteSelector'
+import type { PaletteOption } from '@/shared/types/content-ops'
 
 // Input schema — validated before touching the AI
 const inputSchema = z.object({

@@ -3,10 +3,10 @@ import {
   brandProfileSchema,
   type BrandProfile,
   type UpdateBrandProfileInput,
+  type LogoEntry,
+  type PaletteOption,
 } from '@/shared/types/content-ops'
 import { z } from 'zod'
-import type { LogoEntry } from '@/features/brand/components/LogoUploader'
-import type { PaletteOption } from '@/features/brand/components/PaletteSelector'
 
 export interface ServiceResult<T> {
   data?: T

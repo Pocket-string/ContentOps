@@ -7,6 +7,8 @@ import {
   updateBrandProfileSchema,
   type BrandProfile,
   type UpdateBrandProfileInput,
+  type LogoEntry,
+  type PaletteOption,
 } from '@/shared/types/content-ops'
 import {
   getBrandProfiles,
@@ -18,8 +20,6 @@ import {
   saveBrandAiPalettes,
 } from '@/features/brand/services/brand-service'
 import { z } from 'zod'
-import type { LogoEntry } from '@/features/brand/components/LogoUploader'
-import type { PaletteOption } from '@/features/brand/components/PaletteSelector'
 
 interface ActionResult<T = undefined> {
   data?: T
@@ -93,59 +93,63 @@ export async function uploadLogoAction(
   profileId: string,
   formData: FormData
 ): Promise<ActionResult<LogoEntry[]>> {
-  // Step 1: Auth
-  await requireAuth()
+  try {
+    // Step 1: Auth
+    await requireAuth()
 
-  // Step 2: Validate input
-  const inputParsed = uploadLogoSchema.safeParse({ profileId })
-  if (!inputParsed.success) {
-    return { error: inputParsed.error.issues[0]?.message ?? 'Datos invalidos' }
+    // Step 2: Validate input
+    const inputParsed = uploadLogoSchema.safeParse({ profileId })
+    if (!inputParsed.success) {
+      return { error: inputParsed.error.issues[0]?.message ?? 'Datos invalidos' }
+    }
+
+    const file = formData.get('file')
+    if (!(file instanceof File)) {
+      return { error: 'Archivo requerido' }
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return { error: 'El archivo no debe superar 5 MB' }
+    }
+
+    const allowedTypes = ['image/png', 'image/x-png', 'image/svg+xml', 'image/jpeg', 'image/jpg']
+    if (!allowedTypes.includes(file.type)) {
+      return { error: `Solo se aceptan archivos PNG, SVG o JPG (recibido: ${file.type || 'desconocido'})` }
+    }
+
+    // Step 3: Fetch current logo_urls then upload
+    const workspaceId = await getWorkspaceId()
+    const profilesResult = await getBrandProfiles(workspaceId)
+    if (profilesResult.error) return { error: profilesResult.error }
+
+    const profile = profilesResult.data?.find((p) => p.id === profileId)
+    if (!profile) return { error: 'Perfil de marca no encontrado' }
+
+    const currentLogos: LogoEntry[] = profile.logo_urls ?? []
+
+    if (currentLogos.length >= 2) {
+      return { error: 'Maximo 2 logos permitidos. Elimina uno antes de subir otro.' }
+    }
+
+    const uploadResult = await uploadLogoFile(workspaceId, profileId, file)
+    if (uploadResult.error) return { error: uploadResult.error }
+
+    const newLogo: LogoEntry = { url: uploadResult.data!, name: file.name }
+    const updatedLogos: LogoEntry[] = [...currentLogos, newLogo]
+
+    // Step 3b: Persist updated logo_urls
+    const updateResult = await updateBrandLogos(profileId, updatedLogos)
+    if (updateResult.error) return { error: updateResult.error }
+
+    // Step 4: Side effects
+    revalidatePath('/settings/brand')
+
+    return { data: updatedLogos }
+  } catch (err) {
+    console.error('[brand-actions] uploadLogoAction unexpected error:', err)
+    const msg = err instanceof Error ? err.message : 'Error desconocido'
+    return { error: `Error al subir el logo: ${msg}` }
   }
-
-  const file = formData.get('file')
-  if (!(file instanceof File)) {
-    return { error: 'Archivo requerido' }
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    return { error: 'El archivo no debe superar 5 MB' }
-  }
-
-  const allowedTypes = ['image/png', 'image/x-png', 'image/svg+xml', 'image/jpeg', 'image/jpg']
-  if (!allowedTypes.includes(file.type)) {
-    return { error: 'Solo se aceptan archivos PNG, SVG o JPG' }
-  }
-
-  // Step 3: Fetch current logo_urls then upload
-  const workspaceId = await getWorkspaceId()
-  const profilesResult = await getBrandProfiles(workspaceId)
-  if (profilesResult.error) return { error: profilesResult.error }
-
-  const profile = profilesResult.data?.find((p) => p.id === profileId)
-  if (!profile) return { error: 'Perfil de marca no encontrado' }
-
-  const currentLogos: LogoEntry[] = (
-    (profile as unknown as { logo_urls?: unknown }).logo_urls ?? []
-  ) as LogoEntry[]
-
-  if (currentLogos.length >= 2) {
-    return { error: 'Maximo 2 logos permitidos. Elimina uno antes de subir otro.' }
-  }
-
-  const uploadResult = await uploadLogoFile(workspaceId, profileId, file)
-  if (uploadResult.error) return { error: uploadResult.error }
-
-  const newLogo: LogoEntry = { url: uploadResult.data!, name: file.name }
-  const updatedLogos: LogoEntry[] = [...currentLogos, newLogo]
-
-  // Step 3b: Persist updated logo_urls
-  const updateResult = await updateBrandLogos(profileId, updatedLogos)
-  if (updateResult.error) return { error: updateResult.error }
-
-  // Step 4: Side effects
-  revalidatePath('/settings/brand')
-
-  return { data: updatedLogos }
 }
 
 // Input schema for logo removal
@@ -176,9 +180,7 @@ export async function removeLogoAction(
   const profile = profilesResult.data?.find((p) => p.id === profileId)
   if (!profile) return { error: 'Perfil de marca no encontrado' }
 
-  const currentLogos: LogoEntry[] = (
-    (profile as unknown as { logo_urls?: unknown }).logo_urls ?? []
-  ) as LogoEntry[]
+  const currentLogos: LogoEntry[] = profile.logo_urls ?? []
 
   if (logoIndex < 0 || logoIndex >= currentLogos.length) {
     return { error: 'Indice de logo invalido' }
@@ -239,9 +241,7 @@ export async function analyzeLogoAction(
   const profile = profilesResult.data?.find((p) => p.id === profileId)
   if (!profile) return { error: 'Perfil de marca no encontrado' }
 
-  const currentLogos: LogoEntry[] = (
-    (profile as unknown as { logo_urls?: unknown }).logo_urls ?? []
-  ) as LogoEntry[]
+  const currentLogos: LogoEntry[] = profile.logo_urls ?? []
 
   if (currentLogos.length === 0) {
     return { error: 'Sube al menos un logo antes de analizar' }
