@@ -8,6 +8,7 @@ import {
   uploadLogoAction,
   removeLogoAction,
   analyzeLogoAction,
+  activateBrandProfileAction,
 } from '@/features/brand/actions/brand-actions'
 
 interface BrandEditorProps {
@@ -226,6 +227,12 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
     }
   }
 
+  const handleActivate = async (profileId: string) => {
+    setSaveError(null)
+    const result = await activateBrandProfileAction(profileId)
+    if (result.error) setSaveError(result.error)
+  }
+
   const handleUpload = async (file: File) => {
     if (!selected) return
     setIsUploading(true)
@@ -330,23 +337,35 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
           <h3 className="font-heading font-semibold text-sm text-foreground mb-3">Versiones</h3>
           <div className="space-y-2">
             {profiles.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => selectProfile(p)}
-                className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                  selected.id === p.id
-                    ? 'bg-primary text-white'
-                    : 'hover:bg-primary/5 text-foreground'
-                }`}
-              >
-                <span className="font-medium">v{p.version}</span>
-                {p.is_active && (
-                  <span className="ml-2 text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-medium">
-                    activa
-                  </span>
+              <div key={p.id} className="group relative">
+                <button
+                  onClick={() => selectProfile(p)}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                    selected.id === p.id
+                      ? 'bg-primary text-white'
+                      : 'hover:bg-primary/5 text-foreground'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium">v{p.version}</span>
+                    {p.is_active && (
+                      <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-medium">
+                        activa
+                      </span>
+                    )}
+                  </div>
+                  <span className="block text-xs opacity-60 mt-0.5">{p.name}</span>
+                </button>
+                {!p.is_active && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleActivate(p.id) }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-[10px] bg-green-500/10 text-green-600 hover:bg-green-500/20 px-2 py-0.5 rounded-full font-medium transition-all"
+                  >
+                    Activar
+                  </button>
                 )}
-                <span className="block text-xs opacity-60 mt-0.5">{p.name}</span>
-              </button>
+              </div>
             ))}
           </div>
           <button

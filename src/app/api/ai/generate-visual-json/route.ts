@@ -4,7 +4,7 @@ import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
 import { weeklyBriefSchema } from '@/shared/types/content-ops'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
-import { generateObjectWithFallback } from '@/shared/lib/ai-router'
+import { generateObjectWithFallback, getModel } from '@/shared/lib/ai-router'
 import { reviewVisualJson } from '@/shared/lib/ai-reviewer'
 import { visualPromptSchemaV2, carouselPlanSchema, VISUAL_TYPE_OPTIONS } from '@/features/visuals/schemas/visual-prompt-schema'
 import {
@@ -377,14 +377,13 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isCarousel) {
       // ── CAROUSEL: generate full multi-slide plan ──
-      const carouselSystem = buildCarouselSystemPrompt(brandConfig)
+      // Per CLAUDE.md: generateObject ALWAYS fails with Gemini for long inputs.
+      // Use generateText + manual JSON parse + Zod validate instead.
+      const { generateText } = await import('ai')
+      const carouselSystem = buildCarouselSystemPrompt(brandConfig) +
+        `\n\nCRITICO: Tu respuesta DEBE ser UNICAMENTE un objeto JSON valido. Sin markdown, sin backticks, sin texto adicional. Solo el JSON.`
 
-      const result = await generateObjectWithFallback({
-        task: 'generate-visual-json',
-        workspaceId,
-        schema: carouselPlanSchema,
-        system: carouselSystem,
-        prompt: `Genera un PLAN COMPLETO DE CARRUSEL para este post de LinkedIn.
+      const carouselPrompt = `Genera un PLAN COMPLETO DE CARRUSEL para este post de LinkedIn.
 
 **Contenido del post**:
 ${post_content}
@@ -405,10 +404,65 @@ INSTRUCCIONES:
 5. Mantener CONSISTENCIA visual: mismo fondo, misma paleta, misma tipografia en todas las slides
 6. Logo Bitalize en CADA slide (esquina inferior izquierda, banda blanca)
 7. Firma "${BRAND_SIGNATURE.text}" en CADA slide
-8. Esquina inferior derecha SIEMPRE vacia en CADA slide`,
-      })
+8. Esquina inferior derecha SIEMPRE vacia en CADA slide
 
-      return Response.json({ data: result.object, type: 'carousel_plan' })
+Responde SOLO con el JSON. Estructura requerida:
+{
+  "meta": { "slides_total": N, "narrative_arc": "...", "topic": "...", "platform": "linkedin", "format": "4:5", "dimensions": "1080x1350" },
+  "global_style": { "background_style": "...", "color_usage": "...", "consistency_rules": ["..."] },
+  "slides": [ { "slide_index": 0, "role": "cover_hook|problem|evidence|supporting|solution|cta_close", "headline": "...", "body_text": "...", "visual_type": "...", "visual_description": "...", "key_elements": ["..."], "prompt_overall": "..." } ],
+  "style_guidelines": ["..."],
+  "negative_prompts": ["..."]
+}`
+
+      const model = await getModel('generate-visual-json', workspaceId)
+      const textResult = await generateText({ model, system: carouselSystem, prompt: carouselPrompt })
+
+      // Parse response — strip markdown fences if present
+      let rawJson: unknown
+      try {
+        const clean = textResult.text
+          .trim()
+          .replace(/^```(?:json)?\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim()
+        rawJson = JSON.parse(clean)
+      } catch {
+        console.error('[generate-visual-json] Carousel JSON parse error:', textResult.text.slice(0, 500))
+        return Response.json(
+          { error: 'La IA no devolvio un JSON valido para el carrusel. Intenta de nuevo.' },
+          { status: 500 }
+        )
+      }
+
+      // Lenient parse: trim arrays that exceed schema limits
+      const rawObj = rawJson as Record<string, unknown>
+      if (Array.isArray(rawObj.slides) && rawObj.slides.length > 10) {
+        rawObj.slides = rawObj.slides.slice(0, 10)
+      }
+      if (rawObj.global_style && typeof rawObj.global_style === 'object') {
+        const gs = rawObj.global_style as Record<string, unknown>
+        if (Array.isArray(gs.consistency_rules) && gs.consistency_rules.length > 5) {
+          gs.consistency_rules = gs.consistency_rules.slice(0, 5)
+        }
+      }
+      if (Array.isArray(rawObj.style_guidelines) && rawObj.style_guidelines.length > 6) {
+        rawObj.style_guidelines = rawObj.style_guidelines.slice(0, 6)
+      }
+      if (Array.isArray(rawObj.negative_prompts) && rawObj.negative_prompts.length > 8) {
+        rawObj.negative_prompts = rawObj.negative_prompts.slice(0, 8)
+      }
+
+      const zodResult = carouselPlanSchema.safeParse(rawObj)
+      if (!zodResult.success) {
+        console.error('[generate-visual-json] Carousel Zod error:', zodResult.error.flatten())
+        return Response.json(
+          { error: 'La respuesta de la IA no tiene el formato esperado para carrusel. Intenta de nuevo.' },
+          { status: 500 }
+        )
+      }
+
+      return Response.json({ data: zodResult.data, type: 'carousel_plan' })
     }
 
     // ── SINGLE IMAGE: generate V2 structured JSON ──

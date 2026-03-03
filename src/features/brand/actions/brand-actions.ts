@@ -14,6 +14,7 @@ import {
   getBrandProfiles,
   createBrandProfile,
   updateBrandProfile,
+  activateBrandProfile,
   uploadLogoFile,
   removeLogoFile,
   updateBrandLogos,
@@ -202,6 +203,30 @@ export async function removeLogoAction(
   revalidatePath('/settings/brand')
 
   return { data: updatedLogos }
+}
+
+// 7. Activate a specific brand profile version
+export async function activateBrandProfileAction(
+  profileId: string
+): Promise<ActionResult> {
+  try {
+    await requireAuth()
+
+    const inputParsed = z.object({ profileId: z.string().uuid() }).safeParse({ profileId })
+    if (!inputParsed.success) {
+      return { error: inputParsed.error.issues[0]?.message ?? 'Datos invalidos' }
+    }
+
+    const workspaceId = await getWorkspaceId()
+    const result = await activateBrandProfile(workspaceId, profileId)
+    if (result.error) return { error: result.error }
+
+    revalidatePath('/settings/brand')
+    return {}
+  } catch (err) {
+    console.error('[brand-actions] activateBrandProfileAction error:', err)
+    return { error: 'Error al activar el perfil' }
+  }
 }
 
 // Zod schema for palette option (mirrors PaletteOption interface)

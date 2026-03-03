@@ -131,6 +131,37 @@ export async function updateBrandProfile(
   }
 }
 
+export async function activateBrandProfile(
+  workspaceId: string,
+  profileId: string
+): Promise<ServiceResult<void>> {
+  try {
+    const supabase = await createClient()
+
+    // Deactivate all profiles in the workspace
+    const { error: deactivateError } = await supabase
+      .from('brand_profiles')
+      .update({ is_active: false })
+      .eq('workspace_id', workspaceId)
+
+    if (deactivateError) return { error: deactivateError.message }
+
+    // Activate the selected profile
+    const { error: activateError } = await supabase
+      .from('brand_profiles')
+      .update({ is_active: true })
+      .eq('id', profileId)
+      .eq('workspace_id', workspaceId)
+
+    if (activateError) return { error: activateError.message }
+
+    return { data: undefined }
+  } catch (err) {
+    console.error('[brand-service] activateBrandProfile error', err)
+    return { error: 'Error inesperado' }
+  }
+}
+
 // ============================================
 // Logo storage helpers
 // ============================================
