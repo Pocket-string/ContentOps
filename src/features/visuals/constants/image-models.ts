@@ -20,12 +20,12 @@ export type ImageModelId = keyof typeof IMAGE_MODELS
 export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gemini-3-pro-image-preview'
 
 /**
- * Maps our visual formats to supported image generation aspect ratios.
- * 4:5 is NOT natively supported — mapped to closest vertical 3:4.
+ * Maps our visual formats to image generation aspect ratios.
+ * LinkedIn carousel standard: 4:5 (1080x1350).
  */
 export const FORMAT_TO_ASPECT_RATIO: Record<VisualFormat, `${number}:${number}`> = {
   '1:1': '1:1',
-  '4:5': '3:4',
+  '4:5': '4:5',
   '16:9': '16:9',
   '9:16': '9:16',
 }

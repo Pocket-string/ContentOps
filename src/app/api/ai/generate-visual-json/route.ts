@@ -29,6 +29,7 @@ const inputSchema = z.object({
   topic: z.string().optional(),
   keyword: z.string().optional(),
   additional_instructions: z.string().optional(),
+  concept_type: z.enum(['single', 'carousel_4x5']).optional(),
   weekly_brief: weeklyBriefSchema.optional(),
 })
 
@@ -255,9 +256,10 @@ export async function POST(request: Request): Promise<Response> {
   const brandNegativePrompts = brand?.negative_prompts ?? [...NEGATIVE_PROMPTS]
 
   // 5. Build format context
-  const { post_content, funnel_stage, format, topic, keyword, additional_instructions, weekly_brief } =
+  const { post_content, funnel_stage, format, topic, keyword, additional_instructions, concept_type, weekly_brief } =
     parsed.data
 
+  const isCarousel = concept_type === 'carousel_4x5'
   const formatKey = format as VisualFormat
   const dims = FORMAT_DIMENSIONS[formatKey] ?? FORMAT_DIMENSIONS['1:1']
   const dimensionsStr = `${dims.width}x${dims.height}`
@@ -274,6 +276,17 @@ export async function POST(request: Request): Promise<Response> {
       negativePrompts: brandNegativePrompts,
     })
 
+    const carouselContext = isCarousel
+      ? `\n\n## FORMATO CARRUSEL (CRITICO)
+Este visual es para un CARRUSEL de LinkedIn (5-10 slides, formato 4:5 vertical).
+- Genera un prompt JSON para la PORTADA del carrusel (slide 1)
+- El visual_type debe reflejar el contenido del carrusel (infographic, process_flow, data_chart, etc.)
+- El prompt_overall debe describir la portada: un titulo impactante grande, subtitulo breve, fondo llamativo
+- La portada debe funcionar como hook visual que invite a deslizar
+- Incluye en prompt_overall: "Slide 1 of carousel — cover slide designed to stop scrolling"
+- Usa composicion centrada con tipografia hero para el titulo principal`
+      : ''
+
     const result = await generateObjectWithFallback({
       task: 'generate-visual-json',
       workspaceId,
@@ -285,19 +298,19 @@ export async function POST(request: Request): Promise<Response> {
 ${post_content}
 
 **Etapa del funnel**: ${funnel_stage}
-**Formato del visual**: ${format} (${dimensionsStr})
+**Formato del visual**: ${format} (${dimensionsStr})${isCarousel ? ' — CARRUSEL' : ''}
 **Tipos visuales disponibles**: ${VISUAL_TYPE_OPTIONS.join(', ')}
 ${topic ? `**Tema principal**: ${topic}` : ''}
 ${keyword ? `**Palabra clave**: ${keyword}` : ''}
 ${additional_instructions ? `**Instrucciones adicionales del editor**: ${additional_instructions}` : ''}
-${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer persona: ${weekly_brief.buyer_persona ?? 'No definido'}, Keyword: ${weekly_brief.keyword ?? 'No definida'}` : ''}
+${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer persona: ${weekly_brief.buyer_persona ?? 'No definido'}, Keyword: ${weekly_brief.keyword ?? 'No definida'}` : ''}${carouselContext}
 
 RECUERDA:
 1. Clasifica el visual_type segun el contenido y funnel stage
 2. Incluye el logo Bitalize con banda blanca inferior
 3. Incluye la firma del autor "${BRAND_SIGNATURE.text}"
 4. Usa ratios numericos en layout (no texto vago)
-5. prompt_overall debe ser EXHAUSTIVO — es lo que genera la imagen`,
+5. prompt_overall debe ser EXHAUSTIVO — es lo que genera la imagen${isCarousel ? '\n6. Este es un CARRUSEL — genera prompt para la portada (slide 1)' : ''}`,
     })
 
     // 7. ChatGPT review (optional — non-blocking on failure)

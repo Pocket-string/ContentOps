@@ -16,7 +16,7 @@ interface LogoUploaderProps {
   maxLogos?: number
 }
 
-const ACCEPTED_TYPES = ['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg']
+const ACCEPTED_TYPES = ['image/png', 'image/x-png', 'image/svg+xml', 'image/jpeg', 'image/jpg']
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 
 export function LogoUploader({
@@ -146,7 +146,7 @@ export function LogoUploader({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".png,.svg,.jpg,.jpeg"
+            accept="image/png,image/x-png,image/svg+xml,image/jpeg,.png,.svg,.jpg,.jpeg"
             className="sr-only"
             onChange={handleFileChange}
             disabled={isUploading}

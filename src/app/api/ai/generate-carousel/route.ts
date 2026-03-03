@@ -76,11 +76,11 @@ export async function POST(request: Request): Promise<Response> {
   )
 
   try {
-    // 5. Generate image — 4:5 → 3:4 (closest supported)
+    // 5. Generate image — LinkedIn carousel 4:5 (1080x1350)
     const result = await generateImage({
       model: await getImageModel(model_id, workspaceId),
       prompt: textPrompt,
-      aspectRatio: '3:4',
+      aspectRatio: '4:5',
       providerOptions: {
         google: { personGeneration: 'allow_adult' },
       },

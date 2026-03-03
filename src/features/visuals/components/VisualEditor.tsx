@@ -10,6 +10,7 @@ import {
   FORMAT_LABELS,
   DEFAULT_FORMAT,
   QA_CHECKLIST,
+  CAROUSEL_QA_CHECKLIST,
   CAROUSEL_CONFIG,
   type VisualFormat,
 } from '../constants/brand-rules'
@@ -186,8 +187,8 @@ function parseQaJson(qa: Record<string, unknown> | null): Record<string, boolean
   return out
 }
 
-function allQaChecked(checks: Record<string, boolean>) {
-  return QA_CHECKLIST.every((item) => checks[item.id] === true)
+function allQaChecked(checks: Record<string, boolean>, qaItems: typeof QA_CHECKLIST = QA_CHECKLIST) {
+  return qaItems.every((item) => checks[item.id] === true)
 }
 
 // ============================================
@@ -363,7 +364,7 @@ export function VisualEditor({
       const res = await fetch('/api/ai/generate-visual-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_content: postContent, funnel_stage: funnelStage, format, topic: topicTitle, keyword, additional_instructions: additionalInstructions || undefined }),
+        body: JSON.stringify({ post_content: postContent, funnel_stage: funnelStage, format, topic: topicTitle, keyword, additional_instructions: additionalInstructions || undefined, concept_type: isCarousel ? 'carousel_4x5' : undefined }),
       })
       const json: unknown = await res.json()
       if (!res.ok) { setError((json as { error?: string }).error ?? 'Error al generar'); return }
@@ -431,7 +432,7 @@ export function VisualEditor({
     try {
       const res = await onUpdateQA(selectedVisualId, JSON.stringify(qaChecks))
       if (res.error) { setError(res.error); return }
-      const newStatus = allQaChecked(qaChecks) ? 'approved' : 'pending_qa'
+      const newStatus = allQaChecked(qaChecks, activeQaItems) ? 'approved' : 'pending_qa'
       await onUpdateStatus(selectedVisualId, newStatus)
       showSuccess('QA guardado correctamente')
     } finally { setIsSavingQA(false) }
@@ -452,7 +453,8 @@ export function VisualEditor({
   // Render
   // ============================================
 
-  const qaByCategory = QA_CHECKLIST.reduce<Record<string, typeof QA_CHECKLIST>>((acc, item) => {
+  const activeQaItems = isCarousel ? [...QA_CHECKLIST, ...CAROUSEL_QA_CHECKLIST] : QA_CHECKLIST
+  const qaByCategory = activeQaItems.reduce<Record<string, typeof QA_CHECKLIST>>((acc, item) => {
     ;(acc[item.category] ??= []).push(item)
     return acc
   }, {})
@@ -530,7 +532,46 @@ export function VisualEditor({
               </div>
             </div>
 
-            {/* 2. JSON Editor */}
+            {/* 2. AI Generation — FIRST STEP in workflow */}
+            <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-foreground">Generar Prompt Visual</h2>
+              <div>
+                <label htmlFor="additional-instructions" className="block text-sm font-medium text-foreground mb-1.5">
+                  Instrucciones adicionales <span className="text-xs font-normal text-foreground-muted">(opcional)</span>
+                </label>
+                <textarea
+                  id="additional-instructions"
+                  value={additionalInstructions}
+                  onChange={(e) => setAdditionalInstructions(e.target.value)}
+                  rows={2}
+                  placeholder="Ej: Enfoca en durabilidad de paneles bifaciales, usa tonos oscuros..."
+                  className={`${TEXTAREA_BASE} border-border hover:border-border-dark resize-none`}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={handleGenerate} isLoading={isGenerating} leftIcon={<SparklesIcon />}>Generar Prompt Visual</Button>
+                <CopyPromptButton
+                  getPrompt={() => buildVisualJsonPrompt({
+                    postContent: postContent,
+                    funnelStage: funnelStage,
+                    format: format,
+                    topicTitle: topicTitle,
+                    keyword: keyword,
+                    additionalInstructions: additionalInstructions,
+                  })}
+                  label="Copiar Prompt"
+                />
+              </div>
+              {visualReview && (
+                <AIReviewBadge
+                  score={visualReview.coherence_score}
+                  recommendation={visualReview.recommendation}
+                  summary={visualReview.one_line_summary}
+                />
+              )}
+            </div>
+
+            {/* 3. JSON Editor */}
             <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-foreground">Prompt JSON</h2>
@@ -560,7 +601,7 @@ export function VisualEditor({
               </div>
             </div>
 
-            {/* 2b. Import JSON from external AI */}
+            {/* 3b. Import JSON from external AI */}
             <details className="bg-surface border border-border rounded-2xl shadow-card">
               <summary className="px-5 py-3 cursor-pointer text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors">
                 Importar JSON externo (ChatGPT / otro)
@@ -606,45 +647,6 @@ export function VisualEditor({
                 </Button>
               </div>
             </details>
-
-            {/* 3. AI Generation */}
-            <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">Generar con IA</h2>
-              <div>
-                <label htmlFor="additional-instructions" className="block text-sm font-medium text-foreground mb-1.5">
-                  Instrucciones adicionales <span className="text-xs font-normal text-foreground-muted">(opcional)</span>
-                </label>
-                <textarea
-                  id="additional-instructions"
-                  value={additionalInstructions}
-                  onChange={(e) => setAdditionalInstructions(e.target.value)}
-                  rows={2}
-                  placeholder="Ej: Enfoca en durabilidad de paneles bifaciales, usa tonos oscuros..."
-                  className={`${TEXTAREA_BASE} border-border hover:border-border-dark resize-none`}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={handleGenerate} isLoading={isGenerating} leftIcon={<SparklesIcon />}>Generar Prompt Visual</Button>
-                <CopyPromptButton
-                  getPrompt={() => buildVisualJsonPrompt({
-                    postContent: postContent,
-                    funnelStage: funnelStage,
-                    format: format,
-                    topicTitle: topicTitle,
-                    keyword: keyword,
-                    additionalInstructions: additionalInstructions,
-                  })}
-                  label="Copiar Prompt"
-                />
-              </div>
-              {visualReview && (
-                <AIReviewBadge
-                  score={visualReview.coherence_score}
-                  recommendation={visualReview.recommendation}
-                  summary={visualReview.one_line_summary}
-                />
-              )}
-            </div>
 
             {/* 4. AI Iteration */}
             <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
@@ -837,13 +839,13 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 4. QA Checklist (only when image exists) */}
-            {selectedVisualId && hasImage && (
+            {/* 4. QA Checklist (show when image exists or carousel has slides with images) */}
+            {selectedVisualId && (isCarousel ? carouselSlides.length > 0 : hasImage) && (
               <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-foreground">QA Checklist</h2>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${allQaChecked(qaChecks) ? STATUS_COLORS.approved : STATUS_COLORS.pending_qa}`} role="status" aria-live="polite">
-                    {allQaChecked(qaChecks) ? STATUS_LABELS.approved : STATUS_LABELS.pending_qa}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${allQaChecked(qaChecks, activeQaItems) ? STATUS_COLORS.approved : STATUS_COLORS.pending_qa}`} role="status" aria-live="polite">
+                    {allQaChecked(qaChecks, activeQaItems) ? STATUS_LABELS.approved : STATUS_LABELS.pending_qa}
                   </span>
                 </div>
                 <div className="space-y-4">

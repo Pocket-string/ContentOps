@@ -111,7 +111,7 @@ export async function uploadLogoAction(
     return { error: 'El archivo no debe superar 5 MB' }
   }
 
-  const allowedTypes = ['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg']
+  const allowedTypes = ['image/png', 'image/x-png', 'image/svg+xml', 'image/jpeg', 'image/jpg']
   if (!allowedTypes.includes(file.type)) {
     return { error: 'Solo se aceptan archivos PNG, SVG o JPG' }
   }

@@ -236,7 +236,8 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
       }
     } catch (err) {
       console.error('[BrandEditor] upload error:', err)
-      setLogoError('Error al subir el logo. Verifica tu conexion e intenta de nuevo.')
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      setLogoError(`Error al subir el logo: ${msg}`)
     } finally {
       setIsUploading(false)
     }
@@ -274,7 +275,12 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
       if (result.error) {
         setAnalyzeError(result.error)
       } else if (result.data) {
-        setAiPalettes(result.data)
+        const palettes = result.data
+        setAiPalettes(palettes)
+        // Auto-apply first palette so brand colors immediately adapt to logo
+        if (palettes.length > 0) {
+          setForm((f) => ({ ...f, colors: { ...palettes[0].colors } }))
+        }
       }
     } catch (err) {
       console.error('[BrandEditor] analyze error:', err)
@@ -373,7 +379,7 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
                 type="button"
                 onClick={handleAnalyze}
                 disabled={isAnalyzing || isUploading}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-[#1E3A5F] text-white text-sm font-medium rounded-xl hover:bg-[#1E3A5F]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAnalyzing ? (
                   <>
@@ -676,7 +682,7 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
           <button
             onClick={handleSave}
             disabled={saving || !selected}
-            className="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="px-6 py-2.5 bg-[#1E3A5F] text-white rounded-xl font-medium text-sm hover:bg-[#1E3A5F]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
