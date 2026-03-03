@@ -6,7 +6,7 @@ import { weeklyBriefSchema } from '@/shared/types/content-ops'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import { generateObjectWithFallback } from '@/shared/lib/ai-router'
 import { reviewVisualJson } from '@/shared/lib/ai-reviewer'
-import { visualPromptSchemaV2, VISUAL_TYPE_OPTIONS } from '@/features/visuals/schemas/visual-prompt-schema'
+import { visualPromptSchemaV2, carouselPlanSchema, VISUAL_TYPE_OPTIONS } from '@/features/visuals/schemas/visual-prompt-schema'
 import {
   BRAND_LOGO_DESCRIPTION,
   BRAND_SIGNATURE,
@@ -206,6 +206,105 @@ Si falta alguno, el prompt sera de baja calidad. Se EXHAUSTIVO.`
 }
 
 // ============================================
+// Carousel system prompt builder
+// ============================================
+
+function buildCarouselSystemPrompt(brandOverrides: {
+  colors: { primary: string; secondary: string; accent: string }
+  tone: string
+  imagerySubjects: string[]
+  mood: string
+  typographyHeading: string
+  imageryStyle: string
+  negativePrompts: string[]
+}): string {
+  const { colors, tone, imagerySubjects, mood, typographyHeading, imageryStyle, negativePrompts } = brandOverrides
+
+  return `## ROL
+
+Eres el **Director de Arte Senior** de Bitalize, empresa lider en O&M fotovoltaico. Generas un PLAN COMPLETO DE CARRUSEL para LinkedIn: un JSON estructurado con el contenido y prompt visual de CADA SLIDE.
+
+## FORMATO: CARRUSEL 4:5 VERTICAL (1080x1350)
+
+Cada slide se genera como una imagen individual de 1080x1350px (4:5 vertical) para LinkedIn.
+El carrusel cuenta una HISTORIA NARRATIVA — cada slide es un capitulo que lleva al lector de un hook hasta un CTA.
+
+## CRITICO: prompt_overall POR SLIDE
+
+CADA slide tiene su propio **prompt_overall** — un prompt completo y autocontenido para generar esa imagen especifica. Debe incluir:
+
+1. Texto exacto a renderizar (headline, body text) entre comillas
+2. Todos los colores hex mencionados
+3. Posiciones espaciales con ratios
+4. Descripcion del logo Bitalize + ubicacion
+5. Elementos visuales especificos para ESE slide
+6. Fondo consistente con el resto del carrusel
+7. Referencia a "Slide N of M" para contexto narrativo
+8. Tipografia y tamanos
+
+Si prompt_overall esta vago, la imagen sera mala. Se PRECISO y ESPECIFICO para cada slide.
+
+## ARCO NARRATIVO DEL CARRUSEL
+
+Distribuye los slides asi:
+- **Slide 1 (cover_hook)**: Titulo impactante, tipografia hero grande, fondo llamativo. Hook que invite a deslizar.
+- **Slide 2 (problem)**: Presenta el problema o pain point. Datos de contexto.
+- **Slides 3-N-2 (evidence/supporting)**: Evidencia, datos, proceso, solucion. Contenido sustancial.
+- **Slide N-1 (solution)**: Resumen de la solucion o takeaway principal.
+- **Slide N (cta_close)**: Call to action claro. "Comenta", "Sigue", "DM", etc.
+
+## LOGO — OBLIGATORIO EN TODA SLIDE
+
+${BRAND_LOGO_DESCRIPTION.reference_description}
+
+- Ubicacion: esquina inferior izquierda sobre banda blanca solida
+- Banda blanca: ~12% del alto total
+- Logo: maximo 20% del ancho
+- Describir logo textualmente en CADA prompt_overall
+- Esquina inferior derecha SIEMPRE vacia
+
+## FIRMA DEL AUTOR
+
+Incluir en todas las slides: "${BRAND_SIGNATURE.text}"
+- Ubicacion: ${BRAND_SIGNATURE.default_placement}
+- Firma cerca del logo, pequena y muted
+
+## IDENTIDAD DE MARCA
+
+**Colores**: primario ${colors.primary}, secundario ${colors.secondary}, acento ${colors.accent}
+**Texto principal**: ${BRAND_COLORS_SEMANTIC.text_main} | secundario: ${BRAND_COLORS_SEMANTIC.text_secondary}
+**Fondo claro**: ${BRAND_COLORS_SEMANTIC.background} | oscuro: ${BRAND_COLORS_SEMANTIC.background_dark}
+**Tipografia**: ${typographyHeading} | Titulo: Inter Bold 36-48px | Body: Inter Regular 14-16px
+**Estilo**: ${imageryStyle}
+**Sujetos**: ${imagerySubjects.join(', ')}
+**Mood**: ${mood} | **Tono**: ${tone}
+
+## CONSISTENCIA VISUAL ENTRE SLIDES
+
+CRITICO — todas las slides deben sentirse parte del MISMO carrusel:
+- Mismo fondo base (ej: dark navy #020F3A con patron sutil)
+- Misma paleta de colores hex
+- Misma tipografia y tamanos
+- Mismo estilo de iconos (flat, thin stroke, full color)
+- Mismo grid system (ej: 12_col)
+- Logo y firma en la misma posicion en CADA slide
+
+## TIPOS VISUALES POR SLIDE
+
+Cada slide puede tener un visual_type diferente segun su contenido:
+${VISUAL_TYPE_OPTIONS.map((t) => `- ${t}`).join('\n')}
+
+## NEGATIVE PROMPTS (aplicar a TODAS las slides)
+
+${negativePrompts.map((p) => `- ${p}`).join('\n')}
+
+## ESTETICA
+
+${DEFAULT_STYLE_ANCHORS.join('. ')}.
+Siempre full color. Legible en movil. Sin fotos stock.`
+}
+
+// ============================================
 // POST handler
 // ============================================
 
@@ -264,9 +363,9 @@ export async function POST(request: Request): Promise<Response> {
   const dims = FORMAT_DIMENSIONS[formatKey] ?? FORMAT_DIMENSIONS['1:1']
   const dimensionsStr = `${dims.width}x${dims.height}`
 
-  // 6. Generate with AI (V2 structured output)
+  // 6. Generate with AI
   try {
-    const systemPrompt = buildSystemPrompt({
+    const brandConfig = {
       colors: brandColors,
       tone: brandTone,
       imagerySubjects: brandImagerySubjects,
@@ -274,18 +373,46 @@ export async function POST(request: Request): Promise<Response> {
       typographyHeading: brandTypographyHeading,
       imageryStyle: brandImageryStyle,
       negativePrompts: brandNegativePrompts,
-    })
+    }
 
-    const carouselContext = isCarousel
-      ? `\n\n## FORMATO CARRUSEL (CRITICO)
-Este visual es para un CARRUSEL de LinkedIn (5-10 slides, formato 4:5 vertical).
-- Genera un prompt JSON para la PORTADA del carrusel (slide 1)
-- El visual_type debe reflejar el contenido del carrusel (infographic, process_flow, data_chart, etc.)
-- El prompt_overall debe describir la portada: un titulo impactante grande, subtitulo breve, fondo llamativo
-- La portada debe funcionar como hook visual que invite a deslizar
-- Incluye en prompt_overall: "Slide 1 of carousel — cover slide designed to stop scrolling"
-- Usa composicion centrada con tipografia hero para el titulo principal`
-      : ''
+    if (isCarousel) {
+      // ── CAROUSEL: generate full multi-slide plan ──
+      const carouselSystem = buildCarouselSystemPrompt(brandConfig)
+
+      const result = await generateObjectWithFallback({
+        task: 'generate-visual-json',
+        workspaceId,
+        schema: carouselPlanSchema,
+        system: carouselSystem,
+        prompt: `Genera un PLAN COMPLETO DE CARRUSEL para este post de LinkedIn.
+
+**Contenido del post**:
+${post_content}
+
+**Etapa del funnel**: ${funnel_stage}
+**Formato**: 4:5 vertical (1080x1350) — CARRUSEL
+**Tipos visuales disponibles**: ${VISUAL_TYPE_OPTIONS.join(', ')}
+${topic ? `**Tema principal**: ${topic}` : ''}
+${keyword ? `**Palabra clave**: ${keyword}` : ''}
+${additional_instructions ? `**Instrucciones adicionales**: ${additional_instructions}` : ''}
+${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer persona: ${weekly_brief.buyer_persona ?? 'No definido'}, Keyword: ${weekly_brief.keyword ?? 'No definida'}` : ''}
+
+INSTRUCCIONES:
+1. Decide cuantas slides necesitas (5-8 es ideal para LinkedIn)
+2. Para CADA slide, genera headline, body_text, visual_type, visual_description, key_elements, y prompt_overall
+3. El arco narrativo debe ser: Hook → Problema → Evidencia/Datos → Solucion → CTA
+4. CADA prompt_overall debe ser EXHAUSTIVO — incluir texto exacto, colores hex, posiciones, logo, firma
+5. Mantener CONSISTENCIA visual: mismo fondo, misma paleta, misma tipografia en todas las slides
+6. Logo Bitalize en CADA slide (esquina inferior izquierda, banda blanca)
+7. Firma "${BRAND_SIGNATURE.text}" en CADA slide
+8. Esquina inferior derecha SIEMPRE vacia en CADA slide`,
+      })
+
+      return Response.json({ data: result.object, type: 'carousel_plan' })
+    }
+
+    // ── SINGLE IMAGE: generate V2 structured JSON ──
+    const systemPrompt = buildSystemPrompt(brandConfig)
 
     const result = await generateObjectWithFallback({
       task: 'generate-visual-json',
@@ -298,22 +425,22 @@ Este visual es para un CARRUSEL de LinkedIn (5-10 slides, formato 4:5 vertical).
 ${post_content}
 
 **Etapa del funnel**: ${funnel_stage}
-**Formato del visual**: ${format} (${dimensionsStr})${isCarousel ? ' — CARRUSEL' : ''}
+**Formato del visual**: ${format} (${dimensionsStr})
 **Tipos visuales disponibles**: ${VISUAL_TYPE_OPTIONS.join(', ')}
 ${topic ? `**Tema principal**: ${topic}` : ''}
 ${keyword ? `**Palabra clave**: ${keyword}` : ''}
 ${additional_instructions ? `**Instrucciones adicionales del editor**: ${additional_instructions}` : ''}
-${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer persona: ${weekly_brief.buyer_persona ?? 'No definido'}, Keyword: ${weekly_brief.keyword ?? 'No definida'}` : ''}${carouselContext}
+${weekly_brief ? `**Brief de la semana**: Tema: ${weekly_brief.tema}, Buyer persona: ${weekly_brief.buyer_persona ?? 'No definido'}, Keyword: ${weekly_brief.keyword ?? 'No definida'}` : ''}
 
 RECUERDA:
 1. Clasifica el visual_type segun el contenido y funnel stage
 2. Incluye el logo Bitalize con banda blanca inferior
 3. Incluye la firma del autor "${BRAND_SIGNATURE.text}"
 4. Usa ratios numericos en layout (no texto vago)
-5. prompt_overall debe ser EXHAUSTIVO — es lo que genera la imagen${isCarousel ? '\n6. Este es un CARRUSEL — genera prompt para la portada (slide 1)' : ''}`,
+5. prompt_overall debe ser EXHAUSTIVO — es lo que genera la imagen`,
     })
 
-    // 7. ChatGPT review (optional — non-blocking on failure)
+    // ChatGPT review (optional — non-blocking on failure)
     const review = await reviewVisualJson(
       result.object as unknown as Record<string, unknown>,
       parsed.data.post_content,

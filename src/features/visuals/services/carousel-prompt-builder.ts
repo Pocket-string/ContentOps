@@ -1,4 +1,5 @@
 import { BRAND_STYLE, NEGATIVE_PROMPTS, BRAND_LOGO_DESCRIPTION, BRAND_SIGNATURE } from '../constants/brand-rules'
+import type { CarouselPlanJson } from '../schemas/visual-prompt-schema'
 
 interface SlideInput {
   slide_index: number
@@ -16,15 +17,109 @@ interface CarouselNarrative {
 
 /**
  * Builds a text prompt for a single carousel slide.
- * Includes narrative context (slide position, storyline flow) so the AI
- * generates images that feel cohesive across the full carousel.
+ *
+ * Priority:
+ * 1. If prompt_json has `prompt_overall` (from carousel plan), use it directly + append brand/format
+ * 2. If prompt_json has V2 fields (meta/content), extract structured data
+ * 3. Fallback: V1 fields (scene/composition)
  */
 export function buildCarouselSlidePrompt(
   slide: SlideInput,
   narrative: CarouselNarrative
 ): string {
-  const parts: string[] = []
   const p = slide.prompt_json as Record<string, unknown>
+
+  // ── Priority 1: carousel plan prompt_overall (richest path) ──
+  if (hasCarouselPlanData(p)) {
+    return buildFromCarouselPlan(slide, narrative, p)
+  }
+
+  // ── Priority 2/3: V2 or V1 fields (legacy paths) ──
+  return buildFromLegacyFields(slide, narrative, p)
+}
+
+// ============================================
+// Detection helpers
+// ============================================
+
+function hasCarouselPlanData(p: Record<string, unknown>): boolean {
+  return typeof p.prompt_overall === 'string' && (p.prompt_overall as string).length > 50
+}
+
+// ============================================
+// Carousel plan path (richest data)
+// ============================================
+
+function buildFromCarouselPlan(
+  slide: SlideInput,
+  narrative: CarouselNarrative,
+  p: Record<string, unknown>
+): string {
+  const parts: string[] = []
+
+  // The AI-generated prompt_overall is the most important piece
+  const promptOverall = (p.prompt_overall as string).trim()
+  parts.push(promptOverall)
+
+  // Ensure narrative context is present
+  const promptLower = promptOverall.toLowerCase()
+  if (!promptLower.includes('slide ')) {
+    parts.push(
+      `Slide ${slide.slide_index + 1} of ${narrative.total_slides} in a LinkedIn carousel about "${narrative.topic}".`
+    )
+  }
+
+  // Ensure headline is rendered if user edited it after AI generation
+  if (slide.headline && !promptLower.includes(slide.headline.toLowerCase().slice(0, 20))) {
+    parts.push(`The image must contain the text "${slide.headline}" prominently displayed.`)
+  }
+
+  // Ensure body text is rendered if user edited it
+  if (slide.body_text && !promptLower.includes(slide.body_text.toLowerCase().slice(0, 20))) {
+    parts.push(`Body text: "${slide.body_text}".`)
+  }
+
+  // Ensure logo is always included
+  if (!promptLower.includes('bitalize logo') && !promptLower.includes('bitalize brand')) {
+    parts.push(`MANDATORY LOGO: ${BRAND_LOGO_DESCRIPTION.reference_description} Place at bottom-left on white band, max 20% width.`)
+  }
+
+  // Ensure signature is always included
+  if (!promptLower.includes('jonathan navarrete')) {
+    parts.push(`Author signature: "${BRAND_SIGNATURE.text}" small muted near logo.`)
+  }
+
+  // Format
+  if (!promptLower.includes('1080x1350') && !promptLower.includes('4:5')) {
+    parts.push('Format: 4:5 vertical (1080x1350) for LinkedIn carousel.')
+  }
+
+  // Negative prompts
+  const negatives = Array.isArray(p.negative_prompts) && p.negative_prompts.length > 0
+    ? (p.negative_prompts as string[])
+    : [...NEGATIVE_PROMPTS]
+  if (!promptLower.includes('avoid:')) {
+    parts.push(`Avoid: ${negatives.join(', ')}.`)
+  }
+
+  // Bottom-right empty zone (brand rule)
+  if (!promptLower.includes('bottom-right') && !promptLower.includes('inferior derecha')) {
+    parts.push('Keep the bottom-right corner completely empty (no text, icons, or shapes).')
+  }
+
+  return parts.join(' ')
+}
+
+// ============================================
+// Legacy path (V1 + V2 structured fields)
+// ============================================
+
+function buildFromLegacyFields(
+  slide: SlideInput,
+  narrative: CarouselNarrative,
+  p: Record<string, unknown>
+): string {
+  const parts: string[] = []
 
   // Carousel narrative context
   parts.push(
@@ -39,7 +134,6 @@ export function buildCarouselSlidePrompt(
   const isV2 = 'meta' in p && 'content' in p
 
   if (isV2) {
-    // V2: extract from structured content fields
     const content = p.content as Record<string, unknown> | undefined
     const visualElements = content?.visual_elements as Record<string, unknown> | undefined
     if (visualElements?.description) parts.push(`${visualElements.description}.`)
@@ -48,13 +142,11 @@ export function buildCarouselSlidePrompt(
     const layout = p.layout as Record<string, unknown> | undefined
     if (layout?.background_style) parts.push(`Background: ${layout.background_style}.`)
 
-    // V2 style guidelines
     const guidelines = p.style_guidelines
     if (Array.isArray(guidelines) && guidelines.length > 0) {
       parts.push(`Style: ${guidelines.filter((g): g is string => typeof g === 'string').join('. ')}.`)
     }
   } else {
-    // V1: scene + style + composition
     const scene = p.scene as Record<string, string> | undefined
     if (scene?.description) parts.push(scene.description)
     if (scene?.setting) parts.push(`Setting: ${scene.setting}.`)
@@ -69,7 +161,7 @@ export function buildCarouselSlidePrompt(
     if (composition?.layout) parts.push(`Layout: ${composition.layout}.`)
   }
 
-  // Text overlay — headline and body
+  // Text overlay
   if (slide.headline) {
     parts.push(`The image contains the text "${slide.headline}" prominently displayed at the top.`)
   }
@@ -83,11 +175,14 @@ export function buildCarouselSlidePrompt(
   parts.push(`Logo: ${BRAND_LOGO_DESCRIPTION.reference_description} Place at bottom-left on white band, max 20% width.`)
   parts.push(`Author signature: "${BRAND_SIGNATURE.text}" small muted near logo.`)
 
-  // Format — all carousel slides are 4:5 (1080x1350)
+  // Format
   parts.push('Format: 4:5 vertical (1080x1350) for LinkedIn carousel.')
 
-  // Visual consistency instruction
+  // Visual consistency
   parts.push('Maintain consistent color palette, typography style, and visual language across all slides.')
+
+  // Bottom-right empty
+  parts.push('Keep the bottom-right corner completely empty (no text, icons, or shapes).')
 
   // Negative prompts
   const negatives = (p.negative_prompts as string[] | undefined) ?? [...NEGATIVE_PROMPTS]
@@ -132,4 +227,31 @@ export function generateDefaultSlideStructure(
   }
 
   return slides
+}
+
+/**
+ * Creates slide structures from an AI-generated carousel plan.
+ * Each slide gets the rich prompt data (prompt_overall, visual_description, etc.)
+ * stored in its prompt_json for later use by buildCarouselSlidePrompt.
+ */
+export function slidesFromCarouselPlan(
+  plan: CarouselPlanJson
+): Array<{ slide_index: number; headline: string; body_text: string; prompt_json: Record<string, unknown> }> {
+  return plan.slides.map((slide) => ({
+    slide_index: slide.slide_index,
+    headline: slide.headline,
+    body_text: slide.body_text,
+    prompt_json: {
+      // Rich per-slide data from the carousel plan
+      prompt_overall: slide.prompt_overall,
+      visual_type: slide.visual_type,
+      visual_description: slide.visual_description,
+      key_elements: slide.key_elements,
+      role: slide.role,
+      // Global carousel context
+      style_guidelines: plan.style_guidelines,
+      negative_prompts: plan.negative_prompts,
+      global_style: plan.global_style,
+    },
+  }))
 }

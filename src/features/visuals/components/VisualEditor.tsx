@@ -24,7 +24,7 @@ import { parseVisualJson } from '@/features/import/parsers/visual-parser'
 import { AIReviewBadge } from '@/shared/components/ai-review-badge'
 import type { VisualReview } from '@/shared/types/ai-review'
 import { updateNanoBananaAction } from '../actions/visual-actions'
-import { initCarouselSlidesAction, saveCarouselSlidesAction } from '../actions/carousel-actions'
+import { initCarouselSlidesAction, initCarouselFromPlanAction, saveCarouselSlidesAction } from '../actions/carousel-actions'
 import { ImageGenerator } from './ImageGenerator'
 import { CarouselEditor } from './CarouselEditor'
 
@@ -368,12 +368,26 @@ export function VisualEditor({
       })
       const json: unknown = await res.json()
       if (!res.ok) { setError((json as { error?: string }).error ?? 'Error al generar'); return }
-      const resp = json as { data: Record<string, unknown>; review?: VisualReview }
+      const resp = json as { data: Record<string, unknown>; review?: VisualReview; type?: string }
+
+      // Display the generated JSON (both single and carousel plan)
       setJsonText(JSON.stringify(resp.data, null, 2)); setJsonError('')
       setVisualReview(resp.review ?? null)
+
+      // Carousel plan: auto-initialize slides from the AI-generated plan
+      if (resp.type === 'carousel_plan' && selectedVisualId) {
+        const planResult = await initCarouselFromPlanAction(selectedVisualId, resp.data)
+        if ('error' in planResult) {
+          setError(planResult.error)
+        } else if (planResult.slides) {
+          setCarouselSlides(planResult.slides)
+          setCarouselSlideCount(planResult.slides.length)
+          showSuccess(`Carrusel de ${planResult.slides.length} slides generado con IA`)
+        }
+      }
     } catch { setError('Error de red al generar el prompt visual') }
     finally { setIsGenerating(false) }
-  }, [postContent, funnelStage, format, topicTitle, keyword, additionalInstructions])
+  }, [postContent, funnelStage, format, topicTitle, keyword, additionalInstructions, isCarousel, selectedVisualId])
 
   const handleIterate = useCallback(async () => {
     if (!feedback.trim() || !jsonText) return

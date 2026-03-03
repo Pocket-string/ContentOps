@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { upsertCarouselSlides, getCarouselSlides } from '../services/carousel-service'
-import { generateDefaultSlideStructure } from '../services/carousel-prompt-builder'
+import { generateDefaultSlideStructure, slidesFromCarouselPlan } from '../services/carousel-prompt-builder'
+import { carouselPlanSchema } from '../schemas/visual-prompt-schema'
 import type { CarouselSlide } from '@/shared/types/content-ops'
 
 interface ActionSuccess {
@@ -76,6 +77,42 @@ export async function saveCarouselSlidesAction(
   }
 
   const result = await upsertCarouselSlides(visualVersionId, slides)
+
+  if (result.error) {
+    return { error: result.error }
+  }
+
+  revalidatePath('/campaigns')
+  return { success: true, slides: result.data }
+}
+
+/**
+ * Initialize carousel slides from an AI-generated carousel plan.
+ * Extracts rich per-slide data (prompt_overall, visual_description, etc.)
+ * instead of using boilerplate defaults.
+ */
+export async function initCarouselFromPlanAction(
+  visualVersionId: string,
+  planData: Record<string, unknown>
+): Promise<ActionResult> {
+  await requireAuth()
+
+  if (!visualVersionId) {
+    return { error: 'ID de version visual requerido' }
+  }
+
+  // Validate the plan data
+  const parsed = carouselPlanSchema.safeParse(planData)
+  if (!parsed.success) {
+    console.error('[initCarouselFromPlan] Invalid plan:', parsed.error.issues)
+    return { error: 'Plan de carrusel invalido' }
+  }
+
+  // Convert plan to slide structures with rich prompt_json
+  const slideStructures = slidesFromCarouselPlan(parsed.data)
+
+  // Upsert slides (replaces existing if any)
+  const result = await upsertCarouselSlides(visualVersionId, slideStructures)
 
   if (result.error) {
     return { error: result.error }

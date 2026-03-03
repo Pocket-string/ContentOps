@@ -121,3 +121,80 @@ export const visualPromptSchemaV2 = z.object({
 })
 
 export type VisualPromptJsonV2 = z.infer<typeof visualPromptSchemaV2>
+
+// ============================================
+// Carousel Plan Schema — multi-slide generation
+// ============================================
+
+/**
+ * Carousel Plan Schema — generates a complete narrative plan for all slides.
+ *
+ * Design: lightweight enough for generateObject (~3-4K output for 5 slides),
+ * but rich enough to feed buildCarouselSlidePrompt with real content per slide
+ * instead of boilerplate defaults.
+ *
+ * Each slide gets its own prompt_overall — the most critical field for image generation.
+ */
+
+const CAROUSEL_SLIDE_ROLES = [
+  'cover_hook',
+  'problem',
+  'evidence',
+  'supporting',
+  'solution',
+  'cta_close',
+] as const
+
+export type CarouselSlideRole = (typeof CAROUSEL_SLIDE_ROLES)[number]
+
+export const carouselSlidePromptSchema = z.object({
+  slide_index: z.number().min(0).max(9),
+  role: z.enum(CAROUSEL_SLIDE_ROLES)
+    .describe('Narrative role: cover_hook (slide 1), problem, evidence, supporting, solution, or cta_close (last slide)'),
+  headline: z.string()
+    .describe('Bold headline text for this slide — short, impactful, 5-10 words max'),
+  body_text: z.string()
+    .describe('Supporting body text — 1-2 sentences max'),
+  visual_type: z.enum(VISUAL_TYPE_OPTIONS)
+    .describe('Visual classification for this specific slide'),
+  visual_description: z.string()
+    .describe('Detailed description of what this slide should visually contain — specific elements, charts, icons, data'),
+  key_elements: z.array(z.string()).min(2).max(6)
+    .describe('Specific visual elements to include in this slide — be precise'),
+  prompt_overall: z.string()
+    .describe(
+      'Complete, self-contained prompt for THIS slide. Must include: exact text to render, ' +
+      'spatial layout, hex colors, logo description, visual elements, background, and style. ' +
+      'This is what generates the image — be EXHAUSTIVE.'
+    ),
+})
+
+export const carouselPlanSchema = z.object({
+  meta: z.object({
+    slides_total: z.number().min(3).max(10)
+      .describe('Total number of slides in the carousel'),
+    narrative_arc: z.string()
+      .describe('Brief description of the story arc: e.g. "Hook → Problem → 3 Evidence Points → Solution → CTA"'),
+    topic: z.string()
+      .describe('Main topic of the carousel'),
+    platform: z.literal('linkedin').default('linkedin'),
+    format: z.literal('4:5').default('4:5'),
+    dimensions: z.literal('1080x1350').default('1080x1350'),
+  }),
+  global_style: z.object({
+    background_style: z.string()
+      .describe('Consistent background across all slides: e.g. "solid dark navy #020F3A with subtle tech pattern"'),
+    color_usage: z.string()
+      .describe('How to use the color palette consistently: e.g. "Navy for structure, orange for alerts, green for positive metrics"'),
+    consistency_rules: z.array(z.string()).min(2).max(5)
+      .describe('Rules for visual consistency across slides — same grid, same icon style, same font sizes'),
+  }),
+  slides: z.array(carouselSlidePromptSchema).min(3).max(10),
+  style_guidelines: z.array(z.string()).min(3).max(6)
+    .describe('Positive style rules applied to ALL slides'),
+  negative_prompts: z.array(z.string()).min(3).max(8)
+    .describe('Things to avoid in ALL slides'),
+})
+
+export type CarouselPlanJson = z.infer<typeof carouselPlanSchema>
+export type CarouselSlidePromptJson = z.infer<typeof carouselSlidePromptSchema>
