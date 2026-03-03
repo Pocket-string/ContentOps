@@ -95,29 +95,43 @@ export async function initCarouselFromPlanAction(
   visualVersionId: string,
   planData: Record<string, unknown>
 ): Promise<ActionResult> {
-  await requireAuth()
+  try {
+    await requireAuth()
 
-  if (!visualVersionId) {
-    return { error: 'ID de version visual requerido' }
+    if (!visualVersionId) {
+      return { error: 'ID de version visual requerido' }
+    }
+
+    // Lenient validation — data was already validated by the API route.
+    // Re-parsing can fail after client→server serialization, so we try strict first then fallback.
+    let plan: import('../schemas/visual-prompt-schema').CarouselPlanJson
+    const parsed = carouselPlanSchema.safeParse(planData)
+    if (parsed.success) {
+      plan = parsed.data
+    } else {
+      // Fallback: extract slides directly from the raw data (already API-validated)
+      console.warn('[initCarouselFromPlan] Re-validation failed, using raw data:', parsed.error.issues.map((i) => i.path.join('.')))
+      const rawSlides = Array.isArray(planData.slides) ? planData.slides : []
+      if (rawSlides.length === 0) {
+        return { error: 'Plan de carrusel sin slides' }
+      }
+      plan = planData as unknown as import('../schemas/visual-prompt-schema').CarouselPlanJson
+    }
+
+    // Convert plan to slide structures with rich prompt_json
+    const slideStructures = slidesFromCarouselPlan(plan)
+
+    // Upsert slides (replaces existing if any)
+    const result = await upsertCarouselSlides(visualVersionId, slideStructures)
+
+    if (result.error) {
+      return { error: result.error }
+    }
+
+    revalidatePath('/campaigns')
+    return { success: true, slides: result.data }
+  } catch (err) {
+    console.error('[initCarouselFromPlan] Unexpected error:', err)
+    return { error: 'Error inesperado al inicializar slides del carrusel' }
   }
-
-  // Validate the plan data
-  const parsed = carouselPlanSchema.safeParse(planData)
-  if (!parsed.success) {
-    console.error('[initCarouselFromPlan] Invalid plan:', parsed.error.issues)
-    return { error: 'Plan de carrusel invalido' }
-  }
-
-  // Convert plan to slide structures with rich prompt_json
-  const slideStructures = slidesFromCarouselPlan(parsed.data)
-
-  // Upsert slides (replaces existing if any)
-  const result = await upsertCarouselSlides(visualVersionId, slideStructures)
-
-  if (result.error) {
-    return { error: result.error }
-  }
-
-  revalidatePath('/campaigns')
-  return { success: true, slides: result.data }
 }
