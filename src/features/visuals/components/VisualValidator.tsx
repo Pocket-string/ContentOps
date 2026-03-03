@@ -67,17 +67,26 @@ export function runVisualChecks(promptJson: Record<string, unknown>, format: Vis
       : `Solo ${colorsFound.length} color(es) de marca. Usa al menos 2 de: ${BRAND_COLORS.join(', ')}`,
   })
 
-  // 2. Logo placement — mentions bottom-right or esquina inferior derecha
-  const logoPatterns = ['bottom-right', 'bottom right', 'esquina inferior derecha', 'inferior derecha', 'lower right']
+  // 2. Logo placement — detect any logo placement reference (adapts to brand settings)
+  const logoPatterns = [
+    'bottom-left', 'bottom left', 'esquina inferior izquierda', 'inferior izquierda', 'lower left',
+    'bottom-right', 'bottom right', 'esquina inferior derecha', 'inferior derecha', 'lower right',
+    'logo', 'use_logo',
+  ]
   const hasLogo = logoPatterns.some(p => jsonStr.includes(p))
+  const detectedPosition = jsonStr.includes('inferior izquierda') || jsonStr.includes('bottom-left') || jsonStr.includes('bottom left')
+    ? 'inferior izquierda'
+    : jsonStr.includes('inferior derecha') || jsonStr.includes('bottom-right') || jsonStr.includes('bottom right')
+      ? 'inferior derecha'
+      : 'detectado'
   checks.push({
     id: 'logo-placement',
     label: 'Logo posicionado',
     passed: hasLogo,
     severity: 'warning',
     detail: hasLogo
-      ? 'Logo en esquina inferior derecha'
-      : 'El logo debe estar en la esquina inferior derecha',
+      ? `Logo en esquina ${detectedPosition}`
+      : 'No se detecta referencia al logo en el prompt',
   })
 
   // 3. Text density — warn if too much text overlay

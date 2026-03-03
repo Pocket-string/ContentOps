@@ -342,19 +342,25 @@ export function BrandEditor({ profiles, onUpdate, onCreate }: BrandEditorProps) 
                   onClick={() => selectProfile(p)}
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors ${
                     selected.id === p.id
-                      ? 'bg-primary text-white'
+                      ? 'bg-[#1E3A5F] text-white'
                       : 'hover:bg-primary/5 text-foreground'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium">v{p.version}</span>
                     {p.is_active && (
-                      <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-medium">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                        selected.id === p.id
+                          ? 'bg-green-400/30 text-green-200'
+                          : 'bg-green-500/20 text-green-600'
+                      }`}>
                         activa
                       </span>
                     )}
                   </div>
-                  <span className="block text-xs opacity-60 mt-0.5">{p.name}</span>
+                  <span className={`block text-xs mt-0.5 ${
+                    selected.id === p.id ? 'text-white/70' : 'text-foreground/60'
+                  }`}>{p.name}</span>
                 </button>
                 {!p.is_active && (
                   <button
