@@ -38,32 +38,38 @@ const testApiKeySchema = z.object({
 export async function saveApiKeyAction(
   input: { provider: string; apiKey: string }
 ): Promise<ActionResult> {
-  // Step 1: Auth (admin only)
-  const user = await requireAuth()
-  if (user.role !== 'admin') {
-    return { error: 'Solo administradores pueden gestionar API keys' }
+  try {
+    // Step 1: Auth (admin only)
+    const user = await requireAuth()
+    if (user.role !== 'admin') {
+      return { error: 'Solo administradores pueden gestionar API keys' }
+    }
+
+    // Step 2: Validate
+    const parsed = saveApiKeySchema.safeParse(input)
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? 'Datos invalidos' }
+    }
+
+    // Step 3: Execute
+    const workspaceId = await getWorkspaceId()
+    const result = await setWorkspaceApiKey(
+      workspaceId,
+      parsed.data.provider as ApiKeyProvider,
+      parsed.data.apiKey
+    )
+    if (result.error) return { error: result.error }
+
+    // Step 4: Side effects
+    revalidatePath('/settings/api-keys')
+    revalidatePath('/dashboard')
+
+    return { data: undefined }
+  } catch (err) {
+    console.error('[saveApiKeyAction] Unexpected error:', err)
+    const message = err instanceof Error ? err.message : 'Error inesperado al guardar'
+    return { error: message }
   }
-
-  // Step 2: Validate
-  const parsed = saveApiKeySchema.safeParse(input)
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Datos invalidos' }
-  }
-
-  // Step 3: Execute
-  const workspaceId = await getWorkspaceId()
-  const result = await setWorkspaceApiKey(
-    workspaceId,
-    parsed.data.provider as ApiKeyProvider,
-    parsed.data.apiKey
-  )
-  if (result.error) return { error: result.error }
-
-  // Step 4: Side effects
-  revalidatePath('/settings/api-keys')
-  revalidatePath('/dashboard')
-
-  return { data: undefined }
 }
 
 /**
@@ -72,31 +78,37 @@ export async function saveApiKeyAction(
 export async function deleteApiKeyAction(
   input: { provider: string }
 ): Promise<ActionResult> {
-  // Step 1: Auth (admin only)
-  const user = await requireAuth()
-  if (user.role !== 'admin') {
-    return { error: 'Solo administradores pueden gestionar API keys' }
+  try {
+    // Step 1: Auth (admin only)
+    const user = await requireAuth()
+    if (user.role !== 'admin') {
+      return { error: 'Solo administradores pueden gestionar API keys' }
+    }
+
+    // Step 2: Validate
+    const parsed = deleteApiKeySchema.safeParse(input)
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? 'Datos invalidos' }
+    }
+
+    // Step 3: Execute
+    const workspaceId = await getWorkspaceId()
+    const result = await deleteWorkspaceApiKey(
+      workspaceId,
+      parsed.data.provider as ApiKeyProvider
+    )
+    if (result.error) return { error: result.error }
+
+    // Step 4: Side effects
+    revalidatePath('/settings/api-keys')
+    revalidatePath('/dashboard')
+
+    return { data: undefined }
+  } catch (err) {
+    console.error('[deleteApiKeyAction] Unexpected error:', err)
+    const message = err instanceof Error ? err.message : 'Error inesperado al eliminar'
+    return { error: message }
   }
-
-  // Step 2: Validate
-  const parsed = deleteApiKeySchema.safeParse(input)
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Datos invalidos' }
-  }
-
-  // Step 3: Execute
-  const workspaceId = await getWorkspaceId()
-  const result = await deleteWorkspaceApiKey(
-    workspaceId,
-    parsed.data.provider as ApiKeyProvider
-  )
-  if (result.error) return { error: result.error }
-
-  // Step 4: Side effects
-  revalidatePath('/settings/api-keys')
-  revalidatePath('/dashboard')
-
-  return { data: undefined }
 }
 
 /**

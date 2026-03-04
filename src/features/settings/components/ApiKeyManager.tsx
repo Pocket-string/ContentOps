@@ -63,6 +63,7 @@ interface CardState {
   isDeleting: boolean
   testResult: { valid: boolean; message: string } | null
   saveError: string | null
+  saveSuccess: boolean
   deleteError: string | null
 }
 
@@ -74,6 +75,7 @@ function createInitialCardState(): CardState {
     isDeleting: false,
     testResult: null,
     saveError: null,
+    saveSuccess: false,
     deleteError: null,
   }
 }
@@ -117,16 +119,18 @@ export function ApiKeyManager({ keyInfo }: Props) {
     const apiKey = states[provider].inputValue.trim()
     if (!apiKey) return
 
-    updateState(provider, { isSaving: true, saveError: null, testResult: null })
-    const result = await saveApiKeyAction({ provider, apiKey })
-    updateState(provider, {
-      isSaving: false,
-      saveError: result.error ?? null,
-      inputValue: result.error ? states[provider].inputValue : '',
-    })
-
-    if (!result.error) {
-      router.refresh()
+    updateState(provider, { isSaving: true, saveError: null, saveSuccess: false, testResult: null })
+    try {
+      const result = await saveApiKeyAction({ provider, apiKey })
+      if (result.error) {
+        updateState(provider, { isSaving: false, saveError: result.error })
+      } else {
+        updateState(provider, { isSaving: false, saveSuccess: true, inputValue: '' })
+        router.refresh()
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error inesperado al guardar la key'
+      updateState(provider, { isSaving: false, saveError: message })
     }
   }
 
@@ -224,7 +228,7 @@ export function ApiKeyManager({ keyInfo }: Props) {
                   autoComplete="off"
                   spellCheck={false}
                   value={state.inputValue}
-                  onChange={(e) => updateState(config.provider, { inputValue: e.target.value, testResult: null, saveError: null })}
+                  onChange={(e) => updateState(config.provider, { inputValue: e.target.value, testResult: null, saveError: null, saveSuccess: false })}
                   placeholder={info ? 'Nueva key (dejar vacio para mantener la actual)' : 'Pega tu API key aqui...'}
                   className="flex-1 text-sm bg-background border border-border rounded-xl px-4 py-2.5 font-mono focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:font-sans placeholder:text-muted-foreground"
                   aria-describedby={
@@ -341,6 +345,17 @@ export function ApiKeyManager({ keyInfo }: Props) {
                     <AlertIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   )}
                   <span>{state.testResult.message}</span>
+                </div>
+              )}
+
+              {state.saveSuccess && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="flex items-start gap-2 text-sm px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 text-green-700"
+                >
+                  <CheckCircleIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>API key guardada correctamente</span>
                 </div>
               )}
 
