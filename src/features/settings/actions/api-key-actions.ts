@@ -61,6 +61,7 @@ export async function saveApiKeyAction(
 
   // Step 4: Side effects
   revalidatePath('/settings/api-keys')
+  revalidatePath('/dashboard')
 
   return { data: undefined }
 }
@@ -93,6 +94,7 @@ export async function deleteApiKeyAction(
 
   // Step 4: Side effects
   revalidatePath('/settings/api-keys')
+  revalidatePath('/dashboard')
 
   return { data: undefined }
 }

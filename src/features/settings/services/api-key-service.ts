@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { encrypt, decrypt, getKeyHint } from '@/shared/lib/encryption'
 
 export type ApiKeyProvider = 'google' | 'openai' | 'openrouter'
@@ -32,7 +32,7 @@ export async function getWorkspaceApiKeys(workspaceId: string): Promise<Workspac
     return cached.keys
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('api_keys')
     .select('provider, encrypted_key')
@@ -69,7 +69,7 @@ export function invalidateKeyCache(workspaceId: string): void {
  * Never returns decrypted keys.
  */
 export async function getWorkspaceKeyInfo(workspaceId: string): Promise<ApiKeyInfo[]> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('api_keys')
     .select('id, provider, key_hint, is_valid, last_used_at, updated_at')
@@ -99,7 +99,7 @@ export async function setWorkspaceApiKey(
   const encryptedKey = encrypt(plainKey)
   const hint = getKeyHint(plainKey)
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('api_keys')
     .upsert(
@@ -127,7 +127,7 @@ export async function deleteWorkspaceApiKey(
   workspaceId: string,
   provider: ApiKeyProvider
 ): Promise<{ error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('api_keys')
     .delete()
@@ -147,7 +147,7 @@ export async function markKeyInvalid(
   workspaceId: string,
   provider: ApiKeyProvider
 ): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   await supabase
     .from('api_keys')
     .update({ is_valid: false })
@@ -164,7 +164,7 @@ export async function touchKeyUsage(
   workspaceId: string,
   provider: ApiKeyProvider
 ): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   await supabase
     .from('api_keys')
     .update({ last_used_at: new Date().toISOString() })
@@ -177,7 +177,7 @@ export async function touchKeyUsage(
  * Used by the onboarding banner to prompt users who have not set up keys yet.
  */
 export async function hasRequiredApiKeys(workspaceId: string): Promise<boolean> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { count } = await supabase
     .from('api_keys')
     .select('*', { count: 'exact', head: true })
