@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation'
 import { TopicForm } from '@/features/topics/components'
 import { createTopicAction } from '@/features/topics/actions/topic-actions'
-import type { CreateTopicInput } from '@/shared/types/content-ops'
+import type { CreateTopicInput, ContentPillar } from '@/shared/types/content-ops'
 
 interface Props {
   initialData?: Partial<CreateTopicInput>
+  pillars?: ContentPillar[]
 }
 
-export function TopicNewClient({ initialData }: Props) {
+export function TopicNewClient({ initialData, pillars }: Props) {
   const router = useRouter()
 
   async function handleSubmit(data: CreateTopicInput) {
@@ -25,6 +26,7 @@ export function TopicNewClient({ initialData }: Props) {
     if (data.minimal_proof) formData.set('minimal_proof', data.minimal_proof)
     if (data.failure_modes.length > 0) formData.set('failure_modes', JSON.stringify(data.failure_modes))
     if (data.expected_business_impact) formData.set('expected_business_impact', data.expected_business_impact)
+    if (data.pillar_id) formData.set('pillar_id', data.pillar_id)
 
     const result = await createTopicAction(formData)
 
@@ -36,6 +38,7 @@ export function TopicNewClient({ initialData }: Props) {
   return (
     <TopicForm
       initialData={initialData}
+      pillars={pillars}
       onSubmit={handleSubmit}
       onSuccess={() => router.push('/topics')}
     />

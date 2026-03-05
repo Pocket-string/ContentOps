@@ -38,6 +38,8 @@ const inputSchema = z.object({
   context: z.string().optional(),
   weekly_brief: weeklyBriefSchema.optional(),
   previous_hooks: z.array(z.string()).optional(),
+  pillar_name: z.string().optional(),
+  pillar_description: z.string().optional(),
 })
 
 export async function POST(request: Request): Promise<Response> {
@@ -101,7 +103,14 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
-    const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief, previous_hooks } = parsed.data
+    const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief, previous_hooks, pillar_name, pillar_description } = parsed.data
+
+    // Build pillar context section
+    const pillarSection = pillar_name ? `
+
+## PILAR TEMATICO
+Este post pertenece al pilar **"${pillar_name}"**${pillar_description ? `: ${pillar_description}` : ''}.
+El contenido debe alinearse tematicamente con este pilar. Mantén coherencia con la narrativa del pilar.` : ''
 
     // Funnel-stage-specific copywriting instructions
     const stageConfig = FUNNEL_STAGE_GUIDE[funnel_stage as FunnelStage]
@@ -164,6 +173,7 @@ PROHIBIDO en hooks:
 - CTA al final, antes de hashtags
 - 3-4 hashtags relevantes al final (no mas)
 ${funnelGuideSection}
+${pillarSection}
 
 ## DIVERSIFICACION OBLIGATORIA
 Las 3 variantes DEBEN ser FUNCIONALMENTE distintas:

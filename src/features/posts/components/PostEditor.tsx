@@ -36,6 +36,7 @@ interface PostEditorProps {
   weeklyBrief?: WeeklyBrief
   topicContext?: string
   previousHooks?: string[]
+  pillarContext?: string
   onSaveVersion: (formData: FormData) => Promise<{ success?: true; error?: string }>
   onSetCurrent: (versionId: string) => Promise<{ success?: true; error?: string }>
   onScore: (versionId: string, score: unknown) => Promise<{ success?: true; error?: string }>
@@ -286,6 +287,7 @@ export function PostEditor({
   weeklyBrief,
   topicContext,
   previousHooks,
+  pillarContext,
   onSaveVersion,
   onSetCurrent,
   onScore,
@@ -478,6 +480,8 @@ export function PostEditor({
           context: topicContext || undefined,
           weekly_brief: weeklyBrief,
           previous_hooks: previousHooks?.length ? previousHooks : undefined,
+          pillar_name: pillarContext?.split(' — ')[0],
+          pillar_description: pillarContext?.includes(' — ') ? pillarContext.split(' — ').slice(1).join(' — ') : undefined,
         }),
       })
       const json: unknown = await response.json()
@@ -508,7 +512,7 @@ export function PostEditor({
     } finally {
       setIsGenerating(false)
     }
-  }, [topicTitle, keyword, weeklyBrief, topicContext, previousHooks, post.funnel_stage, post.id, objective, onSaveVersion])
+  }, [topicTitle, keyword, weeklyBrief, topicContext, previousHooks, pillarContext, post.funnel_stage, post.id, objective, onSaveVersion])
 
   const handleIterate = useCallback(async () => {
     if (!editContent.trim() || !feedback.trim()) return

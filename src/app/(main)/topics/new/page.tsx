@@ -1,4 +1,6 @@
 import { getResearchById } from '@/features/research/services/research-service'
+import { getWorkspaceId } from '@/lib/workspace'
+import { getPillarList } from '@/features/pillars/services/pillar-service'
 import { TopicNewClient } from './client'
 import type { CreateTopicInput } from '@/shared/types/content-ops'
 
@@ -15,6 +17,9 @@ interface Props {
 
 export default async function NewTopicPage({ searchParams }: Props) {
   const { from_research, title, angle, hook_idea } = await searchParams
+
+  const workspaceId = await getWorkspaceId()
+  const pillarsResult = await getPillarList(workspaceId)
 
   const initialData: Partial<CreateTopicInput> = {}
   let isFromResearch = false
@@ -131,7 +136,7 @@ export default async function NewTopicPage({ searchParams }: Props) {
       <h1 className="text-2xl font-bold text-foreground mb-6">
         {isFromResearch ? 'Derivar Tema desde Research' : 'Nuevo Tema'}
       </h1>
-      <TopicNewClient initialData={initialData} />
+      <TopicNewClient initialData={initialData} pillars={pillarsResult.data ?? []} />
     </div>
   )
 }

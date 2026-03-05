@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { PillarSelector } from '@/features/pillars/components'
 import { useChatStore } from '@/features/orchestrator/store/chat-store'
-import type { CreateCampaignInput, PostFrequency } from '@/shared/types/content-ops'
+import type { CreateCampaignInput, PostFrequency, ContentPillar } from '@/shared/types/content-ops'
 import { WEEKLY_PLAN, DEFAULT_DAYS_3, DEFAULT_DAYS_5 } from '@/shared/types/content-ops'
 
 // ---- Types ----
@@ -17,6 +18,7 @@ interface TopicOption {
 
 interface CampaignFormProps {
   topics?: TopicOption[]
+  pillars?: ContentPillar[]
   onSubmit: (data: CreateCampaignInput) => Promise<{ error?: string } | void>
   onSuccess?: () => void
 }
@@ -44,10 +46,11 @@ function InfoIcon({ className }: { className?: string }) {
 
 // ---- Component ----
 
-export function CampaignForm({ topics = [], onSubmit, onSuccess }: CampaignFormProps) {
+export function CampaignForm({ topics = [], pillars, onSubmit, onSuccess }: CampaignFormProps) {
   const [weekStart, setWeekStart] = useState('')
   const [topicId, setTopicId] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [pillarId, setPillarId] = useState<string | undefined>()
   const [frequency, setFrequency] = useState<PostFrequency>(5)
   const [selectedDays, setSelectedDays] = useState<number[]>(DEFAULT_DAYS_5)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -100,6 +103,7 @@ export function CampaignForm({ topics = [], onSubmit, onSuccess }: CampaignFormP
         audience_json: {},
         post_frequency: frequency,
         selected_days: frequency === 3 ? selectedDays : undefined,
+        pillar_id: pillarId,
       }
 
       const result = await onSubmit(data)
@@ -234,6 +238,15 @@ export function CampaignForm({ topics = [], onSubmit, onSuccess }: CampaignFormP
           onChange={(e) => setKeyword(e.target.value)}
           hint="Palabra clave que se usara como llamada a la accion en los posts."
         />
+
+        {/* Pillar selector */}
+        {pillars && pillars.length > 0 && (
+          <PillarSelector
+            pillars={pillars}
+            value={pillarId}
+            onChange={setPillarId}
+          />
+        )}
 
         {/* Global error */}
         {formError && (

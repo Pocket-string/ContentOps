@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { PillarSelector } from '@/features/pillars/components'
 import { TOPIC_PRIORITIES } from '@/shared/types/content-ops'
-import type { Topic, CreateTopicInput } from '@/shared/types/content-ops'
+import type { Topic, CreateTopicInput, ContentPillar } from '@/shared/types/content-ops'
 
 interface TopicFormProps {
   topic?: Topic
   initialData?: Partial<CreateTopicInput>
+  pillars?: ContentPillar[]
   onSubmit: (data: CreateTopicInput) => Promise<{ error?: string } | void>
   onSuccess?: () => void
 }
@@ -30,7 +32,7 @@ function signalsToString(signals: string[]): string {
   return signals.join(', ')
 }
 
-export function TopicForm({ topic, initialData, onSubmit, onSuccess }: TopicFormProps) {
+export function TopicForm({ topic, initialData, pillars, onSubmit, onSuccess }: TopicFormProps) {
   const isEditing = Boolean(topic)
 
   const [title, setTitle] = useState(topic?.title ?? initialData?.title ?? '')
@@ -50,6 +52,7 @@ export function TopicForm({ topic, initialData, onSubmit, onSuccess }: TopicForm
   const [priority, setPriority] = useState(
     topic?.priority ?? initialData?.priority ?? 'medium'
   )
+  const [pillarId, setPillarId] = useState<string | undefined>(topic?.pillar_id ?? initialData?.pillar_id ?? undefined)
 
   const [silentEnemyName, setSilentEnemyName] = useState(topic?.silent_enemy_name ?? initialData?.silent_enemy_name ?? '')
   const [minimalProof, setMinimalProof] = useState(topic?.minimal_proof ?? initialData?.minimal_proof ?? '')
@@ -111,6 +114,7 @@ export function TopicForm({ topic, initialData, onSubmit, onSuccess }: TopicForm
       minimal_proof: minimalProof.trim() || undefined,
       failure_modes: failureModes.split(',').map((s) => s.trim()).filter(Boolean),
       expected_business_impact: businessImpact.trim() || undefined,
+      pillar_id: pillarId,
     }
 
     setIsSubmitting(true)
@@ -338,6 +342,15 @@ export function TopicForm({ topic, initialData, onSubmit, onSuccess }: TopicForm
             onChange={(e) => setPriority(e.target.value as CreateTopicInput['priority'])}
           />
         </div>
+
+        {/* Pillar selector */}
+        {pillars && pillars.length > 0 && (
+          <PillarSelector
+            pillars={pillars}
+            value={pillarId}
+            onChange={setPillarId}
+          />
+        )}
 
         {/* Submit error */}
         {submitError && (

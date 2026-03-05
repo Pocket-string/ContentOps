@@ -167,6 +167,8 @@ export const topicSchema = z.object({
   failure_modes: z.array(z.string()).default([]),
   expected_business_impact: z.string().nullable(),
   recommended_week_structure: z.record(z.unknown()).nullable(),
+  // Phase 3: Content Pillars
+  pillar_id: z.string().uuid().nullable().optional(),
 })
 
 export const campaignSchema = z.object({
@@ -184,6 +186,8 @@ export const campaignSchema = z.object({
   // Phase 3: Weekly Brief
   weekly_brief: weeklyBriefSchema.nullable(),
   publishing_plan: publishingPlanSchema.nullable(),
+  // Phase 3: Content Pillars
+  pillar_id: z.string().uuid().nullable().optional(),
 })
 
 export const postSchema = z.object({
@@ -330,6 +334,7 @@ export const createTopicSchema = z.object({
   minimal_proof: z.string().optional(),
   failure_modes: z.array(z.string()).default([]),
   expected_business_impact: z.string().optional(),
+  pillar_id: z.string().uuid().optional(),
 })
 
 export const createCampaignSchema = z.object({
@@ -340,7 +345,36 @@ export const createCampaignSchema = z.object({
   audience_json: z.record(z.unknown()).default({}),
   post_frequency: z.number().refine((v) => [3, 5, 7].includes(v)).default(5),
   selected_days: z.array(z.number().min(1).max(7)).optional(),
+  pillar_id: z.string().uuid().optional(),
 })
+
+// ============================================
+// Content Pillars
+// ============================================
+
+export const contentPillarSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  name: z.string().min(1),
+  description: z.string().nullable(),
+  color: z.string().default('#6B7280'),
+  sort_order: z.number().default(0),
+  is_active: z.boolean().default(true),
+  created_by: z.string().uuid(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export type ContentPillar = z.infer<typeof contentPillarSchema>
+
+export const createPillarSchema = z.object({
+  name: z.string().min(1, 'Nombre del pilar requerido').max(100),
+  description: z.string().max(500).optional(),
+  color: z.string().default('#6B7280'),
+  sort_order: z.number().min(0).default(0),
+})
+
+export type CreatePillarInput = z.infer<typeof createPillarSchema>
 
 export const savePostVersionSchema = z.object({
   post_id: z.string().uuid(),

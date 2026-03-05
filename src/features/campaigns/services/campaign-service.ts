@@ -45,6 +45,7 @@ export type CampaignWithTopic = Campaign & {
     minimal_proof: string | null
     failure_modes: string[]
     expected_business_impact: string | null
+    pillar_id?: string | null
   } | null
 }
 
@@ -76,6 +77,7 @@ const campaignWithTopicSchema = campaignSchema.extend({
     minimal_proof: z.string().nullable(),
     failure_modes: z.array(z.string()).default([]),
     expected_business_impact: z.string().nullable(),
+    pillar_id: z.string().uuid().nullable().optional(),
   }).nullable(),
 })
 
@@ -153,7 +155,7 @@ export async function getCampaignById(
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact, pillar_id), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
       .eq('id', id)
       .single()
 

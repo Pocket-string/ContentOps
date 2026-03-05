@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation'
 import { CampaignForm } from '@/features/campaigns/components'
 import { createCampaignAction } from '@/features/campaigns/actions/campaign-actions'
-import type { CreateCampaignInput } from '@/shared/types/content-ops'
+import type { CreateCampaignInput, ContentPillar } from '@/shared/types/content-ops'
 
 interface Props {
   topics: { id: string; title: string }[]
+  pillars?: ContentPillar[]
 }
 
-export function CampaignNewClient({ topics }: Props) {
+export function CampaignNewClient({ topics, pillars }: Props) {
   const router = useRouter()
 
   async function handleSubmit(data: CreateCampaignInput) {
@@ -29,6 +30,7 @@ export function CampaignNewClient({ topics }: Props) {
     if (data.selected_days) {
       formData.set('selected_days', JSON.stringify(data.selected_days))
     }
+    if (data.pillar_id) formData.set('pillar_id', data.pillar_id)
 
     const result = await createCampaignAction(formData)
 
@@ -40,6 +42,7 @@ export function CampaignNewClient({ topics }: Props) {
   return (
     <CampaignForm
       topics={topics}
+      pillars={pillars}
       onSubmit={handleSubmit}
       onSuccess={() => router.push('/campaigns')}
     />

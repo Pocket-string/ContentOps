@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getCampaignById } from '@/features/campaigns/services/campaign-service'
 import { getPostByCampaignAndDay, getCampaignPostHooks } from '@/features/posts/services/post-service'
+import { getPillarById } from '@/features/pillars/services/pillar-service'
 import { PostEditorClient } from './client'
 
 export const metadata = { title: 'Post Editor | ContentOps' }
@@ -50,6 +51,16 @@ export default async function PostEditorPage({ params }: Props) {
       ].filter(Boolean).join('\n\n')
     : undefined
 
+  // Fetch pillar context if campaign or topic has a pillar assigned
+  const pillarId = campaign.pillar_id ?? campaign.topics?.pillar_id
+  let pillarContext: string | undefined
+  if (pillarId) {
+    const pillarResult = await getPillarById(pillarId)
+    if (pillarResult.data) {
+      pillarContext = `${pillarResult.data.name}${pillarResult.data.description ? ` — ${pillarResult.data.description}` : ''}`
+    }
+  }
+
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
       <PostEditorClient
@@ -60,6 +71,7 @@ export default async function PostEditorPage({ params }: Props) {
         weeklyBrief={weeklyBrief}
         topicContext={topicContext}
         previousHooks={previousHooks}
+        pillarContext={pillarContext}
       />
     </div>
   )
