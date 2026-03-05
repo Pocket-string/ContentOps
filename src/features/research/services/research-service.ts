@@ -142,6 +142,7 @@ export async function createResearch(
         evidence_links: validated.data.evidence_links,
         key_takeaways: validated.data.key_takeaways,
         recommended_angles: validated.data.recommended_angles,
+        pillar_id: validated.data.pillar_id ?? null,
       })
       .select()
       .single()
@@ -195,6 +196,7 @@ export async function updateResearch(
     if (validated.data.evidence_links !== undefined) updatePayload.evidence_links = validated.data.evidence_links
     if (validated.data.key_takeaways !== undefined) updatePayload.key_takeaways = validated.data.key_takeaways
     if (validated.data.recommended_angles !== undefined) updatePayload.recommended_angles = validated.data.recommended_angles
+    if (validated.data.pillar_id !== undefined) updatePayload.pillar_id = validated.data.pillar_id
 
     const supabase = await createClient()
 

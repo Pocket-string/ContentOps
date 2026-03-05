@@ -50,6 +50,8 @@ const inputSchema = z.object({
   topic: z.string().optional(),
   context: z.string().optional(),
   previous_hooks: z.array(z.string()).optional(),
+  pillar_name: z.string().optional(),
+  pillar_description: z.string().optional(),
 })
 
 export async function POST(request: Request): Promise<Response> {
@@ -86,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Evaluate with AI (text-based JSON)
   try {
-    const { variants, funnel_stage, weekly_brief, keyword, topic, context, previous_hooks } = parsed.data
+    const { variants, funnel_stage, weekly_brief, keyword, topic, context, previous_hooks, pillar_name, pillar_description } = parsed.data
 
     // Funnel-stage-specific evaluation criteria
     const stageConfig = FUNNEL_STAGE_GUIDE[funnel_stage as FunnelStage]
@@ -132,6 +134,7 @@ Pilares: perdidas ocultas en FV, Data/SCADA/IA para O&M, herramientas Bitalize.
 - **anti_bot**: Lenguaje que suena a IA generica (frases como "en el mundo de", "hoy quiero compartir", estructuras identicas entre variantes, exceso de emojis)
 - **repeticion_campana**: Hook o argumento central muy similar a un post previo de la misma campana semanal
 - **cta_incongruente**: CTA no apropiado para la etapa del funnel${stageConfig ? `. ${stageConfig.critic_penalty}` : ''}
+- **desalineacion_pilar**: El contenido no se alinea con el pilar tematico asignado
 ${stageConfig ? `
 ## EVALUACION POR ETAPA DEL FUNNEL (${funnel_stage})
 - **Objetivo esperado**: ${stageConfig.objective}
@@ -139,6 +142,11 @@ ${stageConfig ? `
 - **CTA esperado**: ${stageConfig.cta_type}
 - **Penalizar si**: ${stageConfig.critic_penalty}
 Si el CTA no es apropiado para esta etapa, reportar "cta_incongruente" como warning o blocker segun severidad.
+` : ''}
+${pillar_name ? `
+## PILAR TEMATICO
+Este post pertenece al pilar **"${pillar_name}"**${pillar_description ? `: ${pillar_description}` : ''}.
+Evalua si el contenido esta alineado tematicamente con este pilar. Si no lo esta, reporta como warning.
 ` : ''}
 Reglas:
 - MAXIMO 3 findings por variante (los mas impactantes)

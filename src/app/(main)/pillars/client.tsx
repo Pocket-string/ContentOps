@@ -1,7 +1,7 @@
 'use client'
 
 import { PillarList } from '@/features/pillars/components'
-import { deletePillarAction } from '@/features/pillars/actions/pillar-actions'
+import { deletePillarAction, togglePillarActiveAction } from '@/features/pillars/actions/pillar-actions'
 import type { ContentPillar } from '@/shared/types/content-ops'
 
 interface Props {
@@ -17,5 +17,19 @@ export function PillarListClient({ pillars }: Props) {
     return { success: true as const }
   }
 
-  return <PillarList pillars={pillars} onDelete={handleDelete} />
+  async function handleToggleActive(id: string, isActive: boolean) {
+    const result = await togglePillarActiveAction(id, isActive)
+    if ('error' in result) {
+      return { error: result.error }
+    }
+    return { success: true as const }
+  }
+
+  return (
+    <PillarList
+      pillars={pillars}
+      onDelete={handleDelete}
+      onToggleActive={handleToggleActive}
+    />
+  )
 }

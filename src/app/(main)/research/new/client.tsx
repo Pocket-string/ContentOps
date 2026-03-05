@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { ResearchForm } from '@/features/research/components/ResearchForm'
 import { DeepResearchPanel } from '@/features/research/components/DeepResearchPanel'
 import { createResearchAction } from '@/features/research/actions/research-actions'
+import type { ContentPillar } from '@/shared/types/content-ops'
 
 interface Props {
   allTags: string[]
+  pillars?: ContentPillar[]
 }
 
 const TABS = [
@@ -15,7 +17,7 @@ const TABS = [
   { id: 'manual' as const, label: 'Manual' },
 ]
 
-export function ResearchNewClient({ allTags }: Props) {
+export function ResearchNewClient({ allTags, pillars }: Props) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai')
 
@@ -32,6 +34,7 @@ export function ResearchNewClient({ allTags }: Props) {
     evidence_links: string[]
     key_takeaways: string[]
     recommended_angles: string[]
+    pillar_id?: string
   }) {
     const formData = new FormData()
     formData.set('title', data.title)
@@ -46,6 +49,7 @@ export function ResearchNewClient({ allTags }: Props) {
     if (data.evidence_links.length > 0) formData.set('evidence_links', JSON.stringify(data.evidence_links))
     if (data.key_takeaways.length > 0) formData.set('key_takeaways', JSON.stringify(data.key_takeaways))
     if (data.recommended_angles.length > 0) formData.set('recommended_angles', JSON.stringify(data.recommended_angles))
+    if (data.pillar_id) formData.set('pillar_id', data.pillar_id)
 
     const result = await createResearchAction(formData)
 
@@ -81,6 +85,7 @@ export function ResearchNewClient({ allTags }: Props) {
       ) : (
         <ResearchForm
           allTags={allTags}
+          pillars={pillars}
           onSubmit={handleSubmit}
           onSuccess={() => router.push('/research')}
         />

@@ -219,3 +219,38 @@ export async function deletePillar(
     return { error: 'Error inesperado al eliminar el pilar' }
   }
 }
+
+/**
+ * Toggle the is_active flag on a content pillar.
+ */
+export async function togglePillarActive(
+  id: string,
+  isActive: boolean
+): Promise<ServiceResult<ContentPillar>> {
+  try {
+    const supabase = await createClient()
+
+    const { data: row, error } = await supabase
+      .from('content_pillars')
+      .update({ is_active: isActive })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    const parsed = contentPillarSchema.safeParse(row)
+
+    if (!parsed.success) {
+      console.error('[pillar-service] togglePillarActive parse error', parsed.error.flatten())
+      return { error: 'Error al parsear la fila actualizada' }
+    }
+
+    return { data: parsed.data }
+  } catch (err) {
+    console.error('[pillar-service] togglePillarActive unexpected error', err)
+    return { error: 'Error inesperado al actualizar el pilar' }
+  }
+}

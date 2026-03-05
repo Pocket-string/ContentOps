@@ -9,6 +9,7 @@ import {
   createPillar,
   updatePillar,
   deletePillar,
+  togglePillarActive,
 } from '../services/pillar-service'
 
 // ============================================
@@ -188,6 +189,45 @@ export async function deletePillarAction(id: string): Promise<ActionResult> {
   track('pillar.deleted', {
     user_id: user.id,
     pillar_id: id,
+  })
+
+  revalidatePath('/pillars')
+
+  return { success: true }
+}
+
+/**
+ * Toggle active/inactive state of a content pillar.
+ *
+ * Step 1 — Auth:     requireAuth() redirects if not authenticated.
+ * Step 2 — Validate: id must be a non-empty string.
+ * Step 3 — Execute:  togglePillarActive() patches is_active via Supabase.
+ * Step 4 — Side fx:  track() fires event, revalidatePath() refreshes the list.
+ */
+export async function togglePillarActiveAction(
+  id: string,
+  isActive: boolean
+): Promise<ActionResult> {
+  // Step 1: Auth
+  const user = await requireAuth()
+
+  // Step 2: Validate id
+  if (!id || typeof id !== 'string' || id.trim().length === 0) {
+    return { error: 'ID de pilar invalido' }
+  }
+
+  // Step 3: Execute
+  const result = await togglePillarActive(id, isActive)
+
+  if (result.error) {
+    return { error: result.error }
+  }
+
+  // Step 4: Side effects
+  track('pillar.toggled', {
+    user_id: user.id,
+    pillar_id: id,
+    is_active: isActive,
   })
 
   revalidatePath('/pillars')

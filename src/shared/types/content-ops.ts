@@ -145,6 +145,7 @@ export const researchReportSchema = z.object({
   key_takeaways: z.array(z.string()).default([]),
   recommended_angles: z.array(z.string()).default([]),
   ai_synthesis: z.record(z.unknown()).nullable(),
+  pillar_id: z.string().uuid().nullable().optional(),
 })
 
 export const topicSchema = z.object({
@@ -319,6 +320,7 @@ export const createResearchSchema = z.object({
   evidence_links: z.array(z.string()).default([]),
   key_takeaways: z.array(z.string()).default([]),
   recommended_angles: z.array(z.string()).default([]),
+  pillar_id: z.string().uuid().optional(),
 })
 
 export const createTopicSchema = z.object({

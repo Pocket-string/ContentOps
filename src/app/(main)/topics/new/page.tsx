@@ -123,6 +123,11 @@ export default async function NewTopicPage({ searchParams }: Props) {
 
       // Default to high priority when derived from research
       initialData.priority = 'high'
+
+      // Carry over pillar from research
+      if (research.pillar_id) {
+        initialData.pillar_id = research.pillar_id
+      }
     }
   } else if (title ?? angle ?? hook_idea) {
     // Pre-fill directly from query params (e.g. coming from DeepResearchPanel without saved research)

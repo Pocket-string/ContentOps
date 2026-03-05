@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { TagInput } from './TagInput'
-import type { ResearchReport } from '@/shared/types/content-ops'
+import { PillarSelector } from '@/features/pillars/components'
+import type { ContentPillar, ResearchReport } from '@/shared/types/content-ops'
 
 interface ResearchFormProps {
   research?: ResearchReport
   allTags?: string[]
+  pillars?: ContentPillar[]
   onSuccess?: () => void
   onSubmit: (data: {
     title: string
@@ -25,6 +27,7 @@ interface ResearchFormProps {
     evidence_links: string[]
     key_takeaways: string[]
     recommended_angles: string[]
+    pillar_id?: string
   }) => Promise<{ error?: string } | void>
 }
 
@@ -169,6 +172,7 @@ function DynamicStringList({
 export function ResearchForm({
   research,
   allTags = [],
+  pillars,
   onSuccess,
   onSubmit,
 }: ResearchFormProps) {
@@ -198,6 +202,9 @@ export function ResearchForm({
   )
   const [recommendedAngles, setRecommendedAngles] = useState<string[]>(
     research?.recommended_angles ?? []
+  )
+  const [pillarId, setPillarId] = useState<string | undefined>(
+    research?.pillar_id ?? undefined
   )
   const [showAdvanced, setShowAdvanced] = useState(false)
 
@@ -247,6 +254,7 @@ export function ResearchForm({
         evidence_links: evidenceLinks.filter(Boolean),
         key_takeaways: keyTakeaways.filter(Boolean),
         recommended_angles: recommendedAngles.filter(Boolean),
+        pillar_id: pillarId,
       })
 
       if (result && 'error' in result && result.error) {
@@ -337,6 +345,15 @@ export function ResearchForm({
         suggestions={allTags}
         placeholder="soiling, bifacial, O&M..."
       />
+
+      {/* Pillar selector */}
+      {pillars && pillars.length > 0 && (
+        <PillarSelector
+          pillars={pillars}
+          value={pillarId}
+          onChange={setPillarId}
+        />
+      )}
 
       {/* Research Profundo toggle */}
       <div className="border-t border-border pt-4">

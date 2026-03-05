@@ -89,6 +89,12 @@ function parseResearchFormData(formData: FormData): Record<string, unknown> {
       ? rawBuyerPersona.trim()
       : undefined
 
+  const rawPillarId = formData.get('pillar_id')
+  const pillarId =
+    typeof rawPillarId === 'string' && rawPillarId.trim().length > 0
+      ? rawPillarId.trim()
+      : undefined
+
   return {
     title: formData.get('title'),
     source: formData.get('source') || undefined,
@@ -102,6 +108,7 @@ function parseResearchFormData(formData: FormData): Record<string, unknown> {
     evidence_links: parseJsonArrayField(formData, 'evidence_links'),
     key_takeaways: parseJsonArrayField(formData, 'key_takeaways'),
     recommended_angles: parseJsonArrayField(formData, 'recommended_angles'),
+    pillar_id: pillarId,
   }
 }
 

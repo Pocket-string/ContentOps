@@ -173,9 +173,12 @@ export function PillarList({ pillars, onDelete, onToggleActive }: PillarListProp
                     aria-hidden="true"
                   />
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-bold text-foreground leading-snug truncate">
+                    <Link
+                      href={`/pillars/${pillar.id}`}
+                      className="text-sm font-bold text-foreground leading-snug truncate hover:text-accent-600 transition-colors"
+                    >
                       {pillar.name}
-                    </h2>
+                    </Link>
                   </div>
                   <span
                     className={`

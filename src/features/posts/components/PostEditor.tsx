@@ -1155,6 +1155,7 @@ export function PostEditor({
               context={topicContext}
               weeklyBrief={weeklyBrief}
               previousHooks={previousHooks}
+              pillarContext={pillarContext}
               onApplyScore={async (variant, scorePayload) => {
                 const version = getCurrentVersionForVariant(post.versions, variant)
                 if (version) {
