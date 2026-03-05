@@ -13,6 +13,9 @@ const inputSchema = z.object({
   buyer_persona: z.string().optional(),
   region: z.string().optional(),
   research_id: z.string().uuid().optional(),
+  pillar_id: z.string().uuid().optional(),
+  pillar_name: z.string().optional(),
+  pillar_description: z.string().optional(),
 })
 
 const researchOutputSchema = z.object({
@@ -63,7 +66,7 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  const { tema, buyer_persona, region, research_id } = parsed.data
+  const { tema, buyer_persona, region, research_id, pillar_id, pillar_name, pillar_description } = parsed.data
 
   // 4. Get workspace context and Google provider (needed for BYOK)
   const workspaceId = await getWorkspaceId()
@@ -71,24 +74,29 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     // 4a. Build optimized prompt via ChatGPT
-    const promptData = await buildResearchPrompt(tema, buyer_persona, region)
+    const promptData = await buildResearchPrompt(tema, buyer_persona, region, pillar_name)
     const researchPrompt = promptData?.optimized_prompt ?? tema
 
     // 4b. Step 1: Grounded search via Gemini + Google Search
+    // Build pillar focus instruction
+    const pillarInstruction = pillar_name
+      ? `\n\n## ENFOQUE TEMATICO (PILAR)\nEsta investigacion pertenece al pilar: "${pillar_name}"${pillar_description ? ` — ${pillar_description}` : ''}.\nTODOS los hallazgos y topics sugeridos deben estar alineados con este pilar. NO incluyas hallazgos o topics que no se relacionen directamente con este enfoque tematico.`
+      : ''
+
     const systemPrompt = `Eres un analista de investigacion experto en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
 
-Tu mision es investigar temas del sector y producir un reporte detallado con hallazgos clave, topics sugeridos para contenido de LinkedIn, y contexto de mercado.
+Tu mision es investigar temas del sector y producir un reporte detallado con hallazgos clave y contexto de mercado.
 
 Reglas:
 - Basa tus hallazgos en informacion verificable y reciente
 - Cada finding debe incluir datos especificos (numeros, porcentajes, nombres de empresas)
 - Para CADA hallazgo, indica claramente la fuente (URL, nombre del reporte, organizacion, o estudio)
-- Los topics sugeridos deben seguir la metodologia D/G/P/I (Detener scroll, Ganar atencion, Provocar reaccion, Iniciar conversacion)
-- Los hooks deben ser especificos y con datos, no genericos
 - Prioriza informacion cuantitativa sobre opiniones
 - NO inventes datos ni fuentes — solo incluye informacion verificable
+- NO agregues enfoque en IA, machine learning o tecnologia a menos que el tema lo pida explicitamente
+- Mantenete fiel al tema solicitado — no desvies la investigacion hacia temas adyacentes
 ${buyer_persona ? `- Enfoca para el perfil: ${buyer_persona}` : ''}
-${region ? `- Region de interes: ${region}` : ''}`
+${region ? `- Region de interes: ${region}` : ''}${pillarInstruction}`
 
     const { text: groundedText } = await generateText({
       model: googleProvider(GEMINI_MODEL),
@@ -105,6 +113,10 @@ ${region ? `- Region de interes: ${region}` : ''}`
       : `Tema de investigacion: ${tema}\n\nPrompt: ${researchPrompt}\n\nGenera un analisis basado en tu conocimiento del sector fotovoltaico.`
 
     // 4c. Step 2: Structure into JSON via text mode (generateObject fails with long inputs)
+    const pillarContextForStructuring = pillar_name
+      ? `\n- PILAR TEMATICO: "${pillar_name}"${pillar_description ? ` (${pillar_description})` : ''}. Todos los topics deben alinearse con este pilar. Si un hallazgo no se relaciona con el pilar, NO generes un topic para el.`
+      : ''
+
     const { text: jsonText } = await generateText({
       model: googleProvider(GEMINI_MODEL),
       system: `Responde UNICAMENTE con un objeto JSON valido. Sin markdown, sin backticks, sin texto antes o despues.
@@ -115,7 +127,7 @@ El JSON debe seguir esta estructura EXACTA:
     {"finding": "hallazgo con datos especificos", "relevance": "por que importa", "source": "nombre del reporte, organizacion, o URL de la fuente"}
   ],
   "suggested_topics": [
-    {"title": "titulo del post", "angle": "angulo editorial", "hook_idea": "idea de gancho con dato"}
+    {"title": "titulo del post", "angle": "angulo editorial basado en un hallazgo especifico", "hook_idea": "idea de gancho con dato extraido del hallazgo"}
   ],
   "market_context": "contexto de mercado",
   "sources": ["fuente 1 (URL o nombre del reporte)", "fuente 2"]
@@ -123,10 +135,14 @@ El JSON debe seguir esta estructura EXACTA:
 REGLAS:
 - key_findings: minimo 3, maximo 8 items
 - suggested_topics: minimo 3, maximo 6 items
+- CADA suggested_topic DEBE derivarse directamente de uno o mas key_findings. NO inventes topics que no esten respaldados por los hallazgos
+- El "angle" debe referenciar el hallazgo especifico del que se deriva (ej: "Basado en el dato de X% de perdidas por Y...")
+- El "hook_idea" debe usar un dato concreto extraido de los hallazgos, NO agregar enfoques de IA o tecnologia que no esten en la investigacion
+- NO agregues angulos de IA, machine learning, o automatizacion a los topics a menos que la investigacion original los mencione explicitamente
 - Todos los valores deben ser strings, no arrays ni objetos anidados
 - CADA key_finding DEBE tener un campo "source" con la fuente especifica (URL, nombre del reporte, organizacion)
 - El campo "sources" debe listar TODAS las fuentes unicas referenciadas en los hallazgos
-- NO inventes fuentes — si no puedes atribuir un hallazgo, indica "Conocimiento del sector"`,
+- NO inventes fuentes — si no puedes atribuir un hallazgo, indica "Conocimiento del sector"${pillarContextForStructuring}`,
       prompt: `Estructura esta investigacion en JSON:\n\n${textForStructuring.slice(0, 6000)}`,
     })
 
@@ -182,6 +198,7 @@ REGLAS:
             raw_text: groundedText,
             tags_json: [],
             ai_synthesis: researchData,
+            ...(pillar_id ? { pillar_id } : {}),
           })
           .select('id')
           .single()

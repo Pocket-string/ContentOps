@@ -81,7 +81,7 @@ export function ResearchNewClient({ allTags, pillars }: Props) {
 
       {/* Tab content */}
       {activeTab === 'ai' ? (
-        <DeepResearchPanel />
+        <DeepResearchPanel pillars={pillars} />
       ) : (
         <ResearchForm
           allTags={allTags}

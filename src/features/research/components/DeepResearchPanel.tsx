@@ -4,6 +4,8 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { PillarSelector } from '@/features/pillars/components'
+import type { ContentPillar } from '@/shared/types/content-ops'
 
 // -----------------------------------------------------------------------
 // Types
@@ -36,6 +38,8 @@ interface DeepResearchPanelProps {
   defaultBuyerPersona?: string
   /** Pre-fill region */
   defaultRegion?: string
+  /** Available content pillars for focus */
+  pillars?: ContentPillar[]
 }
 
 // -----------------------------------------------------------------------
@@ -68,12 +72,14 @@ export function DeepResearchPanel({
   defaultTema = '',
   defaultBuyerPersona = '',
   defaultRegion = '',
+  pillars,
 }: DeepResearchPanelProps) {
   const router = useRouter()
 
   const [tema, setTema] = useState(defaultTema)
   const [buyerPersona, setBuyerPersona] = useState(defaultBuyerPersona)
   const [region, setRegion] = useState(defaultRegion)
+  const [pillarId, setPillarId] = useState<string | undefined>(undefined)
   const [isResearching, setIsResearching] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<ResearchResult | null>(null)
@@ -90,6 +96,11 @@ export function DeepResearchPanel({
     setSavedId(null)
 
     try {
+      // Resolve pillar name/description if selected
+      const selectedPillar = pillarId && pillars
+        ? pillars.find((p) => p.id === pillarId)
+        : undefined
+
       const res = await fetch('/api/research/grounded-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,6 +109,9 @@ export function DeepResearchPanel({
           buyer_persona: buyerPersona || undefined,
           region: region || undefined,
           research_id: researchId || undefined,
+          pillar_id: pillarId || undefined,
+          pillar_name: selectedPillar?.name || undefined,
+          pillar_description: selectedPillar?.description || undefined,
         }),
       })
 
@@ -121,7 +135,7 @@ export function DeepResearchPanel({
     } finally {
       setIsResearching(false)
     }
-  }, [tema, buyerPersona, region, researchId])
+  }, [tema, buyerPersona, region, researchId, pillarId, pillars])
 
   // -----------------------------------------------------------------------
   // Render
@@ -209,6 +223,16 @@ export function DeepResearchPanel({
                 </select>
               </div>
             </div>
+
+            {/* Pillar selector */}
+            {pillars && pillars.length > 0 && (
+              <PillarSelector
+                pillars={pillars}
+                value={pillarId}
+                onChange={setPillarId}
+                label="Pilar tematico (enfoque)"
+              />
+            )}
 
             {/* Error */}
             {error && (
@@ -337,7 +361,7 @@ export function DeepResearchPanel({
                         size="sm"
                         onClick={() =>
                           router.push(
-                            `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}${savedId ? `&from_research=${savedId}` : ''}`
+                            `/topics/new?title=${encodeURIComponent(topic.title)}&angle=${encodeURIComponent(topic.angle)}&hook_idea=${encodeURIComponent(topic.hook_idea)}${savedId ? `&from_research=${savedId}` : ''}${pillarId ? `&pillar_id=${pillarId}` : ''}`
                           )
                         }
                         className="shrink-0 self-start"
