@@ -1,6 +1,7 @@
 import { getResearchById } from '@/features/research/services/research-service'
 import { getWorkspaceId } from '@/lib/workspace'
 import { getPillarList } from '@/features/pillars/services/pillar-service'
+import { deriveTopicFromResearch } from '@/features/topics/services/topic-derivation'
 import { TopicNewClient } from './client'
 import type { CreateTopicInput } from '@/shared/types/content-ops'
 
@@ -12,16 +13,17 @@ interface Props {
     title?: string
     angle?: string
     hook_idea?: string
+    pillar_id?: string
   }>
 }
 
 export default async function NewTopicPage({ searchParams }: Props) {
-  const { from_research, title, angle, hook_idea } = await searchParams
+  const { from_research, title, angle, hook_idea, pillar_id } = await searchParams
 
   const workspaceId = await getWorkspaceId()
   const pillarsResult = await getPillarList(workspaceId)
 
-  const initialData: Partial<CreateTopicInput> = {}
+  let initialData: Partial<CreateTopicInput> = {}
   let isFromResearch = false
 
   if (from_research) {
@@ -31,109 +33,57 @@ export default async function NewTopicPage({ searchParams }: Props) {
     if (result.data) {
       const research = result.data
 
-      // Use query params first (specific topic selected), fall back to research title
-      initialData.title = title || research.title
-
-      // Extract ai_synthesis for rich field population
+      // Extract ai_synthesis for context
       const synthesis = research.ai_synthesis as Record<string, unknown> | null
-      const suggestedTopics = (synthesis && Array.isArray(synthesis['suggested_topics']))
-        ? synthesis['suggested_topics'] as Array<Record<string, string>>
+      const keyFindings = (synthesis && Array.isArray(synthesis['key_findings']))
+        ? synthesis['key_findings'] as Array<{ finding: string; relevance: string; source: string }>
         : []
+      const sources = (synthesis && Array.isArray(synthesis['sources']))
+        ? synthesis['sources'] as string[]
+        : research.evidence_links ?? []
 
-      // Hypothesis: angle param > recommended_angles[0] > first suggested topic angle
-      if (angle) {
-        initialData.hypothesis = angle
-      } else if (research.recommended_angles.length > 0) {
-        initialData.hypothesis = research.recommended_angles[0]
-      } else if (suggestedTopics.length > 0 && suggestedTopics[0].angle) {
-        initialData.hypothesis = suggestedTopics[0].angle
-      }
-
-      // Anti-myth: derive from recommended_angles (contrarian angles) or synthesis angles
-      // Use an angle different from the one used as hypothesis
-      const usedAngle = initialData.hypothesis
-      const otherAngles = research.recommended_angles.filter(a => a !== usedAngle)
-      if (otherAngles.length > 0) {
-        initialData.anti_myth = otherAngles[0]
-      } else if (suggestedTopics.length > 1 && suggestedTopics[1].angle) {
-        initialData.anti_myth = suggestedTopics[1].angle
-      }
-
-      // Build RICH evidence: hook_idea (if specific topic) + ALL key findings with sources
-      const evidenceParts: string[] = []
-      if (hook_idea) {
-        evidenceParts.push(hook_idea)
-      }
-      if (synthesis && Array.isArray(synthesis['key_findings'])) {
-        const findings = synthesis['key_findings'] as Array<Record<string, string>>
-        for (const f of findings) {
-          const src = f.source || f.source_hint
-          evidenceParts.push(`${f.finding}${src ? ` (Fuente: ${src})` : ''}`)
-        }
-      }
-      if (evidenceParts.length > 0) {
-        initialData.evidence = evidenceParts.join('\n\n').slice(0, 2000)
-      } else if (research.raw_text) {
-        // Last resort: raw text truncated
-        initialData.evidence = research.raw_text.slice(0, 1000)
-      }
-
-      // Enrich signals from key_takeaways + finding relevance
-      const signals: string[] = []
-      if (research.key_takeaways.length > 0) {
-        signals.push(...research.key_takeaways.slice(0, 5))
-      }
-      if (synthesis && Array.isArray(synthesis['key_findings'])) {
-        const findings = synthesis['key_findings'] as Array<Record<string, string>>
-        for (const f of findings) {
-          if (f.relevance && signals.length < 8) {
-            signals.push(f.relevance)
+      // If we have a specific topic selected (title + angle), use AI derivation
+      if (title && angle) {
+        const aiDerived = await deriveTopicFromResearch(
+          workspaceId,
+          {
+            title: research.title,
+            summary: typeof synthesis?.['summary'] === 'string' ? synthesis['summary'] as string : undefined,
+            market_context: typeof synthesis?.['market_context'] === 'string' ? synthesis['market_context'] as string : undefined,
+            key_findings: keyFindings,
+            sources,
+            pillar_id: research.pillar_id ?? pillar_id ?? undefined,
+            fit_score: research.fit_score ?? undefined,
+          },
+          {
+            title,
+            angle,
+            hook_idea: hook_idea ?? '',
           }
-        }
-      }
-      if (signals.length > 0) {
-        initialData.signals_json = signals.slice(0, 8)
-      }
+        )
 
-      // Carry over fit_score from research if present
-      if (research.fit_score != null) {
-        initialData.fit_score = research.fit_score
-      }
-
-      // Extract sources for minimal_proof (V2 sources[] or evidence_links)
-      if (synthesis && Array.isArray(synthesis['sources']) && (synthesis['sources'] as string[]).length > 0) {
-        initialData.minimal_proof = (synthesis['sources'] as string[]).slice(0, 5).join('\n')
-      } else if (research.evidence_links.length > 0) {
-        initialData.minimal_proof = research.evidence_links.slice(0, 5).join('\n')
-      }
-
-      // Richer business impact from summary + market_context
-      if (synthesis) {
-        const impactParts: string[] = []
-        if (typeof synthesis['summary'] === 'string') {
-          impactParts.push(synthesis['summary'] as string)
-        }
-        if (typeof synthesis['market_context'] === 'string') {
-          impactParts.push(synthesis['market_context'] as string)
-        }
-        if (impactParts.length > 0) {
-          initialData.expected_business_impact = impactParts.join('\n\n').slice(0, 1000)
+        // AI derivation succeeded — use its output
+        if (aiDerived.title) {
+          initialData = aiDerived
         }
       }
 
-      // Default to high priority when derived from research
-      initialData.priority = 'high'
-
-      // Carry over pillar from research
-      if (research.pillar_id) {
-        initialData.pillar_id = research.pillar_id
+      // Fallback: if AI derivation failed or no specific topic, use basic mapping
+      if (!initialData.title) {
+        initialData.title = title || research.title
+        if (angle) initialData.hypothesis = angle
+        if (hook_idea) initialData.evidence = hook_idea
+        initialData.priority = 'high'
+        initialData.pillar_id = research.pillar_id ?? pillar_id ?? undefined
+        if (research.fit_score != null) initialData.fit_score = research.fit_score
       }
     }
   } else if (title ?? angle ?? hook_idea) {
-    // Pre-fill directly from query params (e.g. coming from DeepResearchPanel without saved research)
+    // Pre-fill directly from query params (no saved research)
     if (title) initialData.title = title
     if (angle) initialData.hypothesis = angle
     if (hook_idea) initialData.evidence = hook_idea
+    if (pillar_id) initialData.pillar_id = pillar_id
   }
 
   return (
