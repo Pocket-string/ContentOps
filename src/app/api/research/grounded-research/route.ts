@@ -8,6 +8,9 @@ import { createClient } from '@/lib/supabase/server'
 import { buildResearchPrompt } from '@/features/research/services/research-prompt-builder'
 import { getWorkspaceId } from '@/lib/workspace'
 
+// Allow up to 120 seconds for 3 sequential AI calls (ChatGPT + 2x Gemini)
+export const maxDuration = 120
+
 const inputSchema = z.object({
   tema: z.string().min(3, 'El tema debe tener al menos 3 caracteres'),
   buyer_persona: z.string().optional(),

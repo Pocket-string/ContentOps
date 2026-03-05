@@ -115,6 +115,15 @@ export function DeepResearchPanel({
         }),
       })
 
+      // Handle non-JSON responses (e.g., HTML error pages from proxy timeout)
+      const contentType = res.headers.get('content-type') ?? ''
+      if (!contentType.includes('application/json')) {
+        const text = await res.text()
+        console.error('[DeepResearchPanel] Non-JSON response:', res.status, text.slice(0, 500))
+        setError(`Error del servidor (${res.status}). La investigacion puede haber tardado demasiado. Intenta con un tema mas corto.`)
+        return
+      }
+
       const json: unknown = await res.json()
 
       if (!res.ok) {
@@ -130,8 +139,13 @@ export function DeepResearchPanel({
       if (returnedId) {
         setSavedId(returnedId)
       }
-    } catch {
-      setError('Error de red al investigar')
+    } catch (err) {
+      console.error('[DeepResearchPanel] Fetch error:', err)
+      setError(
+        err instanceof TypeError && err.message.includes('fetch')
+          ? 'Error de red — verifica tu conexion e intenta de nuevo.'
+          : `Error al investigar: ${err instanceof Error ? err.message : 'Error desconocido'}`
+      )
     } finally {
       setIsResearching(false)
     }
