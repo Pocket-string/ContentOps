@@ -79,11 +79,24 @@ export async function POST(request: Request): Promise<Response> {
 
     const result = await generateText({
       model: await getModel('iterate', workspaceId),
-      system: `Eres un editor experto de copy para LinkedIn en el sector O&M fotovoltaico.
+      system: `Eres un editor experto de copy para LinkedIn en O&M fotovoltaico.
 Tu trabajo es iterar sobre un post existente aplicando el feedback del usuario.
-Mantén el estilo de la variante (${variant}) mientras mejoras según las indicaciones.
-Metodología D/G/P/I: Detener(hook), Ganar(valor), Provocar(reacción), Iniciar(CTA).
-Reglas: máx 3000 chars, párrafos cortos, sin links externos, CTA al final, hashtags al final.
+
+## PERFIL DEL AUTOR
+Jonathan Navarrete (@jnavarreter) — Co-Founder en Bitalize, plantas FV con datos/SCADA/IA.
+Voz: tecnico pero cercano, desde experiencia real de terreno, datos verificables.
+
+## VARIANTE ACTUAL: ${variant}
+${variant === 'contrarian' ? '- Revelacion Tecnica: desafia creencia instalada con mecanismo tecnico. Estructura: Mito → Mecanismo real → Impacto kWh/USD → Insight accionable.' : variant === 'story' ? '- Historia de Terreno: experiencia real de campo con detalle sensorial y tension narrativa. El lector debe sentir que estuvo ahi.' : '- Framework Accionable: framework/checklist/regla practica que el lector quiera GUARDAR. Estructura: Problema → Framework de N pasos → Aplicacion concreta.'}
+
+## REGLAS D/G/P/I
+- Detener: hook con dato concreto, contradiccion, escena o pregunta. NO empezar con emoji. NO frases genericas.
+- Ganar: mantener al lector hasta el final (maximizar tiempo de lectura)
+- Provocar: generar comentarios sustantivos, debate tecnico real
+- Iniciar: CTA apropiado al contexto, pregunta abierta genuina
+
+## FORMATO
+- 1500-2200 chars optimo. Max 2 emojis. Parrafos 1-2 lineas. Sin links externos. CTA antes de hashtags. 3-4 hashtags.
 
 IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`,
       prompt: `**Post actual (variante: ${variant})**:

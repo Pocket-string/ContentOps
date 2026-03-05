@@ -515,4 +515,13 @@ test('should calculate total with tax', () => {
 
 ---
 
-*Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte. (26 aprendizajes activos)*
+### 🎨 Tailwind CSS — ContentOps
+
+### 2026-03-04: Color scales en Tailwind DEBEN tener DEFAULT
+- **Error**: `bg-primary` era invisible (transparent) porque `primary` se definió como scale (50-950) sin valor `DEFAULT`. Botones con `bg-primary text-white` mostraban texto blanco sobre fondo inexistente — 97 ocurrencias en 29 archivos afectados. El botón "Guardar" de API Keys era invisible, impidiendo que los usuarios guardaran sus keys
+- **Fix**: Agregar `DEFAULT: '#0A66C2'` al color primary en `tailwind.config.ts`. Toda color scale custom DEBE incluir `DEFAULT` si se usa como `bg-<color>` sin sufijo numérico
+- **Aplicar en**: Todo proyecto con Tailwind que defina color scales custom (primary, secondary, accent, etc.)
+
+---
+
+*Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte. (27 aprendizajes activos)*

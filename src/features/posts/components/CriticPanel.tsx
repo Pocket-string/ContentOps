@@ -47,9 +47,9 @@ interface CriticPanelProps {
 // ============================================
 
 const VARIANT_LABELS: Record<string, string> = {
-  contrarian: 'Contrarian',
-  story: 'Narrativa',
-  data_driven: 'Dato de Shock',
+  contrarian: 'Revelacion',
+  story: 'Terreno',
+  data_driven: 'Framework',
 }
 
 const VERDICT_STYLES: Record<string, { label: string; bg: string; text: string }> = {

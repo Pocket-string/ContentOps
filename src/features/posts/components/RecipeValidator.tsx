@@ -51,7 +51,26 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
         : 'Incluye una pregunta (?) o un dato numerico para detener el scroll',
   })
 
-  // 2. Sin links externos — No http/https in content
+  // 2. Hook anti-bot — No empieza con emoji ni usa frases genericas
+  const emojiRegex = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u
+  const startsWithEmoji = emojiRegex.test(firstLine)
+  const genericPhrases = ['en el mundo de', 'hoy quiero', 'hoy les comparto', 'quiero compartir', 'es bien sabido', 'como todos sabemos']
+  const firstLineLower = firstLine.toLowerCase()
+  const hasGenericPhrase = genericPhrases.some(p => firstLineLower.includes(p))
+  const hookAntiBot = !startsWithEmoji && !hasGenericPhrase
+  checks.push({
+    id: 'hook-antibot',
+    label: 'Hook anti-bot',
+    passed: hookAntiBot,
+    severity: 'error',
+    detail: startsWithEmoji
+      ? 'No empezar con emoji (patron detectado como bot por LinkedIn)'
+      : hasGenericPhrase
+        ? 'Evitar frases genericas en el hook. Usa dato concreto, pregunta o escena'
+        : 'Hook no usa patrones de bot',
+  })
+
+  // 3. Sin links externos — No http/https in content
   const hasLinks = /https?:\/\//i.test(trimmed)
   checks.push({
     id: 'no-links',
@@ -61,7 +80,7 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
     detail: hasLinks ? 'Elimina los links del cuerpo del post' : 'Sin links detectados',
   })
 
-  // 3. Keyword presente — Campaign keyword in text
+  // 4. Keyword presente — Campaign keyword in text
   if (keyword) {
     const hasKw = trimmed.toLowerCase().includes(keyword.toLowerCase())
     checks.push({
@@ -73,19 +92,19 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
     })
   }
 
-  // 4. Parrafos cortos — No paragraph > 3 lines
+  // 5. Parrafos cortos — No paragraph > 2 lines (optimizado para dwell time movil)
   const paragraphs = trimmed.split(/\n\n+/).filter(Boolean)
-  const allShort = paragraphs.every(p => p.split('\n').length <= 3)
+  const allShort = paragraphs.every(p => p.split('\n').length <= 2)
   checks.push({
     id: 'short-paragraphs',
     label: 'Parrafos cortos',
     passed: allShort,
     severity: 'warning',
-    detail: allShort ? 'Todos los parrafos tienen <= 3 lineas' : 'Algun parrafo tiene mas de 3 lineas',
+    detail: allShort ? 'Todos los parrafos tienen <= 2 lineas' : 'Algun parrafo tiene mas de 2 lineas. Partir para mejor lectura movil',
   })
 
-  // 5. CTA presente — Last section has CTA keywords
-  const ctaKeywords = ['comenta', 'comparte', 'guarda', 'sigueme', 'descarga', 'link', 'DM', 'mensaje', 'opinion', 'experiencia', 'crees', 'harias']
+  // 6. CTA presente — Last section has CTA keywords
+  const ctaKeywords = ['comenta', 'comparte', 'guarda', 'sigueme', 'descarga', 'link', 'DM', 'mensaje', 'opinion', 'experiencia', 'crees', 'harias', 'tu planta', 'tu caso', 'has visto']
   const lastParagraph = (paragraphs[paragraphs.length - 1] ?? '').toLowerCase()
   const hasCta = ctaKeywords.some(kw => lastParagraph.includes(kw))
   checks.push({
@@ -96,18 +115,21 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
     detail: hasCta ? 'CTA detectado al final' : 'Agrega un call-to-action en el ultimo parrafo',
   })
 
-  // 6. Longitud optima — 1500-2800 characters
+  // 7. Longitud optima — 1500-2200 characters (evidencia de dwell time optimo)
   const len = trimmed.length
-  const optimalLength = len >= 1500 && len <= 2800
+  const optimalLength = len >= 1500 && len <= 2200
+  const acceptableLength = len >= 1000 && len <= 2800
   checks.push({
     id: 'length',
     label: 'Longitud optima',
     passed: optimalLength,
-    severity: 'warning',
-    detail: `${len} chars (optimo: 1500-2800)`,
+    severity: optimalLength ? 'warning' : acceptableLength ? 'warning' : 'error',
+    detail: optimalLength
+      ? `${len} chars (optimo)`
+      : `${len} chars (optimo: 1500-2200${len < 1000 ? ', muy corto' : len > 2800 ? ', muy largo' : ''})`,
   })
 
-  // 7. Legibilidad movil — No paragraph > 280 chars
+  // 8. Legibilidad movil — No paragraph > 280 chars
   const mobileReadable = paragraphs.every(p => p.length <= 280)
   checks.push({
     id: 'mobile',
@@ -117,7 +139,35 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
     detail: mobileReadable ? 'Todos los parrafos son legibles en movil' : 'Algun parrafo supera 280 caracteres',
   })
 
-  // 9. Estructura D/G/P/I — 4 bloques: Hook (Detener) + Contexto (Ganar) + Provocacion (Provocar) + CTA (Iniciar)
+  // 9. Emojis moderados — Max 2 emojis (evidencia: exceso = patron bot)
+  const emojiCount = (trimmed.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) ?? []).length
+  const emojisOk = emojiCount <= 2
+  checks.push({
+    id: 'emojis',
+    label: 'Emojis moderados',
+    passed: emojisOk,
+    severity: 'warning',
+    detail: emojisOk
+      ? `${emojiCount} emoji${emojiCount !== 1 ? 's' : ''} (max 2)`
+      : `${emojiCount} emojis detectados (max 2). Reducir para evitar patron bot`,
+  })
+
+  // 10. Guardabilidad — Tiene framework, lista, o estructura accionable
+  const hasFramework = /\d+\s*(pasos?|señales?|senales?|errores?|claves?|reglas?|puntos?|formas?|razones?|tips?)/i.test(trimmed)
+  const bulletCount = (trimmed.match(/^\s*[-•✅❌→▸\d]+[.):\s]/gm) ?? []).length
+  const hasListStructure = bulletCount >= 3
+  const guardable = hasFramework || hasListStructure
+  checks.push({
+    id: 'guardability',
+    label: 'Guardabilidad',
+    passed: guardable,
+    severity: 'warning',
+    detail: guardable
+      ? 'Contiene framework o lista accionable (optimizado para Saves)'
+      : 'Considera agregar una lista, framework o regla practica para que el lector quiera guardarlo',
+  })
+
+  // 11. Estructura D/G/P/I — 4+ bloques
   const hasHookBlock = firstLine.length > 0 && firstLine.length <= 120
   const hasCtaBlock = hasCta
   const blockCount = paragraphs.length

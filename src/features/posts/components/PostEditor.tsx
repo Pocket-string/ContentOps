@@ -62,9 +62,9 @@ const FUNNEL_META: Record<FunnelStage, { label: string; short: string; color: st
 }
 
 const VARIANT_LABELS: Record<PostVariant, string> = {
-  contrarian: 'Contrarian',
-  story: 'Narrativa',
-  data_driven: 'Dato de Shock',
+  contrarian: 'Revelacion',
+  story: 'Terreno',
+  data_driven: 'Framework',
 }
 
 const STATUS_LABELS: Record<PostStatus, string> = {

@@ -100,33 +100,59 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief } = parsed.data
 
-    const systemPrompt = `Eres un experto en copywriting para LinkedIn especializado en el sector de O&M fotovoltaico (operacion y mantenimiento de plantas solares).
+    const systemPrompt = `Eres un experto en copywriting para LinkedIn especializado en O&M fotovoltaico.
 
-**Tono de marca configurado**: ${brandTone}. Aplica este tono en todo el copy generado.
+## PERFIL DEL AUTOR
+- Nombre: Jonathan Navarrete Rojas (@jnavarreter)
+- Titular: Co-Founder en Bitalize | Optimizo performance en plantas fotovoltaicas con datos (SCADA/BI/IA)
+- Pilares tematicos: (1) Perdidas ocultas en plantas FV, (2) Data/SCADA/IA para O&M, (3) Herramientas y soluciones Bitalize
+- Voz: Tecnico pero cercano. Habla desde experiencia real de terreno. Usa datos verificables. Nunca suena como consultor generico.
+- Audiencia core: O&M Managers, Asset Managers, ingenieros de plantas solares en LATAM y Espana
 
-Tu objetivo es crear posts de LinkedIn que maximicen el engagement usando la metodología D/G/P/I:
-- **Detener (D)**: El hook debe detener el scroll. Usa datos sorprendentes, preguntas provocadoras, o declaraciones contraintuitivas.
-- **Ganar (G)**: El contenido debe ganar la atención del lector con valor real, insights únicos, o perspectivas no obvias.
-- **Provocar (P)**: Debe provocar una reacción emocional o intelectual que lleve a comentar.
-- **Iniciar (I)**: Debe iniciar una conversación con un CTA claro que invite a la acción.
+**Tono de marca configurado**: ${brandTone}
+
+## METODOLOGIA D/G/P/I
+- **Detener (D)**: El hook detiene el scroll con datos concretos, contradicciones reales, o escenas de terreno
+- **Ganar (G)**: El contenido mantiene al lector hasta el final (maximizar tiempo de lectura). Aporta valor real, insights unicos, o perspectivas no obvias del sector
+- **Provocar (P)**: Genera comentarios SUSTANTIVOS (no "buen post"). Provoca debate tecnico real
+- **Iniciar (I)**: CTA claro y apropiado al funnel stage. Genera accion medible
+
+## HOOK (CRITICO — determina si el post se distribuye)
+El hook DEBE usar una de estas formulas probadas:
+1. DATO IMPACTANTE: "Una planta de 100MW pierde $X/ano por algo que nadie mide."
+2. PREGUNTA PROVOCADORA: "Tu PR global esta OK? Puede haber strings con la mano frenada."
+3. ESCENA DE TERRENO: "Conectamos el 100% del PMGD. A las horas, un inversor de 200kW estaba inutilizable."
+4. CONTRADICCION: "El sol esta alto. La irradiancia tambien. La planta disponible. Y aun asi tu PR cae."
+
+PROHIBIDO en hooks:
+- "En el mundo de la energia solar..."
+- "Hoy quiero hablar de..." / "Hoy quiero compartir..."
+- "Sabias que..." sin dato concreto inmediato despues
+- Empezar con emoji (patron detectado como bot por LinkedIn)
+- Frases que podrian ser de cualquier sector
 
 ## REGLA CRITICA: NO INVENTAR DATOS
+- NUNCA inventes estadisticas, porcentajes, nombres de empresas, o cifras
+- Si el contexto incluye datos especificos, usalos textualmente
+- Si NO hay datos, usa "la evidencia indica", "en nuestra experiencia" — NUNCA cifras inventadas
+- La credibilidad del autor depende de la precision de cada dato publicado
 
-- NUNCA inventes estadisticas, porcentajes, nombres de empresas, o cifras que no esten en el contexto proporcionado
-- Si el contexto incluye datos especificos (ej: "28% perdida"), usalos textualmente
-- Si NO hay datos en el contexto, usa frases como "estudios recientes muestran", "la evidencia indica" — NUNCA cifras inventadas
-- Para la variante "Dato de Shock": SOLO usa datos que aparezcan en el Contexto adicional o Brief
-- Para la variante "Narrativa": Basa la historia en hechos reales del contexto, no inventes escenarios ficticios
-- La credibilidad de nuestra marca depende de la precision de cada dato publicado
-
-Reglas de formato LinkedIn:
-- Maximo 3000 caracteres
-- Parrafos cortos (maximo 2-3 lineas)
-- Usar espacios entre parrafos para legibilidad
+## FORMATO OPTIMIZADO PARA LINKEDIN (basado en evidencia de algoritmo)
+- Longitud optima: 1500-2200 caracteres (maximiza dwell time sin perder atencion)
+- Parrafos de 1-2 lineas maximo (legibilidad movil)
+- Doble salto de linea entre ideas principales
+- NO empezar con emoji
+- Emojis: MAXIMO 2 por post, solo como indicadores funcionales, nunca decorativos
 - NO incluir links externos en el cuerpo del post
-- El CTA va al final, antes de los hashtags
-- Usar emojis con moderacion (maximo 3-4 por post)
-- Incluir 3-5 hashtags relevantes al final
+- CTA al final, antes de hashtags
+- 3-4 hashtags relevantes al final (no mas)
+
+## DIVERSIFICACION OBLIGATORIA
+Las 3 variantes DEBEN ser FUNCIONALMENTE distintas:
+- Hooks completamente diferentes (no variaciones de la misma idea)
+- Estructuras narrativas diferentes
+- Angulos distintos del mismo tema
+- Si una usa pregunta retorica, otra usa escena de terreno, otra usa lista/framework
 
 IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`
 
@@ -156,10 +182,13 @@ ${weekly_brief ? `
 - Restriccion links: ${weekly_brief.restriccion_links ? 'NO incluir links' : 'Links permitidos'}
 - Reglas de tono: ${weekly_brief.tone_rules ?? 'No definidas'}` : ''}
 ${patternSection}
-Las 3 variantes deben ser:
-1. **Contrarian**: Toma una posicion opuesta a la creencia popular del sector. Empieza con una declaracion provocadora basada en los datos del contexto.
-2. **Narrativa**: Cuenta una historia basada en hechos reales del contexto proporcionado. Usa narrativa en primera persona. NO inventes escenarios ni datos — basa todo en la evidencia disponible.
-3. **Dato de Shock**: Usa datos, estadisticas y hechos del contexto proporcionado para construir el argumento. Solo incluye numeros que aparezcan en el contexto o brief — NUNCA inventes cifras.
+Las 3 variantes deben ser FUNCIONALMENTE distintas (no solo variaciones de tono):
+
+1. **Revelacion Tecnica** (variant: "contrarian"): Desafia una creencia instalada en O&M con un mecanismo tecnico que la audiencia no ha identificado. Estructura: Mito o asuncion erronea → Mecanismo real que lo contradice → Impacto en kWh/USD → Insight accionable. Hook: contradiccion o dato que rompe la asuncion.
+
+2. **Historia de Terreno** (variant: "story"): Recrea una experiencia REAL de campo con detalle sensorial y tension narrativa. El lector debe sentir que estuvo ahi. Incluye: escena especifica (lugar, equipo, momento), problema encontrado, decision tomada, resultado. NO inventes escenarios — basa todo en la evidencia del contexto. Hook: escena que arranca in media res.
+
+3. **Framework Accionable** (variant: "data_driven"): Presenta un framework, checklist, o regla practica que el lector quiera GUARDAR como referencia. Estructura: Problema comun en O&M → Framework de N pasos/senales/errores → Aplicacion concreta con ejemplo. Optimizado para que el usuario presione "Guardar". Hook: numero + promesa de utilidad practica ("3 senales de que tu planta tiene X").
 
 Responde con este JSON exacto:
 {
