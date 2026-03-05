@@ -8,6 +8,8 @@ import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import { getTopPatterns } from '@/features/patterns/services/pattern-service'
 import { getModel } from '@/shared/lib/ai-router'
 import { reviewCopy } from '@/shared/lib/ai-reviewer'
+import { FUNNEL_STAGE_GUIDE } from '@/shared/lib/funnel-stage-guide'
+import type { FunnelStage } from '@/shared/types/content-ops'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const generatedCopySchema = z.object({
@@ -101,6 +103,20 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief, previous_hooks } = parsed.data
 
+    // Funnel-stage-specific copywriting instructions
+    const stageConfig = FUNNEL_STAGE_GUIDE[funnel_stage as FunnelStage]
+    const funnelGuideSection = stageConfig ? `
+
+## GUIA POR ETAPA DEL FUNNEL (${funnel_stage})
+- **Objetivo del post**: ${stageConfig.objective}
+- **Tono**: ${stageConfig.tone}
+- **Estilo de hook optimo**: ${stageConfig.hook_style}
+- **Tipo de CTA esperado**: ${stageConfig.cta_type}
+- **Profundidad del contenido**: ${stageConfig.content_depth}
+- **Ejemplo de CTA**: ${stageConfig.example_cta}
+
+CRITICO: El hook, tono, y CTA DEBEN alinearse con esta etapa del funnel. Un post TOFU no debe tener CTA comercial. Un post BOFU debe tener CTA directo.` : ''
+
     const systemPrompt = `Eres un experto en copywriting para LinkedIn especializado en O&M fotovoltaico.
 
 ## PERFIL DEL AUTOR
@@ -147,6 +163,7 @@ PROHIBIDO en hooks:
 - NO incluir links externos en el cuerpo del post
 - CTA al final, antes de hashtags
 - 3-4 hashtags relevantes al final (no mas)
+${funnelGuideSection}
 
 ## DIVERSIFICACION OBLIGATORIA
 Las 3 variantes DEBEN ser FUNCIONALMENTE distintas:

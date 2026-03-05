@@ -1140,7 +1140,7 @@ export function PostEditor({
             )}
 
             {/* Recipe Validator */}
-            <RecipeValidator content={editContent} keyword={keyword} />
+            <RecipeValidator content={editContent} keyword={keyword} funnelStage={post.funnel_stage} />
 
             {/* CopyCritic AI */}
             <CriticPanel

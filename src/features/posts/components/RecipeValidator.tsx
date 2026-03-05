@@ -3,6 +3,24 @@
 interface RecipeValidatorProps {
   content: string
   keyword?: string
+  funnelStage?: string
+}
+
+// Stage-specific CTA keywords for funnel alignment validation
+const STAGE_CTA_KEYWORDS: Record<string, string[]> = {
+  tofu_problem: ['comenta', 'crees', 'opinion', 'guarda', 'experiencia', 'has visto', 'te ha pasado'],
+  mofu_problem: ['comenta', 'experiencia', 'sigueme', 'has medido', 'en tu planta', 'crees'],
+  tofu_solution: ['guarda', 'quieres saber', 'comenta', 'framework', 'guardar'],
+  mofu_solution: ['DM', 'mensaje', 'descarga', 'link', 'recurso', 'guia', 'enviame'],
+  bofu_conversion: ['agenda', 'demo', 'contacta', 'link', 'DM', 'mensaje', 'descarga', 'diagnostico'],
+}
+
+const STAGE_CTA_LABELS: Record<string, string> = {
+  tofu_problem: 'TOFU Problema: pregunta abierta o guardar',
+  mofu_problem: 'MOFU Problema: comentar experiencia',
+  tofu_solution: 'TOFU Solucion: guardar o explorar',
+  mofu_solution: 'MOFU Solucion: DM o recurso',
+  bofu_conversion: 'BOFU Conversion: demo o contacto',
 }
 
 interface CheckResult {
@@ -30,7 +48,7 @@ function XIcon({ className }: { className?: string }) {
   )
 }
 
-export function runChecks(content: string, keyword?: string): CheckResult[] {
+export function runChecks(content: string, keyword?: string, funnelStage?: string): CheckResult[] {
   const checks: CheckResult[] = []
   const trimmed = content.trim()
 
@@ -183,15 +201,31 @@ export function runChecks(content: string, keyword?: string): CheckResult[] {
       : `${blockCount} bloques detectados (minimo 4). ${!hasHookBlock ? 'Falta hook claro. ' : ''}${!hasCtaBlock ? 'Falta CTA al final.' : ''}`,
   })
 
+  // 12. CTA alineado con funnel — stage-specific CTA keywords
+  if (funnelStage && STAGE_CTA_KEYWORDS[funnelStage]) {
+    const expectedKeywords = STAGE_CTA_KEYWORDS[funnelStage]
+    const stageLabel = STAGE_CTA_LABELS[funnelStage] ?? funnelStage
+    const ctaAligned = expectedKeywords.some(kw => lastParagraph.includes(kw))
+    checks.push({
+      id: 'funnel-cta',
+      label: 'CTA alineado al funnel',
+      passed: ctaAligned,
+      severity: 'warning',
+      detail: ctaAligned
+        ? `CTA alineado con ${stageLabel}`
+        : `CTA no alineado con etapa ${stageLabel}. Ajustar el call-to-action`,
+    })
+  }
+
   return checks
 }
 
-export function RecipeValidator({ content, keyword }: RecipeValidatorProps) {
+export function RecipeValidator({ content, keyword, funnelStage }: RecipeValidatorProps) {
   if (!content.trim()) {
     return null
   }
 
-  const checks = runChecks(content, keyword)
+  const checks = runChecks(content, keyword, funnelStage)
   const passed = checks.filter(c => c.passed).length
   const total = checks.length
 

@@ -3,6 +3,8 @@ import { openai, OPENAI_REVIEW_MODEL } from './openai-client'
 import { getOpenAIProvider } from './ai-router'
 import { copyReviewSchema, visualReviewSchema } from '../types/ai-review'
 import type { CopyReview, VisualReview } from '../types/ai-review'
+import { FUNNEL_STAGE_GUIDE } from './funnel-stage-guide'
+import type { FunnelStage } from '../types/content-ops'
 
 /**
  * Reviews generated copy using ChatGPT (gpt-4o-mini).
@@ -19,6 +21,11 @@ export async function reviewCopy(
   if (!provider) return null
 
   try {
+    const sc = FUNNEL_STAGE_GUIDE[funnelStage as FunnelStage]
+    const funnelContext = sc
+      ? `\n**Criterios para ${funnelStage}**: Tono=${sc.tone}. CTA esperado=${sc.cta_type}. ${sc.critic_penalty}`
+      : ''
+
     const result = await generateObject({
       model: provider(OPENAI_REVIEW_MODEL),
       schema: copyReviewSchema,
@@ -36,7 +43,7 @@ Se conciso y accionable. Maximo 3 fortalezas, 3 debilidades.`,
       prompt: `Evalua este copy de LinkedIn:
 
 **Variante**: ${variant}
-**Etapa del funnel**: ${funnelStage}
+**Etapa del funnel**: ${funnelStage}${funnelContext}
 
 **Contenido**:
 ${content}

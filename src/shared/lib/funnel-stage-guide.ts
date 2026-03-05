@@ -1,0 +1,59 @@
+import type { FunnelStage } from '@/shared/types/content-ops'
+
+interface FunnelStageConfig {
+  objective: string
+  tone: string
+  hook_style: string
+  cta_type: string
+  content_depth: string
+  example_cta: string
+  critic_penalty: string
+}
+
+export const FUNNEL_STAGE_GUIDE: Record<FunnelStage, FunnelStageConfig> = {
+  tofu_problem: {
+    objective: 'Identificar un dolor que la audiencia no sabe que tiene (o subestima)',
+    tone: 'Provocador — "te esta pasando esto y no lo sabes"',
+    hook_style: 'Dato impactante o pregunta provocadora que revela un problema oculto',
+    cta_type: 'Pregunta abierta que invite a reflexionar, o "guarda este post"',
+    content_depth: 'Superficial pero memorable — el lector debe irse pensando "tengo que investigar esto"',
+    example_cta: '"Te ha pasado? Cuentame en comentarios" / "Guarda esto para cuando revises tu planta"',
+    critic_penalty: 'CTA no debe pedir demo/contacto/descarga. Penalizar si el CTA es comercial en etapa de awareness',
+  },
+  mofu_problem: {
+    objective: 'Profundizar el diagnostico — mostrar el mecanismo real del problema',
+    tone: 'Educativo tecnico — "asi funciona realmente lo que te esta costando dinero"',
+    hook_style: 'Contradiccion o revelacion tecnica que rompe una asuncion comun',
+    cta_type: 'Invitar a comentar su experiencia, seguir para mas contenido tecnico',
+    content_depth: 'Mecanismo tecnico detallado con datos — el lector debe entender el POR QUE del problema',
+    example_cta: '"Has medido esto en tu planta? Comenta tu experiencia" / "Sigueme para mas analisis"',
+    critic_penalty: 'CTA no debe pedir accion comercial. Penalizar si falta profundidad tecnica o evidencia',
+  },
+  tofu_solution: {
+    objective: 'Revelar que existe una solucion (sin vender) — generar esperanza',
+    tone: 'Esperanzador — "hay una forma mejor de hacer esto"',
+    hook_style: 'Antes/despues o transformacion — mostrar el contraste',
+    cta_type: 'Guardar el post, explorar mas sobre la solucion',
+    content_depth: 'Overview de la solucion sin entrar en detalles de implementacion',
+    example_cta: '"Guarda este framework" / "Quieres saber como se implementa? Comenta"',
+    critic_penalty: 'Penalizar si suena a pitch de ventas. El tono debe ser educativo, no comercial',
+  },
+  mofu_solution: {
+    objective: 'Demostrar la solucion con evidencia concreta (caso de exito, metricas reales)',
+    tone: 'Autoridad tecnica con caso concreto — "asi lo resolvimos y estos fueron los resultados"',
+    hook_style: 'Caso de exito con dato verificable o resultado medible',
+    cta_type: 'DM para recurso, descargar guia, link en primer comentario',
+    content_depth: 'Caso detallado con metricas — el lector debe ver que la solucion FUNCIONA',
+    example_cta: '"Quieres el framework completo? Enviame DM" / "Link al recurso en primer comentario"',
+    critic_penalty: 'Penalizar si no hay evidencia concreta o metricas. El caso debe ser verificable',
+  },
+  bofu_conversion: {
+    objective: 'Llamar a accion directa — convertir interes en contacto',
+    tone: 'Urgente pero no pushy — social proof + escasez genuina',
+    hook_style: 'Resultado medible o urgencia temporal ("esta semana", "ultimos N")',
+    cta_type: 'Agendar demo, contactar directamente, link en comentarios',
+    content_depth: 'Propuesta de valor clara y concisa — el lector ya conoce el problema y la solucion',
+    example_cta: '"Agenda una demo gratuita" / "Contactame para diagnostico de tu planta" / "Link en comentarios"',
+    critic_penalty: 'Penalizar si el CTA es debil/ambiguo. En BOFU el CTA DEBE ser comercial y directo',
+  },
+}

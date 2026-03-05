@@ -5,6 +5,8 @@ import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
 import { weeklyBriefSchema } from '@/shared/types/content-ops'
 import { getModel } from '@/shared/lib/ai-router'
+import { FUNNEL_STAGE_GUIDE } from '@/shared/lib/funnel-stage-guide'
+import type { FunnelStage } from '@/shared/types/content-ops'
 
 // Zod schema for single variant evaluation
 const variantEvalSchema = z.object({
@@ -86,6 +88,9 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { variants, funnel_stage, weekly_brief, keyword, topic, context, previous_hooks } = parsed.data
 
+    // Funnel-stage-specific evaluation criteria
+    const stageConfig = FUNNEL_STAGE_GUIDE[funnel_stage as FunnelStage]
+
     const variantLabels: Record<string, string> = {
       contrarian: 'Revelacion Tecnica',
       story: 'Historia de Terreno',
@@ -111,7 +116,7 @@ Pilares: perdidas ocultas en FV, Data/SCADA/IA para O&M, herramientas Bitalize.
 - **Detener (D, 0-5)**: Hook detiene el scroll? NO empieza con emoji? NO usa frases genericas ("En el mundo de...", "Hoy quiero...")? Usa dato concreto, contradiccion, escena o pregunta provocadora?
 - **Ganar (G, 0-5)**: Mantendria al lector hasta el final? (potencial de dwell time alto) Aporta valor real, insights unicos del sector FV?
 - **Provocar (P, 0-5)**: Genera comentarios SUSTANTIVOS (no "buen post" o "interesante")? Provoca debate tecnico real donde la audiencia quiera compartir su experiencia?
-- **Iniciar (I, 0-5)**: CTA apropiado al funnel stage? Genera accion medible? Es una pregunta abierta genuina (no "comenta SI o NO")?
+- **Iniciar (I, 0-5)**: CTA apropiado al funnel stage${stageConfig ? ` (esperado: ${stageConfig.cta_type})` : ''}? Genera accion medible? ${stageConfig ? stageConfig.critic_penalty : 'Es una pregunta abierta genuina (no "comenta SI o NO")?'}
 
 ## PROBLEMAS QUE DETECTAS
 - **generico**: Contenido que podria ser de cualquier sector, sin vocabulario especifico de O&M/FV
@@ -126,7 +131,15 @@ Pilares: perdidas ocultas en FV, Data/SCADA/IA para O&M, herramientas Bitalize.
 - **sin_diversificacion**: Las variantes son demasiado similares entre si en estructura, hook, o argumento central
 - **anti_bot**: Lenguaje que suena a IA generica (frases como "en el mundo de", "hoy quiero compartir", estructuras identicas entre variantes, exceso de emojis)
 - **repeticion_campana**: Hook o argumento central muy similar a un post previo de la misma campana semanal
-
+- **cta_incongruente**: CTA no apropiado para la etapa del funnel${stageConfig ? `. ${stageConfig.critic_penalty}` : ''}
+${stageConfig ? `
+## EVALUACION POR ETAPA DEL FUNNEL (${funnel_stage})
+- **Objetivo esperado**: ${stageConfig.objective}
+- **Tono esperado**: ${stageConfig.tone}
+- **CTA esperado**: ${stageConfig.cta_type}
+- **Penalizar si**: ${stageConfig.critic_penalty}
+Si el CTA no es apropiado para esta etapa, reportar "cta_incongruente" como warning o blocker segun severidad.
+` : ''}
 Reglas:
 - MAXIMO 3 findings por variante (los mas impactantes)
 - MAXIMO 3 suggestions por variante (cambios concretos, accionables)
