@@ -48,6 +48,11 @@ export default async function PostEditorPage({ params }: Props) {
         campaign.topics.minimal_proof ? `Fuentes verificadas:\n${campaign.topics.minimal_proof}` : '',
         campaign.topics.expected_business_impact ? `Impacto de negocio: ${campaign.topics.expected_business_impact}` : '',
         campaign.topics.failure_modes?.length > 0 ? `Modos de falla: ${campaign.topics.failure_modes.join(', ')}` : '',
+        campaign.topics.source_context ? `Contexto fuente:\n${campaign.topics.source_context}` : '',
+        (campaign.topics.content_angles ?? []).length > 0 ? `Angulos de contenido sugeridos:\n${(campaign.topics.content_angles ?? []).map((a, i) => `${i+1}. ${a}`).join('\n')}` : '',
+        (campaign.topics.key_data_points ?? []).length > 0 ? `Datos verificados:\n${(campaign.topics.key_data_points ?? []).map((d) => `- ${d.stat} (Fuente: ${d.source})`).join('\n')}` : '',
+        campaign.topics.target_audience ? `Audiencia objetivo: ${campaign.topics.target_audience}` : '',
+        campaign.topics.market_context ? `Contexto de mercado: ${campaign.topics.market_context}` : '',
       ].filter(Boolean).join('\n\n')
     : undefined
 

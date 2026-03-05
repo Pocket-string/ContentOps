@@ -164,6 +164,11 @@ export async function createTopic(
         minimal_proof: validated.data.minimal_proof ?? null,
         failure_modes: validated.data.failure_modes,
         expected_business_impact: validated.data.expected_business_impact ?? null,
+        source_context: validated.data.source_context ?? null,
+        content_angles: validated.data.content_angles ?? [],
+        key_data_points: validated.data.key_data_points ?? [],
+        target_audience: validated.data.target_audience ?? null,
+        market_context: validated.data.market_context ?? null,
       })
       .select()
       .single()
@@ -228,6 +233,11 @@ export async function updateTopic(
     if (validated.data.minimal_proof !== undefined) payload.minimal_proof = validated.data.minimal_proof
     if (validated.data.failure_modes !== undefined) payload.failure_modes = validated.data.failure_modes
     if (validated.data.expected_business_impact !== undefined) payload.expected_business_impact = validated.data.expected_business_impact
+    if (validated.data.source_context !== undefined) payload.source_context = validated.data.source_context
+    if (validated.data.content_angles !== undefined) payload.content_angles = validated.data.content_angles
+    if (validated.data.key_data_points !== undefined) payload.key_data_points = validated.data.key_data_points
+    if (validated.data.target_audience !== undefined) payload.target_audience = validated.data.target_audience
+    if (validated.data.market_context !== undefined) payload.market_context = validated.data.market_context
 
     if (Object.keys(payload).length === 0) {
       return { error: 'No se proporcionaron campos para actualizar' }

@@ -79,6 +79,9 @@ function parseTopicFormData(formData: FormData): Record<string, unknown> {
   const silentEnemyName = formData.get('silent_enemy_name')
   const minimalProof = formData.get('minimal_proof')
   const expectedBusinessImpact = formData.get('expected_business_impact')
+  const sourceContext = formData.get('source_context')
+  const targetAudience = formData.get('target_audience')
+  const marketCtx = formData.get('market_context')
 
   // --- failure_modes (JSON array or comma-separated) ---
   const rawFailureModes = formData.get('failure_modes')
@@ -96,6 +99,44 @@ function parseTopicFormData(formData: FormData): Record<string, unknown> {
       }
     } else {
       failureModes = rawFailureModes.split(',').map((s) => s.trim()).filter(Boolean)
+    }
+  }
+
+  // --- content_angles (JSON array or comma-separated) ---
+  const rawContentAngles = formData.get('content_angles')
+  let contentAngles: string[] = []
+
+  if (typeof rawContentAngles === 'string' && rawContentAngles.trim().length > 0) {
+    if (rawContentAngles.trim().startsWith('[')) {
+      try {
+        const arr = JSON.parse(rawContentAngles)
+        if (Array.isArray(arr)) {
+          contentAngles = arr.filter((s): s is string => typeof s === 'string')
+        }
+      } catch {
+        contentAngles = []
+      }
+    } else {
+      contentAngles = rawContentAngles.split(',').map((s) => s.trim()).filter(Boolean)
+    }
+  }
+
+  // --- key_data_points (JSON array or comma-separated) ---
+  const rawKeyDataPoints = formData.get('key_data_points')
+  let keyDataPoints: string[] = []
+
+  if (typeof rawKeyDataPoints === 'string' && rawKeyDataPoints.trim().length > 0) {
+    if (rawKeyDataPoints.trim().startsWith('[')) {
+      try {
+        const arr = JSON.parse(rawKeyDataPoints)
+        if (Array.isArray(arr)) {
+          keyDataPoints = arr.filter((s): s is string => typeof s === 'string')
+        }
+      } catch {
+        keyDataPoints = []
+      }
+    } else {
+      keyDataPoints = rawKeyDataPoints.split(',').map((s) => s.trim()).filter(Boolean)
     }
   }
 
@@ -123,6 +164,14 @@ function parseTopicFormData(formData: FormData): Record<string, unknown> {
     expected_business_impact: typeof expectedBusinessImpact === 'string' && expectedBusinessImpact.trim().length > 0
       ? expectedBusinessImpact.trim()
       : undefined,
+    source_context: typeof sourceContext === 'string' && sourceContext.trim().length > 0
+      ? sourceContext.trim() : undefined,
+    content_angles: contentAngles,
+    key_data_points: keyDataPoints,
+    target_audience: typeof targetAudience === 'string' && targetAudience.trim().length > 0
+      ? targetAudience.trim() : undefined,
+    market_context: typeof marketCtx === 'string' && marketCtx.trim().length > 0
+      ? marketCtx.trim() : undefined,
   }
 }
 

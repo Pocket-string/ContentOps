@@ -170,6 +170,16 @@ export const topicSchema = z.object({
   recommended_week_structure: z.record(z.unknown()).nullable(),
   // Phase 3: Content Pillars
   pillar_id: z.string().uuid().nullable().optional(),
+  // Phase 4: Deep Topic Derivation — campaign-ready fields
+  source_context: z.string().nullable().optional(),
+  content_angles: z.array(z.string()).default([]),
+  key_data_points: z.array(z.object({
+    stat: z.string(),
+    source: z.string(),
+    context: z.string(),
+  })).default([]),
+  target_audience: z.string().nullable().optional(),
+  market_context: z.string().nullable().optional(),
 })
 
 export const campaignSchema = z.object({
@@ -337,6 +347,16 @@ export const createTopicSchema = z.object({
   failure_modes: z.array(z.string()).default([]),
   expected_business_impact: z.string().optional(),
   pillar_id: z.string().uuid().optional(),
+  // Phase 4: Deep Topic Derivation (all optional for backward compat)
+  source_context: z.string().optional(),
+  content_angles: z.array(z.string()).default([]),
+  key_data_points: z.array(z.object({
+    stat: z.string(),
+    source: z.string(),
+    context: z.string(),
+  })).default([]),
+  target_audience: z.string().optional(),
+  market_context: z.string().optional(),
 })
 
 export const createCampaignSchema = z.object({

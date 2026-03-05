@@ -66,6 +66,17 @@ export function TopicForm({ topic, initialData, pillars, onSubmit, onSuccess }: 
   )
   const [showEnemySection, setShowEnemySection] = useState(hasEnemyData)
 
+  // Campaign-ready fields (AI-generated, read-only)
+  const campaignContextFields = {
+    sourceContext: topic?.source_context ?? initialData?.source_context ?? '',
+    contentAngles: topic?.content_angles ?? initialData?.content_angles ?? [],
+    keyDataPoints: topic?.key_data_points ?? initialData?.key_data_points ?? [],
+    targetAudience: topic?.target_audience ?? initialData?.target_audience ?? '',
+    marketCtx: topic?.market_context ?? initialData?.market_context ?? '',
+  }
+  const hasCampaignContext = campaignContextFields.contentAngles.length > 0 || campaignContextFields.keyDataPoints.length > 0
+  const [showCampaignContext, setShowCampaignContext] = useState(hasCampaignContext)
+
   const [titleError, setTitleError] = useState('')
   const [fitScoreError, setFitScoreError] = useState('')
   const [submitError, setSubmitError] = useState('')
@@ -115,6 +126,12 @@ export function TopicForm({ topic, initialData, pillars, onSubmit, onSuccess }: 
       failure_modes: failureModes.split(',').map((s) => s.trim()).filter(Boolean),
       expected_business_impact: businessImpact.trim() || undefined,
       pillar_id: pillarId,
+      // Campaign-ready fields (AI-generated, pass through if present)
+      source_context: initialData?.source_context ?? topic?.source_context ?? undefined,
+      content_angles: initialData?.content_angles ?? topic?.content_angles ?? [],
+      key_data_points: initialData?.key_data_points ?? topic?.key_data_points ?? [],
+      target_audience: initialData?.target_audience ?? topic?.target_audience ?? undefined,
+      market_context: initialData?.market_context ?? topic?.market_context ?? undefined,
     }
 
     setIsSubmitting(true)
@@ -350,6 +367,78 @@ export function TopicForm({ topic, initialData, pillars, onSubmit, onSuccess }: 
             value={pillarId}
             onChange={setPillarId}
           />
+        )}
+
+        {/* Campaign Context (AI-generated, read-only display) */}
+        {(campaignContextFields.contentAngles.length > 0 || campaignContextFields.keyDataPoints.length > 0) && (
+          <div className="border border-border rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowCampaignContext(!showCampaignContext)}
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium text-accent-600 hover:text-accent-700 hover:bg-surface-raised transition-colors text-left"
+              aria-expanded={showCampaignContext}
+              aria-controls="campaign-context-section"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${showCampaignContext ? 'rotate-90' : ''}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              Contexto para Campana ({campaignContextFields.contentAngles.length} angulos, {campaignContextFields.keyDataPoints.length} datos)
+            </button>
+
+            {showCampaignContext && (
+              <div id="campaign-context-section" className="px-4 pb-4 pt-1 space-y-4 border-t border-border">
+                {campaignContextFields.sourceContext && (
+                  <div>
+                    <p className="text-xs font-medium text-foreground-muted mb-1">Contexto fuente</p>
+                    <p className="text-sm text-foreground bg-surface-raised rounded-lg p-3">{campaignContextFields.sourceContext}</p>
+                  </div>
+                )}
+                {campaignContextFields.targetAudience && (
+                  <div>
+                    <p className="text-xs font-medium text-foreground-muted mb-1">Audiencia objetivo</p>
+                    <p className="text-sm text-foreground bg-surface-raised rounded-lg p-3">{campaignContextFields.targetAudience}</p>
+                  </div>
+                )}
+                {campaignContextFields.marketCtx && (
+                  <div>
+                    <p className="text-xs font-medium text-foreground-muted mb-1">Contexto de mercado</p>
+                    <p className="text-sm text-foreground bg-surface-raised rounded-lg p-3">{campaignContextFields.marketCtx}</p>
+                  </div>
+                )}
+                {campaignContextFields.contentAngles.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-foreground-muted mb-1">Angulos de contenido sugeridos</p>
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-foreground bg-surface-raised rounded-lg p-3">
+                      {campaignContextFields.contentAngles.map((angle, i) => (
+                        <li key={i}>{angle}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {campaignContextFields.keyDataPoints.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-foreground-muted mb-1">Datos verificados</p>
+                    <div className="space-y-2">
+                      {campaignContextFields.keyDataPoints.map((dp, i) => (
+                        <div key={i} className="text-sm bg-surface-raised rounded-lg p-3">
+                          <p className="font-medium text-foreground">{dp.stat}</p>
+                          <p className="text-xs text-foreground-muted mt-0.5">Fuente: {dp.source}</p>
+                          {dp.context && <p className="text-xs text-foreground-muted">{dp.context}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Submit error */}
