@@ -39,6 +39,7 @@ interface CriticPanelProps {
   topic?: string
   context?: string
   weeklyBrief?: WeeklyBrief
+  previousHooks?: string[]
   onApplyScore?: (variant: PostVariant, score: ScoreJson) => Promise<void>
 }
 
@@ -111,6 +112,7 @@ export function CriticPanel({
   topic,
   context,
   weeklyBrief,
+  previousHooks,
   onApplyScore,
 }: CriticPanelProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -156,6 +158,7 @@ export function CriticPanel({
           topic,
           context,
           weekly_brief: weeklyBrief,
+          previous_hooks: previousHooks?.length ? previousHooks : undefined,
         }),
       })
 

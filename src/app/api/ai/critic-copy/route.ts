@@ -47,6 +47,7 @@ const inputSchema = z.object({
   keyword: z.string().optional(),
   topic: z.string().optional(),
   context: z.string().optional(),
+  previous_hooks: z.array(z.string()).optional(),
 })
 
 export async function POST(request: Request): Promise<Response> {
@@ -83,7 +84,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Evaluate with AI (text-based JSON)
   try {
-    const { variants, funnel_stage, weekly_brief, keyword, topic, context } = parsed.data
+    const { variants, funnel_stage, weekly_brief, keyword, topic, context, previous_hooks } = parsed.data
 
     const variantLabels: Record<string, string> = {
       contrarian: 'Revelacion Tecnica',
@@ -124,6 +125,7 @@ Pilares: perdidas ocultas en FV, Data/SCADA/IA para O&M, herramientas Bitalize.
 - **baja_guardabilidad**: Post sin framework, lista, checklist, o insight accionable que motive a guardarlo
 - **sin_diversificacion**: Las variantes son demasiado similares entre si en estructura, hook, o argumento central
 - **anti_bot**: Lenguaje que suena a IA generica (frases como "en el mundo de", "hoy quiero compartir", estructuras identicas entre variantes, exceso de emojis)
+- **repeticion_campana**: Hook o argumento central muy similar a un post previo de la misma campana semanal
 
 Reglas:
 - MAXIMO 3 findings por variante (los mas impactantes)
@@ -133,6 +135,7 @@ Reglas:
 - total = detener + ganar + provocar + iniciar
 - SIEMPRE recomienda la MEJOR variante con razon clara
 - Si las variantes son demasiado similares, reporta "sin_diversificacion" como blocker
+- Si un hook es muy similar a un hook previo de la campana, reporta "repeticion_campana" como blocker
 
 IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`,
       prompt: `Evalua estas variantes de un post de LinkedIn:
@@ -142,6 +145,9 @@ ${keyword ? `**Keyword**: ${keyword}` : ''}
 ${topic ? `**Tema**: ${topic}` : ''}
 ${context ? `**Contexto**: ${context}` : ''}
 ${weekly_brief ? `**Brief semanal**: Tema: ${weekly_brief.tema}, Enemigo silencioso: ${weekly_brief.enemigo_silencioso ?? 'N/A'}, Anti-mito: ${weekly_brief.anti_mito ?? 'N/A'}` : ''}
+${previous_hooks && previous_hooks.length > 0 ? `
+**Hooks de posts previos en esta campana** (los nuevos hooks DEBEN ser diferentes):
+${previous_hooks.map((h, i) => `${i + 1}. "${h}"`).join('\n')}` : ''}
 
 ${variantsBlock}
 

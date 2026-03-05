@@ -35,6 +35,7 @@ const inputSchema = z.object({
   audience: z.string().optional(),
   context: z.string().optional(),
   weekly_brief: weeklyBriefSchema.optional(),
+  previous_hooks: z.array(z.string()).optional(),
 })
 
 export async function POST(request: Request): Promise<Response> {
@@ -98,7 +99,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
-    const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief } = parsed.data
+    const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief, previous_hooks } = parsed.data
 
     const systemPrompt = `Eres un experto en copywriting para LinkedIn especializado en O&M fotovoltaico.
 
@@ -182,6 +183,17 @@ ${weekly_brief ? `
 - Restriccion links: ${weekly_brief.restriccion_links ? 'NO incluir links' : 'Links permitidos'}
 - Reglas de tono: ${weekly_brief.tone_rules ?? 'No definidas'}` : ''}
 ${patternSection}
+${previous_hooks && previous_hooks.length > 0 ? `
+## ANTI-REPETITIVIDAD (CRITICO — posts previos en esta campana)
+Los siguientes hooks ya fueron usados en otros posts de esta misma campana semanal:
+${previous_hooks.map((h, i) => `${i + 1}. "${h}"`).join('\n')}
+
+PROHIBIDO:
+- Usar hooks similares a los listados arriba
+- Repetir la misma estructura narrativa (si uno usó pregunta, usar dato o escena)
+- Reutilizar el mismo angulo o argumento central
+- Cada post de la campana DEBE sentirse como contenido completamente independiente
+` : ''}
 Las 3 variantes deben ser FUNCIONALMENTE distintas (no solo variaciones de tono):
 
 1. **Revelacion Tecnica** (variant: "contrarian"): Desafia una creencia instalada en O&M con un mecanismo tecnico que la audiencia no ha identificado. Estructura: Mito o asuncion erronea → Mecanismo real que lo contradice → Impacto en kWh/USD → Insight accionable. Hook: contradiccion o dato que rompe la asuncion.

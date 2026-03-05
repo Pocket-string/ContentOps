@@ -508,3 +508,45 @@ export async function selectVariant(
     return { error: 'Error inesperado al seleccionar la variante' }
   }
 }
+
+/**
+ * Get hooks from other posts in the same campaign (for anti-repetitivity).
+ * Returns the first line of each post's latest version content.
+ */
+export async function getCampaignPostHooks(
+  campaignId: string,
+  excludePostId: string
+): Promise<ServiceResult<string[]>> {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, post_versions(content, version)')
+      .eq('campaign_id', campaignId)
+      .neq('id', excludePostId)
+      .order('version', { referencedTable: 'post_versions', ascending: false })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    const hooks: string[] = []
+    for (const post of data ?? []) {
+      const versions = (post as { post_versions?: { content: string; version: number }[] }).post_versions
+      if (versions && versions.length > 0) {
+        // Get first line of latest version content as the hook
+        const content = versions[0].content
+        const firstLine = content.split('\n')[0] ?? ''
+        if (firstLine.trim()) {
+          hooks.push(firstLine.trim())
+        }
+      }
+    }
+
+    return { data: hooks }
+  } catch (err) {
+    console.error('[post-service] getCampaignPostHooks unexpected error', err)
+    return { error: 'Error inesperado al obtener hooks previos' }
+  }
+}

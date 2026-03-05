@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getCampaignById } from '@/features/campaigns/services/campaign-service'
-import { getPostByCampaignAndDay } from '@/features/posts/services/post-service'
+import { getPostByCampaignAndDay, getCampaignPostHooks } from '@/features/posts/services/post-service'
 import { PostEditorClient } from './client'
 
 export const metadata = { title: 'Post Editor | ContentOps' }
@@ -17,7 +17,7 @@ export default async function PostEditorPage({ params }: Props) {
     notFound()
   }
 
-  // Fetch campaign and post in parallel
+  // Fetch campaign, post, and sibling hooks in parallel
   const [campaignResult, postResult] = await Promise.all([
     getCampaignById(campaignId),
     getPostByCampaignAndDay(campaignId, dayOfWeek),
@@ -31,6 +31,10 @@ export default async function PostEditorPage({ params }: Props) {
   const topicTitle = campaign.topics?.title
   const keyword = campaign.keyword ?? undefined
   const weeklyBrief = campaign.weekly_brief ?? undefined
+
+  // Fetch hooks from sibling posts for anti-repetitivity
+  const hooksResult = await getCampaignPostHooks(campaignId, postResult.data.id)
+  const previousHooks = hooksResult.data ?? []
 
   // Build rich context from ALL topic fields for grounded copy generation
   const topicContext = campaign.topics
@@ -55,6 +59,7 @@ export default async function PostEditorPage({ params }: Props) {
         keyword={keyword}
         weeklyBrief={weeklyBrief}
         topicContext={topicContext}
+        previousHooks={previousHooks}
       />
     </div>
   )

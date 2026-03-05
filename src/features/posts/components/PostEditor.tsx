@@ -35,6 +35,7 @@ interface PostEditorProps {
   keyword?: string
   weeklyBrief?: WeeklyBrief
   topicContext?: string
+  previousHooks?: string[]
   onSaveVersion: (formData: FormData) => Promise<{ success?: true; error?: string }>
   onSetCurrent: (versionId: string) => Promise<{ success?: true; error?: string }>
   onScore: (versionId: string, score: unknown) => Promise<{ success?: true; error?: string }>
@@ -284,6 +285,7 @@ export function PostEditor({
   keyword,
   weeklyBrief,
   topicContext,
+  previousHooks,
   onSaveVersion,
   onSetCurrent,
   onScore,
@@ -475,6 +477,7 @@ export function PostEditor({
           objective: objective || undefined,
           context: topicContext || undefined,
           weekly_brief: weeklyBrief,
+          previous_hooks: previousHooks?.length ? previousHooks : undefined,
         }),
       })
       const json: unknown = await response.json()
@@ -505,7 +508,7 @@ export function PostEditor({
     } finally {
       setIsGenerating(false)
     }
-  }, [topicTitle, keyword, weeklyBrief, topicContext, post.funnel_stage, post.id, objective, onSaveVersion])
+  }, [topicTitle, keyword, weeklyBrief, topicContext, previousHooks, post.funnel_stage, post.id, objective, onSaveVersion])
 
   const handleIterate = useCallback(async () => {
     if (!editContent.trim() || !feedback.trim()) return
@@ -1147,6 +1150,7 @@ export function PostEditor({
               topic={topicTitle}
               context={topicContext}
               weeklyBrief={weeklyBrief}
+              previousHooks={previousHooks}
               onApplyScore={async (variant, scorePayload) => {
                 const version = getCurrentVersionForVariant(post.versions, variant)
                 if (version) {
