@@ -146,26 +146,36 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
       }
       const perf = json.data?.performance
       if (!perf) return
-      // Apply to the first published post that has no metrics yet
-      const publishedWithoutMetrics = postMetrics.filter((pm) => pm.postStatus === 'published' && pm.metricsId === null)
-      if (publishedWithoutMetrics.length === 0) {
-        setError('No hay posts publicados sin metricas. Marca un post como "Publicado" primero.')
+      // Apply to the first published post (prefer one without metrics, but allow overwrite)
+      const published = postMetrics.filter((pm) => pm.postStatus === 'published')
+      if (published.length === 0) {
+        setError('No hay posts publicados. Marca un post como "Publicado" primero.')
         return
       }
-      const targetDay = publishedWithoutMetrics[0].dayOfWeek
-      if (targetDay !== undefined) {
-        setMetricsState((prev) => ({
-          ...prev,
-          [targetDay]: {
-            ...prev[targetDay],
-            impressions: perf.impressions,
-            comments: perf.comments,
-            saves: perf.saves,
-            shares: perf.shares,
-            notes: prev[targetDay]?.notes ?? '',
-            leads: prev[targetDay]?.leads ?? 0,
-          },
-        }))
+      const withoutMetrics = published.filter((pm) => pm.metricsId === null)
+      const target = withoutMetrics.length > 0 ? withoutMetrics[0] : published[0]
+      const targetDay = target.dayOfWeek
+      const newState: DayState = {
+        impressions: perf.impressions,
+        comments: perf.comments,
+        saves: perf.saves,
+        shares: perf.shares,
+        notes: metricsState[targetDay]?.notes ?? '',
+        leads: metricsState[targetDay]?.leads ?? 0,
+      }
+      setMetricsState((prev) => ({ ...prev, [targetDay]: newState }))
+      // Auto-save the imported metrics
+      const saveFd = new FormData()
+      saveFd.set('post_id', target.postId)
+      saveFd.set('impressions', String(newState.impressions))
+      saveFd.set('comments', String(newState.comments))
+      saveFd.set('saves', String(newState.saves))
+      saveFd.set('shares', String(newState.shares))
+      saveFd.set('leads', String(newState.leads))
+      saveFd.set('notes', newState.notes)
+      const saveResult = await onSaveMetrics(saveFd)
+      if (saveResult.error) {
+        setError(saveResult.error)
       }
     } catch {
       setError('Error de red al importar el archivo')
