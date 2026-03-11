@@ -97,8 +97,8 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
   const [isSavingLearning, setIsSavingLearning] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [isImporting, setIsImporting] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importingDay, setImportingDay] = useState<number | null>(null)
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
   async function handleSaveMetrics(dayOfWeek: number, postId: string) {
     setSavingDay(dayOfWeek)
@@ -133,10 +133,10 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
     setDeleteConfirmId(null)
   }
 
-  async function handleXlsxImport(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleXlsxImport(e: React.ChangeEvent<HTMLInputElement>, targetPostId: string, targetDay: number) {
     const file = e.target.files?.[0]
     if (!file) return
-    setIsImporting(true)
+    setImportingDay(targetDay)
     setError('')
     try {
       const fd = new FormData()
@@ -149,15 +149,6 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
       }
       const perf = json.data?.performance
       if (!perf) return
-      // Apply to the first published post (prefer one without metrics, but allow overwrite)
-      const published = postMetrics.filter((pm) => pm.postStatus === 'published')
-      if (published.length === 0) {
-        setError('No hay posts publicados. Marca un post como "Publicado" primero.')
-        return
-      }
-      const withoutMetrics = published.filter((pm) => pm.metricsId === null)
-      const target = withoutMetrics.length > 0 ? withoutMetrics[0] : published[0]
-      const targetDay = target.dayOfWeek
       const newState: DayState = {
         impressions: perf.impressions,
         reactions: perf.reactions,
@@ -168,9 +159,9 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
         leads: metricsState[targetDay]?.leads ?? 0,
       }
       setMetricsState((prev) => ({ ...prev, [targetDay]: newState }))
-      // Auto-save the imported metrics (including LinkedIn-specific fields)
+      // Auto-save all LinkedIn fields
       const saveFd = new FormData()
-      saveFd.set('post_id', target.postId)
+      saveFd.set('post_id', targetPostId)
       saveFd.set('impressions', String(newState.impressions))
       saveFd.set('reactions', String(newState.reactions))
       saveFd.set('comments', String(newState.comments))
@@ -193,8 +184,9 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
     } catch {
       setError('Error de red al importar el archivo')
     } finally {
-      setIsImporting(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      setImportingDay(null)
+      const ref = fileInputRefs.current[targetDay]
+      if (ref) ref.value = ''
     }
   }
 
@@ -255,30 +247,9 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
 
       {/* ===== SECTION 2: Metrics per Post ===== */}
       <section className="bg-surface border border-border rounded-2xl shadow-card p-6 space-y-4" aria-labelledby="metrics-form-heading">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <TrendIcon c="w-4 h-4 text-accent-500 shrink-0" />
-            <h2 id="metrics-form-heading" className="text-sm font-semibold text-foreground">Metricas por Post</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleXlsxImport}
-              className="hidden"
-              aria-label="Importar metricas desde LinkedIn XLSX"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              isLoading={isImporting}
-              disabled={isImporting}
-            >
-              Importar XLSX
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <TrendIcon c="w-4 h-4 text-accent-500 shrink-0" />
+          <h2 id="metrics-form-heading" className="text-sm font-semibold text-foreground">Metricas por Post</h2>
         </div>
         <div className="space-y-4">
           {postMetrics.map((pm) => {
@@ -309,7 +280,24 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
                     <textarea id={`notes-${pm.dayOfWeek}`} value={s.notes} rows={1} placeholder="Observaciones del post..." className={TEXTAREA}
                       onChange={(e) => updateField(pm.dayOfWeek, 'notes', e.target.value)} aria-label={`Notas del ${pm.dayLabel}`} />
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    <input
+                      ref={(el) => { fileInputRefs.current[pm.dayOfWeek] = el }}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => handleXlsxImport(e, pm.postId, pm.dayOfWeek)}
+                      className="hidden"
+                      aria-label={`Importar XLSX para ${pm.dayLabel}`}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => fileInputRefs.current[pm.dayOfWeek]?.click()}
+                      isLoading={importingDay === pm.dayOfWeek}
+                      disabled={importingDay !== null}
+                    >
+                      Importar XLSX
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => handleSaveMetrics(pm.dayOfWeek, pm.postId)} isLoading={isSaving} disabled={isSaving}>Guardar</Button>
                   </div>
                 </div>
