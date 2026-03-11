@@ -169,6 +169,7 @@ export async function createTopic(
         key_data_points: validated.data.key_data_points ?? [],
         target_audience: validated.data.target_audience ?? null,
         market_context: validated.data.market_context ?? null,
+        solution_framework: validated.data.solution_framework ?? null,
       })
       .select()
       .single()
@@ -238,6 +239,7 @@ export async function updateTopic(
     if (validated.data.key_data_points !== undefined) payload.key_data_points = validated.data.key_data_points
     if (validated.data.target_audience !== undefined) payload.target_audience = validated.data.target_audience
     if (validated.data.market_context !== undefined) payload.market_context = validated.data.market_context
+    if (validated.data.solution_framework !== undefined) payload.solution_framework = validated.data.solution_framework
 
     if (Object.keys(payload).length === 0) {
       return { error: 'No se proporcionaron campos para actualizar' }

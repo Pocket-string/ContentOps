@@ -121,22 +121,39 @@ function parseTopicFormData(formData: FormData): Record<string, unknown> {
     }
   }
 
-  // --- key_data_points (JSON array or comma-separated) ---
+  // --- key_data_points (JSON array of {stat, source, context} objects) ---
   const rawKeyDataPoints = formData.get('key_data_points')
-  let keyDataPoints: string[] = []
+  let keyDataPoints: Array<{ stat: string; source: string; context: string }> = []
 
   if (typeof rawKeyDataPoints === 'string' && rawKeyDataPoints.trim().length > 0) {
-    if (rawKeyDataPoints.trim().startsWith('[')) {
-      try {
-        const arr = JSON.parse(rawKeyDataPoints)
-        if (Array.isArray(arr)) {
-          keyDataPoints = arr.filter((s): s is string => typeof s === 'string')
-        }
-      } catch {
-        keyDataPoints = []
+    try {
+      const arr = JSON.parse(rawKeyDataPoints)
+      if (Array.isArray(arr)) {
+        keyDataPoints = arr.filter(
+          (item): item is { stat: string; source: string; context: string } =>
+            typeof item === 'object' && item !== null &&
+            typeof item.stat === 'string' &&
+            typeof item.source === 'string' &&
+            typeof item.context === 'string'
+        )
       }
-    } else {
-      keyDataPoints = rawKeyDataPoints.split(',').map((s) => s.trim()).filter(Boolean)
+    } catch {
+      keyDataPoints = []
+    }
+  }
+
+  // --- solution_framework (JSON object) ---
+  const rawSolutionFramework = formData.get('solution_framework')
+  let solutionFramework: { name: string; mechanism: string; benefits: string[]; implementation: string } | undefined
+
+  if (typeof rawSolutionFramework === 'string' && rawSolutionFramework.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(rawSolutionFramework)
+      if (typeof parsed === 'object' && parsed !== null && typeof parsed.name === 'string') {
+        solutionFramework = parsed
+      }
+    } catch {
+      // ignore malformed JSON
     }
   }
 
@@ -172,6 +189,7 @@ function parseTopicFormData(formData: FormData): Record<string, unknown> {
       ? targetAudience.trim() : undefined,
     market_context: typeof marketCtx === 'string' && marketCtx.trim().length > 0
       ? marketCtx.trim() : undefined,
+    solution_framework: solutionFramework,
   }
 }
 

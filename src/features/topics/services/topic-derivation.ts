@@ -49,6 +49,13 @@ const derivedTopicSchema = z.object({
   key_data_points: z.array(keyDataPointSchema).min(3).max(8),
   target_audience: z.string(),
   market_context: z.string(),
+  // Solution framework — what we propose as the answer
+  solution_framework: z.object({
+    name: z.string(),
+    mechanism: z.string(),
+    benefits: z.array(z.string()).min(2).max(5),
+    implementation: z.string(),
+  }),
 })
 
 // ---------------------------------------------------------------------------
@@ -98,9 +105,10 @@ REGLAS CRITICAS:
 - Cada campo debe ser ESPECIFICO para este tema, NO generico
 - Usa datos concretos (%, numeros, rangos) cuando esten disponibles
 - NUNCA inventes estadisticas — si no hay datos, di "la evidencia indica" o "segun fuentes del sector"
-- Los "content_angles" son 5-7 angulos DISTINTOS para posts individuales de una campana semanal
+- Los "content_angles" son 5-7 angulos DISTINTOS para posts individuales de una campana semanal. Los primeros 2 deben ser sobre el PROBLEMA, los siguientes 2-3 sobre la SOLUCION, y el ultimo sobre CONVERSION
 - Cada angulo debe ser suficientemente diferente para funcionar como post independiente
 - Los "key_data_points" son datos verificables con fuente que el copywriter puede citar textualmente
+- El "solution_framework" captura QUE solucion o alternativa proponemos. Esto es CRITICO para que los posts de solucion (dia 3-4) sean distintos de los posts de problema (dia 1-2)
 
 Responde UNICAMENTE con JSON valido, sin markdown, sin backticks, sin texto adicional.`,
 
@@ -135,11 +143,11 @@ Importante: Este JSON debe contener TODA la informacion necesaria para crear una
   "signals_json": ["Senal observable 1", "Senal observable 2", "Senal observable 3"],
   "source_context": "Resumen consolidado de los hallazgos y datos relevantes de la investigacion original que aplican a este tema (3-5 oraciones con datos concretos)",
   "content_angles": [
-    "Angulo para post 1 (TOFU: identificar dolor oculto — hook provocador)",
-    "Angulo para post 2 (MOFU: profundizar diagnostico — educativo tecnico)",
-    "Angulo para post 3 (TOFU: revelar que hay solucion — esperanzador)",
-    "Angulo para post 4 (MOFU: demostrar con evidencia — caso concreto)",
-    "Angulo para post 5 (BOFU: convertir en contacto — social proof + urgencia)"
+    "Angulo para post 1 (TOFU Problema: identificar dolor oculto — hook provocador, enfocado en el PROBLEMA)",
+    "Angulo para post 2 (MOFU Problema: profundizar diagnostico — educativo tecnico, datos del PROBLEMA)",
+    "Angulo para post 3 (TOFU Solucion: revelar que hay solucion — presentar la SOLUCION por primera vez)",
+    "Angulo para post 4 (MOFU Solucion: demostrar con evidencia — caso concreto de la SOLUCION en accion)",
+    "Angulo para post 5 (BOFU: convertir en contacto — social proof + urgencia + CTA directo)"
   ],
   "key_data_points": [
     {"stat": "Dato verificable 1 (con numero/porcentaje)", "source": "Fuente del dato", "context": "Por que este dato importa para el tema"},
@@ -147,7 +155,13 @@ Importante: Este JSON debe contener TODA la informacion necesaria para crear una
     {"stat": "Dato verificable 3", "source": "Fuente", "context": "Contexto"}
   ],
   "target_audience": "Perfil especifico del buyer persona para este tema (rol, industria, dolor principal, nivel de decision)",
-  "market_context": "Situacion actual del mercado relevante a este tema (tendencias, regulaciones, presion competitiva — 2-3 oraciones)"
+  "market_context": "Situacion actual del mercado relevante a este tema (tendencias, regulaciones, presion competitiva — 2-3 oraciones)",
+  "solution_framework": {
+    "name": "Nombre de la solucion/alternativa/metrica/herramienta propuesta (ej: PRSTC, Soiling Index, Monitoreo predictivo)",
+    "mechanism": "Como funciona esta solucion — explicacion tecnica accesible de 2-3 oraciones",
+    "benefits": ["Beneficio medible 1", "Beneficio medible 2", "Beneficio medible 3"],
+    "implementation": "Como se implementa — pasos concretos o requisitos (2-3 oraciones)"
+  }
 }`,
     })
 
@@ -207,6 +221,11 @@ Importante: Este JSON debe contener TODA la informacion necesaria para crear una
         const kdpResult = kdpSchema.safeParse(partial.key_data_points)
         if (kdpResult.success) salvaged.key_data_points = kdpResult.data
       }
+      if (typeof partial.solution_framework === 'object' && partial.solution_framework !== null) {
+        const sfSchema = z.object({ name: z.string(), mechanism: z.string(), benefits: z.array(z.string()), implementation: z.string() })
+        const sfResult = sfSchema.safeParse(partial.solution_framework)
+        if (sfResult.success) salvaged.solution_framework = sfResult.data
+      }
       console.info('[topic-derivation] Partial salvage applied:', Object.keys(salvaged).length, 'fields')
       return salvaged
     }
@@ -229,6 +248,7 @@ Importante: Este JSON debe contener TODA la informacion necesaria para crear una
       key_data_points: validated.data.key_data_points,
       target_audience: validated.data.target_audience,
       market_context: validated.data.market_context,
+      solution_framework: validated.data.solution_framework,
       // Inherited from research
       fit_score: research.fit_score,
       priority: 'high',

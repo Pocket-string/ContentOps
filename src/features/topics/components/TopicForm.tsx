@@ -73,8 +73,9 @@ export function TopicForm({ topic, initialData, pillars, onSubmit, onSuccess }: 
     keyDataPoints: topic?.key_data_points ?? initialData?.key_data_points ?? [],
     targetAudience: topic?.target_audience ?? initialData?.target_audience ?? '',
     marketCtx: topic?.market_context ?? initialData?.market_context ?? '',
+    solution: topic?.solution_framework ?? initialData?.solution_framework ?? null,
   }
-  const hasCampaignContext = campaignContextFields.contentAngles.length > 0 || campaignContextFields.keyDataPoints.length > 0
+  const hasCampaignContext = campaignContextFields.contentAngles.length > 0 || campaignContextFields.keyDataPoints.length > 0 || campaignContextFields.solution !== null
   const [showCampaignContext, setShowCampaignContext] = useState(hasCampaignContext)
 
   const [titleError, setTitleError] = useState('')
@@ -132,6 +133,7 @@ export function TopicForm({ topic, initialData, pillars, onSubmit, onSuccess }: 
       key_data_points: initialData?.key_data_points ?? topic?.key_data_points ?? [],
       target_audience: initialData?.target_audience ?? topic?.target_audience ?? undefined,
       market_context: initialData?.market_context ?? topic?.market_context ?? undefined,
+      solution_framework: initialData?.solution_framework ?? topic?.solution_framework ?? undefined,
     }
 
     setIsSubmitting(true)
@@ -410,6 +412,21 @@ export function TopicForm({ topic, initialData, pillars, onSubmit, onSuccess }: 
                   <div>
                     <p className="text-xs font-medium text-foreground-muted mb-1">Contexto de mercado</p>
                     <p className="text-sm text-foreground bg-surface-raised rounded-lg p-3">{campaignContextFields.marketCtx}</p>
+                  </div>
+                )}
+                {campaignContextFields.solution && (
+                  <div>
+                    <p className="text-xs font-medium text-foreground-muted mb-1">Solucion propuesta</p>
+                    <div className="text-sm bg-surface-raised rounded-lg p-3 space-y-1">
+                      <p className="font-medium text-foreground">{campaignContextFields.solution.name}</p>
+                      <p className="text-foreground">{campaignContextFields.solution.mechanism}</p>
+                      {campaignContextFields.solution.benefits.length > 0 && (
+                        <ul className="list-disc list-inside text-foreground-muted">
+                          {campaignContextFields.solution.benefits.map((b, i) => <li key={i}>{b}</li>)}
+                        </ul>
+                      )}
+                      <p className="text-xs text-foreground-muted">{campaignContextFields.solution.implementation}</p>
+                    </div>
                   </div>
                 )}
                 {campaignContextFields.contentAngles.length > 0 && (

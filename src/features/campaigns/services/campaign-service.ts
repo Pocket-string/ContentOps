@@ -51,6 +51,7 @@ export type CampaignWithTopic = Campaign & {
     key_data_points?: Array<{ stat: string; source: string; context: string }>
     target_audience?: string | null
     market_context?: string | null
+    solution_framework?: { name: string; mechanism: string; benefits: string[]; implementation: string } | null
   } | null
 }
 
@@ -92,6 +93,12 @@ const campaignWithTopicSchema = campaignSchema.extend({
     })).default([]),
     target_audience: z.string().nullable().optional(),
     market_context: z.string().nullable().optional(),
+    solution_framework: z.object({
+      name: z.string(),
+      mechanism: z.string(),
+      benefits: z.array(z.string()),
+      implementation: z.string(),
+    }).nullable().optional(),
   }).nullable(),
 })
 
@@ -169,7 +176,7 @@ export async function getCampaignById(
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact, pillar_id, source_context, content_angles, key_data_points, target_audience, market_context), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact, pillar_id, source_context, content_angles, key_data_points, target_audience, market_context, solution_framework), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
       .eq('id', id)
       .single()
 

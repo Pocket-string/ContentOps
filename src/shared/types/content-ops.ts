@@ -180,6 +180,12 @@ export const topicSchema = z.object({
   })).default([]),
   target_audience: z.string().nullable().optional(),
   market_context: z.string().nullable().optional(),
+  solution_framework: z.object({
+    name: z.string(),
+    mechanism: z.string(),
+    benefits: z.array(z.string()),
+    implementation: z.string(),
+  }).nullable().optional(),
 })
 
 export const campaignSchema = z.object({
@@ -357,6 +363,12 @@ export const createTopicSchema = z.object({
   })).default([]),
   target_audience: z.string().optional(),
   market_context: z.string().optional(),
+  solution_framework: z.object({
+    name: z.string(),
+    mechanism: z.string(),
+    benefits: z.array(z.string()),
+    implementation: z.string(),
+  }).optional(),
 })
 
 export const createCampaignSchema = z.object({

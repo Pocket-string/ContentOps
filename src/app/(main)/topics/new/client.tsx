@@ -32,6 +32,7 @@ export function TopicNewClient({ initialData, pillars }: Props) {
     if (data.key_data_points && data.key_data_points.length > 0) formData.set('key_data_points', JSON.stringify(data.key_data_points))
     if (data.target_audience) formData.set('target_audience', data.target_audience)
     if (data.market_context) formData.set('market_context', data.market_context)
+    if (data.solution_framework) formData.set('solution_framework', JSON.stringify(data.solution_framework))
 
     const result = await createTopicAction(formData)
 
