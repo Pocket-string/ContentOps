@@ -27,13 +27,15 @@ export interface WeeklySummary {
   totalSaves: number
   totalShares: number
   totalLeads: number
+  totalReactions: number
   avgImpressions: number
   avgComments: number
   avgSaves: number
   avgShares: number
   avgLeads: number
+  avgReactions: number
   postMetrics: PostMetricRow[]
-  engagementRate: number // (comments + saves + shares) / impressions * 100
+  engagementRate: number // (reactions + comments + saves + shares) / impressions * 100
 }
 
 export interface PostMetricRow {
@@ -47,6 +49,11 @@ export interface PostMetricRow {
   saves: number
   shares: number
   leads: number
+  reactions: number
+  membersReached: number
+  followersGained: number
+  profileViews: number
+  sends: number
   notes: string | null
   metricsId: string | null // null if no metrics recorded yet
 }
@@ -145,6 +152,11 @@ export async function getMetricsByCampaign(
         saves: metrics?.saves ?? 0,
         shares: metrics?.shares ?? 0,
         leads: metrics?.leads ?? 0,
+        reactions: metrics?.reactions ?? 0,
+        membersReached: metrics?.members_reached ?? 0,
+        followersGained: metrics?.followers_gained ?? 0,
+        profileViews: metrics?.profile_views ?? 0,
+        sends: metrics?.sends ?? 0,
         notes: metrics?.notes ?? null,
         metricsId: metrics?.id ?? null,
       }
@@ -200,6 +212,15 @@ export async function saveMetrics(
           shares: validated.data.shares,
           leads: validated.data.leads,
           notes: validated.data.notes ?? null,
+          reactions: validated.data.reactions,
+          members_reached: validated.data.members_reached,
+          followers_gained: validated.data.followers_gained,
+          profile_views: validated.data.profile_views,
+          sends: validated.data.sends,
+          post_url: validated.data.post_url ?? null,
+          publish_date: validated.data.publish_date ?? null,
+          highlights_json: validated.data.highlights_json ?? null,
+          demographics_json: validated.data.demographics_json ?? null,
         })
         .eq('id', existingRow.id)
         .select()
@@ -222,6 +243,15 @@ export async function saveMetrics(
           shares: validated.data.shares,
           leads: validated.data.leads,
           notes: validated.data.notes ?? null,
+          reactions: validated.data.reactions,
+          members_reached: validated.data.members_reached,
+          followers_gained: validated.data.followers_gained,
+          profile_views: validated.data.profile_views,
+          sends: validated.data.sends,
+          post_url: validated.data.post_url ?? null,
+          publish_date: validated.data.publish_date ?? null,
+          highlights_json: validated.data.highlights_json ?? null,
+          demographics_json: validated.data.demographics_json ?? null,
         })
         .select()
         .single()
@@ -274,6 +304,7 @@ export async function getWeeklySummary(
     const totalSaves = postMetrics.reduce((sum, r) => sum + r.saves, 0)
     const totalShares = postMetrics.reduce((sum, r) => sum + r.shares, 0)
     const totalLeads = postMetrics.reduce((sum, r) => sum + r.leads, 0)
+    const totalReactions = postMetrics.reduce((sum, r) => sum + r.reactions, 0)
 
     const avgImpressions = count > 0 ? totalImpressions / count : 0
     const avgComments = count > 0 ? totalComments / count : 0
@@ -283,7 +314,7 @@ export async function getWeeklySummary(
 
     const engagementRate =
       totalImpressions > 0
-        ? ((totalComments + totalSaves + totalShares) / totalImpressions) * 100
+        ? ((totalReactions + totalComments + totalSaves + totalShares) / totalImpressions) * 100
         : 0
 
     return {
@@ -293,11 +324,13 @@ export async function getWeeklySummary(
         totalSaves,
         totalShares,
         totalLeads,
+        totalReactions,
         avgImpressions,
         avgComments,
         avgSaves,
         avgShares,
         avgLeads,
+        avgReactions: count > 0 ? totalReactions / count : 0,
         postMetrics,
         engagementRate,
       },
@@ -321,11 +354,13 @@ export interface ComparisonSummary {
   totalSaves: number
   totalShares: number
   totalLeads: number
+  totalReactions: number
   avgImpressions: number
   avgComments: number
   avgSaves: number
   avgShares: number
   avgLeads: number
+  avgReactions: number
   engagementRate: number
 }
 
@@ -375,11 +410,13 @@ export async function getPreviousCampaignSummary(
         totalSaves: s.totalSaves,
         totalShares: s.totalShares,
         totalLeads: s.totalLeads,
+        totalReactions: s.totalReactions,
         avgImpressions: s.avgImpressions,
         avgComments: s.avgComments,
         avgSaves: s.avgSaves,
         avgShares: s.avgShares,
         avgLeads: s.avgLeads,
+        avgReactions: s.avgReactions,
         engagementRate: s.engagementRate,
       },
     }

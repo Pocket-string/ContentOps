@@ -15,12 +15,13 @@ const MetricsMiniChart = dynamic(
 
 interface PostMetric {
   postId: string; dayOfWeek: number; dayLabel: string; funnelStage: string; postStatus: string
-  impressions: number; comments: number; saves: number; shares: number; leads: number
+  impressions: number; reactions: number; comments: number; saves: number; shares: number; leads: number
+  membersReached: number; followersGained: number; profileViews: number; sends: number
   notes: string | null; metricsId: string | null
 }
 interface Summary {
-  totalImpressions: number; totalComments: number; totalSaves: number
-  totalShares: number; totalLeads: number; avgImpressions: number; avgComments: number
+  totalImpressions: number; totalReactions: number; totalComments: number; totalSaves: number
+  totalShares: number; totalLeads: number; avgImpressions: number; avgReactions: number; avgComments: number
   avgSaves: number; avgShares: number; avgLeads: number; engagementRate: number
 }
 interface Learning {
@@ -34,7 +35,7 @@ export interface MetricsPanelProps {
   onCreateLearning: (fd: FormData) => Promise<{ success?: true; error?: string }>
   onDeleteLearning: (id: string) => Promise<{ success?: true; error?: string }>
 }
-type DayState = { impressions: number; comments: number; saves: number; shares: number; leads: number; notes: string }
+type DayState = { impressions: number; reactions: number; comments: number; saves: number; shares: number; leads: number; notes: string }
 
 // ---- Constants ----
 
@@ -66,6 +67,7 @@ const UsersIcon  = ({ c }: { c?: string }) => <svg {...I(c)}><path d="M17 21v-2a
 const TrendIcon  = ({ c }: { c?: string }) => <svg {...I(c)}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
 const TrashIcon  = ({ c }: { c?: string }) => <svg {...I(c)}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
 const PlusIcon   = ({ c }: { c?: string }) => <svg {...I(c)}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+const HeartIcon  = ({ c }: { c?: string }) => <svg {...I(c)}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
 const BulbIcon   = ({ c }: { c?: string }) => <svg {...I(c)}><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 018.91 14"/></svg>
 
 // ---- StatCard ----
@@ -87,7 +89,7 @@ function StatCard({ icon, label, total, avg }: { icon: React.ReactNode; label: s
 
 export function MetricsPanel({ postMetrics, summary, previousSummary, learnings, onSaveMetrics, onCreateLearning, onDeleteLearning }: MetricsPanelProps) {
   const [metricsState, setMetricsState] = useState<Record<number, DayState>>(
-    Object.fromEntries(postMetrics.map((pm) => [pm.dayOfWeek, { impressions: pm.impressions, comments: pm.comments, saves: pm.saves, shares: pm.shares, leads: pm.leads, notes: pm.notes ?? '' }]))
+    Object.fromEntries(postMetrics.map((pm) => [pm.dayOfWeek, { impressions: pm.impressions, reactions: pm.reactions, comments: pm.comments, saves: pm.saves, shares: pm.shares, leads: pm.leads, notes: pm.notes ?? '' }]))
   )
   const [savingDay, setSavingDay] = useState<number | null>(null)
   const [newSummary, setNewSummary] = useState('')
@@ -102,8 +104,9 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
     setSavingDay(dayOfWeek)
     const s = metricsState[dayOfWeek]
     const fd = new FormData()
-    fd.set('post_id', postId); fd.set('impressions', String(s.impressions)); fd.set('comments', String(s.comments))
-    fd.set('saves', String(s.saves)); fd.set('shares', String(s.shares)); fd.set('leads', String(s.leads)); fd.set('notes', s.notes)
+    fd.set('post_id', postId); fd.set('impressions', String(s.impressions)); fd.set('reactions', String(s.reactions))
+    fd.set('comments', String(s.comments)); fd.set('saves', String(s.saves)); fd.set('shares', String(s.shares))
+    fd.set('leads', String(s.leads)); fd.set('notes', s.notes)
     const result = await onSaveMetrics(fd)
     if (result.error) setError(result.error)
     setSavingDay(null)
@@ -139,7 +142,7 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
       const fd = new FormData()
       fd.set('file', file)
       const res = await fetch('/api/analytics/import-xlsx', { method: 'POST', body: fd })
-      const json = await res.json() as { data?: { performance: { impressions: number; comments: number; saves: number; shares: number } }; error?: string }
+      const json = await res.json() as { data?: { performance: { impressions: number; reactions: number; comments: number; saves: number; shares: number; members_reached: number; followers_gained: number; profile_views: number; sends: number; post_url: string | null; publish_date: string | null }; highlights: unknown; demographics: unknown }; error?: string }
       if (!res.ok || json.error) {
         setError(json.error ?? 'Error al importar el archivo')
         return
@@ -157,6 +160,7 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
       const targetDay = target.dayOfWeek
       const newState: DayState = {
         impressions: perf.impressions,
+        reactions: perf.reactions,
         comments: perf.comments,
         saves: perf.saves,
         shares: perf.shares,
@@ -164,15 +168,24 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
         leads: metricsState[targetDay]?.leads ?? 0,
       }
       setMetricsState((prev) => ({ ...prev, [targetDay]: newState }))
-      // Auto-save the imported metrics
+      // Auto-save the imported metrics (including LinkedIn-specific fields)
       const saveFd = new FormData()
       saveFd.set('post_id', target.postId)
       saveFd.set('impressions', String(newState.impressions))
+      saveFd.set('reactions', String(newState.reactions))
       saveFd.set('comments', String(newState.comments))
       saveFd.set('saves', String(newState.saves))
       saveFd.set('shares', String(newState.shares))
       saveFd.set('leads', String(newState.leads))
       saveFd.set('notes', newState.notes)
+      saveFd.set('members_reached', String(perf.members_reached))
+      saveFd.set('followers_gained', String(perf.followers_gained))
+      saveFd.set('profile_views', String(perf.profile_views))
+      saveFd.set('sends', String(perf.sends))
+      if (perf.post_url) saveFd.set('post_url', perf.post_url)
+      if (perf.publish_date) saveFd.set('publish_date', perf.publish_date)
+      if (json.data?.highlights) saveFd.set('highlights_json', JSON.stringify(json.data.highlights))
+      if (json.data?.demographics) saveFd.set('demographics_json', JSON.stringify(json.data.demographics))
       const saveResult = await onSaveMetrics(saveFd)
       if (saveResult.error) {
         setError(saveResult.error)
@@ -208,15 +221,16 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3" role="list" aria-label="Metricas totales">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" role="list" aria-label="Metricas totales">
           {[
             { icon: <EyeIcon c="w-4 h-4" />,   label: 'Impresiones', total: summary.totalImpressions, avg: summary.avgImpressions },
+            { icon: <HeartIcon c="w-4 h-4" />, label: 'Reacciones',  total: summary.totalReactions,   avg: summary.avgReactions },
             { icon: <MsgIcon c="w-4 h-4" />,   label: 'Comentarios', total: summary.totalComments,    avg: summary.avgComments },
             { icon: <BmkIcon c="w-4 h-4" />,   label: 'Guardados',   total: summary.totalSaves,       avg: summary.avgSaves },
             { icon: <ShareIcon c="w-4 h-4" />, label: 'Compartidos', total: summary.totalShares,      avg: summary.avgShares },
             { icon: <UsersIcon c="w-4 h-4" />, label: 'Leads',       total: summary.totalLeads,       avg: summary.avgLeads },
           ].map((card, i) => (
-            <div key={i} role="listitem" className={i === 4 ? 'col-span-2 md:col-span-1' : ''}>
+            <div key={i} role="listitem">
               <StatCard {...card} />
             </div>
           ))}
@@ -268,7 +282,7 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
         </div>
         <div className="space-y-4">
           {postMetrics.map((pm) => {
-            const s = metricsState[pm.dayOfWeek] ?? { impressions: 0, comments: 0, saves: 0, shares: 0, leads: 0, notes: '' }
+            const s = metricsState[pm.dayOfWeek] ?? { impressions: 0, reactions: 0, comments: 0, saves: 0, shares: 0, leads: 0, notes: '' }
             const stage = STAGE_META[pm.funnelStage] ?? FALLBACK_STAGE
             const isSaving = savingDay === pm.dayOfWeek
             return (
@@ -281,9 +295,9 @@ export function MetricsPanel({ postMetrics, summary, previousSummary, learnings,
                   )}
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {(['impressions', 'comments', 'saves', 'shares', 'leads'] as const).map((field) => (
-                      <Input key={field} label={{ impressions: 'Impresiones', comments: 'Comentarios', saves: 'Guardados', shares: 'Compartidos', leads: 'Leads' }[field]}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    {(['impressions', 'reactions', 'comments', 'saves', 'shares', 'leads'] as const).map((field) => (
+                      <Input key={field} label={{ impressions: 'Impresiones', reactions: 'Reacciones', comments: 'Comentarios', saves: 'Guardados', shares: 'Compartidos', leads: 'Leads' }[field]}
                         type="number" min={0} value={s[field]}
                         onChange={(e) => updateField(pm.dayOfWeek, field, Number(e.target.value))}
                         aria-label={`${field} del ${pm.dayLabel}`}

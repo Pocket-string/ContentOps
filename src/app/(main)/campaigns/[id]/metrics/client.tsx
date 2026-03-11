@@ -16,21 +16,28 @@ interface PostMetricRow {
   funnelStage: string
   postStatus: string
   impressions: number
+  reactions: number
   comments: number
   saves: number
   shares: number
   leads: number
+  membersReached: number
+  followersGained: number
+  profileViews: number
+  sends: number
   notes: string | null
   metricsId: string | null
 }
 
 interface Summary {
   totalImpressions: number
+  totalReactions: number
   totalComments: number
   totalSaves: number
   totalShares: number
   totalLeads: number
   avgImpressions: number
+  avgReactions: number
   avgComments: number
   avgSaves: number
   avgShares: number

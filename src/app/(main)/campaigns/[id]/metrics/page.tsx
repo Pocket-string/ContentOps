@@ -29,11 +29,13 @@ export default async function MetricsPage({ params }: Props) {
 
   const defaultSummary = {
     totalImpressions: 0,
+    totalReactions: 0,
     totalComments: 0,
     totalSaves: 0,
     totalShares: 0,
     totalLeads: 0,
     avgImpressions: 0,
+    avgReactions: 0,
     avgComments: 0,
     avgSaves: 0,
     avgShares: 0,

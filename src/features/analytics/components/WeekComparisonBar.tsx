@@ -4,11 +4,13 @@
 
 interface Summary {
   totalImpressions: number
+  totalReactions: number
   totalComments: number
   totalSaves: number
   totalShares: number
   totalLeads: number
   avgImpressions: number
+  avgReactions: number
   avgComments: number
   avgSaves: number
   avgShares: number
@@ -173,6 +175,11 @@ export function WeekComparisonBar({ current, previous }: WeekComparisonBarProps)
       label: 'Impresiones',
       currentValue: fmt(current.totalImpressions),
       delta: calcDelta(current.totalImpressions, previous.totalImpressions),
+    },
+    {
+      label: 'Reacciones',
+      currentValue: fmt(current.totalReactions),
+      delta: calcDelta(current.totalReactions, previous.totalReactions),
     },
     {
       label: 'Comentarios',

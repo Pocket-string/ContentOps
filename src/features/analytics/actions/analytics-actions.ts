@@ -41,6 +41,15 @@ export async function saveMetricsAction(formData: FormData): Promise<ActionResul
     shares: parseInt(String(formData.get('shares') ?? '0'), 10),
     leads: parseInt(String(formData.get('leads') ?? '0'), 10),
     notes: formData.get('notes') ?? undefined,
+    reactions: parseInt(String(formData.get('reactions') ?? '0'), 10),
+    members_reached: parseInt(String(formData.get('members_reached') ?? '0'), 10),
+    followers_gained: parseInt(String(formData.get('followers_gained') ?? '0'), 10),
+    profile_views: parseInt(String(formData.get('profile_views') ?? '0'), 10),
+    sends: parseInt(String(formData.get('sends') ?? '0'), 10),
+    post_url: formData.get('post_url') ? String(formData.get('post_url')) : undefined,
+    publish_date: formData.get('publish_date') ? String(formData.get('publish_date')) : undefined,
+    highlights_json: formData.get('highlights_json') ? JSON.parse(String(formData.get('highlights_json'))) : undefined,
+    demographics_json: formData.get('demographics_json') ? JSON.parse(String(formData.get('demographics_json'))) : undefined,
   }
 
   const parsed = saveMetricsSchema.safeParse(raw)
