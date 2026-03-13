@@ -42,6 +42,41 @@ const inputSchema = z.object({
   pillar_description: z.string().optional(),
 })
 
+// Stage-aware variant instructions injected into userPrompt
+function buildVariantInstructions(funnelStage: string): string {
+  const isBofu = funnelStage === 'bofu_conversion'
+  const isSolution = funnelStage === 'tofu_solution' || funnelStage === 'mofu_solution'
+
+  if (isBofu) {
+    return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este es el post de CIERRE — NO es educativo ni de awareness. El lector ya conoce el problema y la solucion. Ahora debe tomar una accion concreta. UN solo CTA principal. NO mezclar multiples CTAs.
+
+1. **Diagnostico Ejecutivo** (variant: "contrarian"): Hace que el lector se reconozca en el dolor operativo. "Si hoy gestionas X con Y, probablemente estes viendo una version incompleta de tu rendimiento." Estructura: situacion real del lector → consecuencia economica concreta → siguiente paso. Hook: situacion operativa que el Asset Manager / O&M Manager vive hoy.
+
+2. **Costo de No Actuar** (variant: "story"): Muestra cuanto puede costar seguir operando sin el nuevo enfoque. Urgencia economica sin exagerar ni sonar alarmista. Estructura: escenario sin cambio → perdida cuantificada → accion disponible ahora. Hook: el numero o consecuencia mas directa de no cambiar.
+
+3. **Siguiente Paso Practico** (variant: "data_driven"): No vende teoria — ofrece el recurso como herramienta concreta para dar el primer paso hoy. Friccion minima. Estructura: por que el recurso existe → que resuelve concretamente → como obtenerlo. Hook: la accion mas simple que el lector puede tomar para empezar.`
+  }
+
+  if (isSolution) {
+    return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este post es de etapa SOLUCION — NO repetir el diagnostico del problema. El lector ya lo conoce. Enfocarse en el COMO funciona la solucion y POR QUE es superior al enfoque anterior. El CTA debe invitar a guardar o profundizar, NO a convertir.
+
+1. **Mecanismo** (variant: "contrarian"): Explica el "como funciona" tecnico de la solucion. Contrasta punto a punto con el enfoque anterior. Estructura: como se hace hoy → que se pierde con ese enfoque → como funciona la alternativa → impacto cuantificado. Hook: declaracion que reencuadra como vemos el rendimiento ahora.
+
+2. **Implementacion** (variant: "story"): Caso concreto o escenario de como se implementa en la practica. Primera persona o tercera persona cercana. NO inventar escenarios — basa todo en la evidencia del contexto. Estructura: situacion inicial → decision de implementar → proceso → resultado medible. Hook: resultado o hallazgo obtenido al implementar.
+
+3. **Framework Comparativo** (variant: "data_driven"): Compara el enfoque antiguo vs el nuevo con datos concretos. Estructura clara tipo "antes / despues" o tabla mental. Cuantifica la diferencia. Optimizado para que el usuario lo GUARDE como referencia. Hook: el contraste mas impactante entre los dos enfoques.`
+  }
+
+  // Default: PROBLEM stage (tofu_problem / mofu_problem)
+  return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este post es de etapa PROBLEMA — NO mencionar la solucion. Enfocarse 100% en diagnosticar el problema con precision. El CTA debe ser una pregunta abierta que invite a comentar, NO una invitacion a descargar o contactar.
+
+1. **Revelacion Tecnica** (variant: "contrarian"): Desafia una creencia instalada en O&M con un mecanismo tecnico que la audiencia no ha identificado. Estructura: Mito o asuncion erronea → Mecanismo real que lo contradice → Impacto en kWh/USD → Insight accionable. Hook: contradiccion o dato que rompe la asuncion.
+
+2. **Historia de Terreno** (variant: "story"): Recrea una experiencia REAL de campo con detalle sensorial y tension narrativa. El lector debe sentir que estuvo ahi. Incluye: escena especifica (lugar, equipo, momento), problema encontrado, decision tomada, resultado. NO inventes escenarios — basa todo en la evidencia del contexto. Hook: escena que arranca in media res.
+
+3. **Datos Duros** (variant: "data_driven"): Estadisticas, cifras y hechos que prueban que el problema es real y costoso. Los numeros hacen el trabajo. Estructura: dato mas impactante → por que existe el problema → cuanto cuesta → pregunta que invita a reflexionar. Hook: el dato mas sorprendente al frente.`
+}
+
 export async function POST(request: Request): Promise<Response> {
   // 1. Auth — redirect if unauthenticated (requireAuth throws/redirects)
   const user = await requireAuth()
@@ -221,13 +256,7 @@ PROHIBIDO:
 - Reutilizar el mismo angulo o argumento central
 - Cada post de la campana DEBE sentirse como contenido completamente independiente
 ` : ''}
-Las 3 variantes deben ser FUNCIONALMENTE distintas (no solo variaciones de tono):
-
-1. **Revelacion Tecnica** (variant: "contrarian"): Desafia una creencia instalada en O&M con un mecanismo tecnico que la audiencia no ha identificado. Estructura: Mito o asuncion erronea → Mecanismo real que lo contradice → Impacto en kWh/USD → Insight accionable. Hook: contradiccion o dato que rompe la asuncion.
-
-2. **Historia de Terreno** (variant: "story"): Recrea una experiencia REAL de campo con detalle sensorial y tension narrativa. El lector debe sentir que estuvo ahi. Incluye: escena especifica (lugar, equipo, momento), problema encontrado, decision tomada, resultado. NO inventes escenarios — basa todo en la evidencia del contexto. Hook: escena que arranca in media res.
-
-3. **Framework Accionable** (variant: "data_driven"): Presenta un framework, checklist, o regla practica que el lector quiera GUARDAR como referencia. Estructura: Problema comun en O&M → Framework de N pasos/senales/errores → Aplicacion concreta con ejemplo. Optimizado para que el usuario presione "Guardar". Hook: numero + promesa de utilidad practica ("3 senales de que tu planta tiene X").
+    ${buildVariantInstructions(funnel_stage)}
 
 Responde con este JSON exacto:
 {
