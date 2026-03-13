@@ -47,6 +47,7 @@ interface VisualEditorProps {
   onUpdateStatus: (visualId: string, status: string) => Promise<{ success?: true; error?: string }>
   onUpdateQA: (visualId: string, qaJson: string) => Promise<{ success?: true; error?: string }>
   onUploadImage: (visualId: string, imageUrl: string) => Promise<{ success?: true; error?: string }>
+  logoUrl?: string | null
 }
 
 // ============================================
@@ -210,6 +211,7 @@ export function VisualEditor({
   onUpdateStatus,
   onUpdateQA,
   onUploadImage,
+  logoUrl,
 }: VisualEditorProps) {
   const [selectedVisualId, setSelectedVisualId] = useState<string | null>(visuals[0]?.id ?? null)
   const [jsonText, setJsonText] = useState('')
@@ -861,6 +863,7 @@ export function VisualEditor({
                   onImageGenerated={(url) => setImageUrl(url)}
                   onAutoCreateVersion={selectedVisualId ? undefined : handleAutoCreateVersion}
                   label={topicTitle ? `${topicTitle} dia-${dayOfWeek}` : `visual-dia-${dayOfWeek}`}
+                  logoUrl={logoUrl}
                 />
                 <details className="mt-3 text-xs text-foreground-muted">
                   <summary className="cursor-pointer hover:text-foreground">URL manual (avanzado)</summary>

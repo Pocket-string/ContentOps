@@ -84,16 +84,17 @@ El modelo de imagen interpreta CUALQUIER texto tecnico como texto a renderizar:
 
 Si prompt_overall esta vago o generico, la imagen sera mala. Se PRECISO pero VISUAL, no tecnico.
 
-## LOGO — OBLIGATORIO EN TODA IMAGEN
+## LOGO — BANDA BLANCA INFERIOR (OBLIGATORIO)
 
-${logoDesc}
+El logo real de la marca se composita automaticamente en post-procesamiento sobre la banda blanca. NO describas el logo en prompt_overall — el modelo de imagen no puede reproducirlo con precision. En cambio, SIEMPRE reserva el espacio:
 
-**Reglas de logo:**
-- Ubicacion por defecto: esquina inferior izquierda sobre banda blanca solida
-- La banda blanca mide ~12% del alto total de la imagen
-- El logo ocupa maximo 20% del ancho de la imagen
-- Siempre usar \`use_logo: true\` y describir el logo textualmente en prompt_overall
-- En fondos oscuros: logo en blanco. En fondos claros: logo en navy #1E3A5F
+**Reglas de banda blanca:**
+- Dejar una banda blanca solida en la parte inferior de la imagen
+- La banda blanca mide exactamente el 12% del alto total de la imagen
+- La banda blanca ocupa el 100% del ancho de la imagen
+- El fondo de la banda es blanco puro (#FFFFFF)
+- En prompt_overall incluir siempre: "solid white band at the bottom (12% height) reserved for logo placement — keep this area completely white and clear"
+- NO dibujar ningun logo ni texto en esta banda — el logo se agrega en post-processing
 
 ## FIRMA DEL AUTOR
 
@@ -282,14 +283,14 @@ Distribuye los slides asi:
 - **Slide N-1 (solution)**: Resumen de la solucion o takeaway principal.
 - **Slide N (cta_close)**: Call to action claro. "Comenta", "Sigue", "DM", etc.
 
-## LOGO — OBLIGATORIO EN TODA SLIDE
+## LOGO — BANDA BLANCA INFERIOR (OBLIGATORIO EN CADA SLIDE)
 
-${logoDesc}
+El logo real se composita automaticamente en post-procesamiento. NO describas el logo — reserva el espacio en cada slide:
 
-- Ubicacion: esquina inferior izquierda sobre banda blanca solida
-- Banda blanca: ~12% del alto total
-- Logo: maximo 20% del ancho
-- Describir logo textualmente en CADA prompt_overall
+- Dejar banda blanca solida en la parte inferior de CADA slide (12% del alto)
+- Banda blanca de 100% del ancho, fondo blanco puro (#FFFFFF)
+- En cada prompt_overall incluir: "solid white band at the bottom (12% height) reserved for logo — keep completely white and clear"
+- NO dibujar ningun logo ni texto en esta banda
 - Esquina inferior derecha SIEMPRE vacia
 
 ## FIRMA DEL AUTOR
@@ -385,9 +386,8 @@ export async function POST(request: Request): Promise<Response> {
   const brandImageryStyle = brand?.imagery.style ?? BRAND_STYLE.imagery.style
   const brandNegativePrompts = brand?.negative_prompts ?? [...NEGATIVE_PROMPTS]
   const authorSignature = brand?.author_signature ?? BRAND_SIGNATURE.text
-  const logoDescription = brand?.logo_urls?.length
-    ? `${brand.logo_urls.map(l => l.name).join(', ')} logo. ${BRAND_LOGO_DESCRIPTION.reference_description}`
-    : BRAND_LOGO_DESCRIPTION.reference_description
+  // logoDescription no longer injected into AI prompt — logo composited via sharp post-processing
+  const logoDescription = undefined
 
   // 5. Build format context
   const { post_content, funnel_stage, format, topic, keyword, additional_instructions, concept_type, num_slides, weekly_brief } =

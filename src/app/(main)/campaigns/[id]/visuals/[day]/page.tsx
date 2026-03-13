@@ -3,6 +3,8 @@ import { getCampaignById } from '@/features/campaigns/services/campaign-service'
 import { getPostByCampaignAndDay } from '@/features/posts/services/post-service'
 import { getVisualsByPostId } from '@/features/visuals/services/visual-service'
 import { getCarouselSlides } from '@/features/visuals/services/carousel-service'
+import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
+import { getWorkspaceId } from '@/lib/workspace'
 import { VisualEditorClient } from './client'
 import type { CarouselSlide } from '@/shared/types/content-ops'
 
@@ -22,9 +24,11 @@ export default async function VisualEditorPage({ params, searchParams }: Props) 
     notFound()
   }
 
-  const [campaignResult, postResult] = await Promise.all([
+  const workspaceId = await getWorkspaceId()
+  const [campaignResult, postResult, brandResult] = await Promise.all([
     getCampaignById(campaignId),
     getPostByCampaignAndDay(campaignId, dayOfWeek),
+    getActiveBrandProfile(workspaceId),
   ])
 
   if (!campaignResult.data || !postResult.data) {
@@ -33,6 +37,8 @@ export default async function VisualEditorPage({ params, searchParams }: Props) 
 
   const campaign = campaignResult.data
   const post = postResult.data
+  // Use first logo URL from brand profile for compositing
+  const logoUrl = brandResult.data?.logo_urls?.[0]?.url ?? null
 
   // Get post content: prefer variant from query param, fall back to is_current
   const targetVersion = variantParam
@@ -72,6 +78,7 @@ export default async function VisualEditorPage({ params, searchParams }: Props) 
         keyword={campaign.keyword ?? undefined}
         visuals={visuals}
         carouselSlidesMap={carouselSlidesMap}
+        logoUrl={logoUrl}
       />
     </div>
   )

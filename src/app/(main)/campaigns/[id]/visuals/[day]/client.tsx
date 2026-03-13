@@ -20,6 +20,7 @@ interface Props {
   keyword?: string
   visuals: VisualVersion[]
   carouselSlidesMap?: Record<string, CarouselSlide[]>
+  logoUrl?: string | null
 }
 
 export function VisualEditorClient({
@@ -32,6 +33,7 @@ export function VisualEditorClient({
   keyword,
   visuals,
   carouselSlidesMap,
+  logoUrl,
 }: Props) {
   async function handleCreateVisual(formData: FormData) {
     const result = await createVisualVersionAction(formData)
@@ -89,6 +91,7 @@ export function VisualEditorClient({
       onUpdateStatus={handleUpdateStatus}
       onUpdateQA={handleUpdateQA}
       onUploadImage={handleUploadImage}
+      logoUrl={logoUrl}
     />
   )
 }

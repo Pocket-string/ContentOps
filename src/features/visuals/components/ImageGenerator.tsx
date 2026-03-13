@@ -17,6 +17,8 @@ interface ImageGeneratorProps {
   /** Called when no version exists and user wants to generate — parent should create version first */
   onAutoCreateVersion?: () => Promise<string | null>
   label?: string
+  /** Brand logo URL — when provided, logo is composited onto the generated image via sharp */
+  logoUrl?: string | null
 }
 
 const MODEL_OPTIONS = Object.values(IMAGE_MODELS).map((m) => ({
@@ -52,6 +54,7 @@ export function ImageGenerator({
   onImageGenerated,
   onAutoCreateVersion,
   label,
+  logoUrl,
 }: ImageGeneratorProps) {
   const [modelId, setModelId] = useState<ImageModelId>(DEFAULT_IMAGE_MODEL)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -88,6 +91,7 @@ export function ImageGenerator({
           prompt_json: effectivePromptJson,
           format,
           model_id: modelId,
+          ...(logoUrl ? { logo_url: logoUrl } : {}),
         }),
       })
       const json: unknown = await res.json()

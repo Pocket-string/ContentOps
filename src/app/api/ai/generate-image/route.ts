@@ -7,6 +7,7 @@ import { getImageModel } from '@/shared/lib/ai-router'
 import { buildImagePrompt } from '@/features/visuals/services/image-prompt-builder'
 import { uploadImageToStorage } from '@/features/visuals/services/image-storage-service'
 import { updateVisualImageUrl } from '@/features/visuals/services/visual-service'
+import { compositeLogoOnImage } from '@/features/visuals/services/logo-compositor'
 import { FORMAT_TO_ASPECT_RATIO } from '@/features/visuals/constants/image-models'
 import type { VisualFormat } from '@/features/visuals/constants/brand-rules'
 
@@ -17,6 +18,7 @@ const inputSchema = z.object({
   model_id: z
     .enum(['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'])
     .default('gemini-3-pro-image-preview'),
+  logo_url: z.string().url().optional(),
 })
 
 export async function POST(request: Request): Promise<Response> {
@@ -48,7 +50,7 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  const { visual_version_id, prompt_json, format, model_id } = parsed.data
+  const { visual_version_id, prompt_json, format, model_id, logo_url } = parsed.data
 
   // 4. Build text prompt from structured JSON
   const textPrompt = buildImagePrompt(prompt_json, format as VisualFormat)
@@ -68,12 +70,26 @@ export async function POST(request: Request): Promise<Response> {
       },
     })
 
+    // 5b. Composite logo if provided (post-processing — pixel-perfect brand logo)
+    let finalBase64 = result.image.base64
+    let finalMediaType: string = result.image.mediaType
+    if (logo_url) {
+      try {
+        const composited = await compositeLogoOnImage(finalBase64, finalMediaType, logo_url)
+        finalBase64 = composited.buffer.toString('base64')
+        finalMediaType = composited.mediaType
+      } catch (err) {
+        // Non-blocking: if compositing fails, use original image
+        console.error('[generate-image] Logo compositing failed (using original):', err)
+      }
+    }
+
     // 6. Upload to Supabase Storage
     const uploadResult = await uploadImageToStorage(
       workspaceId,
       visual_version_id,
-      result.image.base64,
-      result.image.mediaType
+      finalBase64,
+      finalMediaType
     )
 
     if (uploadResult.error) {
