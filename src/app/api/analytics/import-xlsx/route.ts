@@ -50,11 +50,17 @@ export type ImportXlsxOutput = z.infer<typeof importOutputSchema>
 
 /**
  * Safely coerce a cell value to a non-negative integer.
- * Returns 0 for nullish, non-numeric, or negative values.
+ * Handles European number formatting used by LinkedIn Spain/LATAM exports:
+ * periods as thousands separators (e.g. "1.234" = 1234, not 1.234).
  */
 function toInt(value: unknown): number {
   if (value === null || value === undefined || value === '') return 0
-  const n = Number(value)
+  // If it's already a number (xlsx parsed as numeric cell), use directly
+  if (typeof value === 'number') return Math.max(0, Math.round(value))
+  // String: strip thousands separators (period) then parse
+  // European format: "1.234,56" → 1234. Simple integer: "1.234" → 1234
+  const cleaned = String(value).trim().replace(/\./g, '').replace(',', '.')
+  const n = Number(cleaned)
   if (!isFinite(n)) return 0
   return Math.max(0, Math.round(n))
 }
