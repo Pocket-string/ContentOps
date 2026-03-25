@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -213,6 +214,7 @@ export function VisualEditor({
   onUploadImage,
   logoUrl,
 }: VisualEditorProps) {
+  const router = useRouter()
   const [selectedVisualId, setSelectedVisualId] = useState<string | null>(visuals[0]?.id ?? null)
   const [jsonText, setJsonText] = useState('')
   const [jsonError, setJsonError] = useState('')
@@ -509,16 +511,19 @@ export function VisualEditor({
         return
       }
       setImageUrl(json.data.image_url)
+      setSelectedVisualId(json.data.visual_version_id)
       setCompleteGenStep('done')
       setCompleteGenFeedback('')
       showSuccess('Visual generado correctamente')
+      // Refresh server data so new version appears in the sidebar
+      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado')
     } finally {
       setIsGeneratingComplete(false)
       setTimeout(() => setCompleteGenStep('idle'), 3000)
     }
-  }, [postId, postContent, funnelStage, selectedVisualId, format, topicTitle, keyword, logoUrl])
+  }, [postId, postContent, funnelStage, selectedVisualId, format, topicTitle, keyword, logoUrl, router])
 
   // ============================================
   // Render

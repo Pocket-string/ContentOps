@@ -137,21 +137,20 @@ export async function POST(request: Request): Promise<Response> {
       authorSignature: brand?.author_signature ?? BRAND_SIGNATURE.text,
     }
 
-    // Step 2: Auto-create visual version if needed
-    if (!visual_version_id) {
-      const createResult = await createVisualVersion(user.id, {
-        post_id,
-        format: format ?? '1:1',
-        prompt_json: {},
-      })
-      if (createResult.error || !createResult.data) {
-        return Response.json(
-          { error: createResult.error ?? 'Error al crear version visual' },
-          { status: 500 }
-        )
-      }
-      visual_version_id = createResult.data.id
+    // Step 2: Always create a new visual version
+    // Even if a version exists, "Generar Visual Completo" creates a fresh v2, v3, etc.
+    const createResult = await createVisualVersion(user.id, {
+      post_id,
+      format: format ?? '1:1',
+      prompt_json: {},
+    })
+    if (createResult.error || !createResult.data) {
+      return Response.json(
+        { error: createResult.error ?? 'Error al crear version visual' },
+        { status: 500 }
+      )
     }
+    visual_version_id = createResult.data.id
 
     // Step 3: Generate visual JSON
     const dims = FORMAT_DIMENSIONS[format as VisualFormat] ?? FORMAT_DIMENSIONS['1:1']
