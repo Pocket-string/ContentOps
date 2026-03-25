@@ -9,6 +9,7 @@ import { getTopPatterns } from '@/features/patterns/services/pattern-service'
 import { getModel } from '@/shared/lib/ai-router'
 import { reviewCopy } from '@/shared/lib/ai-reviewer'
 import { FUNNEL_STAGE_GUIDE } from '@/shared/lib/funnel-stage-guide'
+import { getRecentHooks } from '@/features/posts/services/hook-history-service'
 import type { FunnelStage } from '@/shared/types/content-ops'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
@@ -50,6 +51,8 @@ function buildVariantInstructions(funnelStage: string): string {
   if (isBofu) {
     return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este es el post de CIERRE — NO es educativo ni de awareness. El lector ya conoce el problema y la solucion. Ahora debe tomar una accion concreta. UN solo CTA principal. NO mezclar multiples CTAs.
 
+LONGITUD: 1500-2200 caracteres. Directo al punto. Sin preambulos.
+
 1. **Diagnostico Ejecutivo** (variant: "contrarian"): Hace que el lector se reconozca en el dolor operativo. "Si hoy gestionas X con Y, probablemente estes viendo una version incompleta de tu rendimiento." Estructura: situacion real del lector → consecuencia economica concreta → siguiente paso. Hook: situacion operativa que el Asset Manager / O&M Manager vive hoy.
 
 2. **Costo de No Actuar** (variant: "story"): Muestra cuanto puede costar seguir operando sin el nuevo enfoque. Urgencia economica sin exagerar ni sonar alarmista. Estructura: escenario sin cambio → perdida cuantificada → accion disponible ahora. Hook: el numero o consecuencia mas directa de no cambiar.
@@ -60,6 +63,8 @@ function buildVariantInstructions(funnelStage: string): string {
   if (isSolution) {
     return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este post es de etapa SOLUCION — NO repetir el diagnostico del problema. El lector ya lo conoce. Enfocarse en el COMO funciona la solucion y POR QUE es superior al enfoque anterior. El CTA debe invitar a guardar o profundizar, NO a convertir.
 
+LONGITUD: 1800-2500 caracteres. Espacio para educar con profundidad tecnica.
+
 1. **Mecanismo** (variant: "contrarian"): Explica el "como funciona" tecnico de la solucion. Contrasta punto a punto con el enfoque anterior. Estructura: como se hace hoy → que se pierde con ese enfoque → como funciona la alternativa → impacto cuantificado. Hook: declaracion que reencuadra como vemos el rendimiento ahora.
 
 2. **Implementacion** (variant: "story"): Caso concreto o escenario de como se implementa en la practica. Primera persona o tercera persona cercana. NO inventar escenarios — basa todo en la evidencia del contexto. Estructura: situacion inicial → decision de implementar → proceso → resultado medible. Hook: resultado o hallazgo obtenido al implementar.
@@ -69,6 +74,8 @@ function buildVariantInstructions(funnelStage: string): string {
 
   // Default: PROBLEM stage (tofu_problem / mofu_problem)
   return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este post es de etapa PROBLEMA — NO mencionar la solucion. Enfocarse 100% en diagnosticar el problema con precision. El CTA debe ser una pregunta abierta que invite a comentar, NO una invitacion a descargar o contactar.
+
+LONGITUD: 1800-2500 caracteres. Espacio para desarrollar el diagnostico con evidencia.
 
 1. **Revelacion Tecnica** (variant: "contrarian"): Desafia una creencia instalada en O&M con un mecanismo tecnico que la audiencia no ha identificado. Estructura: Mito o asuncion erronea → Mecanismo real que lo contradice → Impacto en kWh/USD → Insight accionable. Hook: contradiccion o dato que rompe la asuncion.
 
@@ -138,7 +145,16 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
-    const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief, previous_hooks, pillar_name, pillar_description } = parsed.data
+    const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief, previous_hooks: campaignHooks, pillar_name, pillar_description } = parsed.data
+
+    // Fetch cross-campaign hooks for workspace-wide anti-repetition
+    const crossCampaignHooks = await getRecentHooks(workspaceId, 50)
+    // Merge: campaign-specific hooks first, then cross-campaign (deduplicated)
+    const campaignHookSet = new Set(campaignHooks ?? [])
+    const allPreviousHooks = [
+      ...(campaignHooks ?? []),
+      ...crossCampaignHooks.filter(h => !campaignHookSet.has(h)),
+    ]
 
     // Build pillar context section
     const pillarSection = pillar_name ? `
@@ -179,6 +195,12 @@ CRITICO: El hook, tono, y CTA DEBEN alinearse con esta etapa del funnel. Un post
 - **Iniciar (I)**: CTA claro y apropiado al funnel stage. Genera accion medible
 
 ## HOOK (CRITICO — determina si el post se distribuye)
+FORMULA PRINCIPAL: **Resultado Inesperado + Detalle Especifico**
+- NO: "Como mejorar el rendimiento de tu planta"
+- SI: "Redujimos las perdidas un 3.2% sin instalar un solo sensor"
+- NO: "La importancia del monitoreo en plantas solares"
+- SI: "Revisamos 200 strings. 47 tenian la mano frenada y nadie lo sabia."
+
 El hook DEBE usar una de estas formulas probadas:
 1. DATO IMPACTANTE: "Una planta de 100MW pierde $X/ano por algo que nadie mide."
 2. PREGUNTA PROVOCADORA: "Tu PR global esta OK? Puede haber strings con la mano frenada."
@@ -191,6 +213,7 @@ PROHIBIDO en hooks:
 - "Sabias que..." sin dato concreto inmediato despues
 - Empezar con emoji (patron detectado como bot por LinkedIn)
 - Frases que podrian ser de cualquier sector
+- Hooks genericos que no tienen detalle especifico del tema
 
 ## REGLA CRITICA: NO INVENTAR DATOS
 - NUNCA inventes estadisticas, porcentajes, nombres de empresas, o cifras
@@ -198,8 +221,19 @@ PROHIBIDO en hooks:
 - Si NO hay datos, usa "la evidencia indica", "en nuestra experiencia" — NUNCA cifras inventadas
 - La credibilidad del autor depende de la precision de cada dato publicado
 
+## ESTRUCTURA DEL CUERPO — Metodo "Brick by Brick" (Stakes → Story → Shift)
+Cada variante DEBE seguir este arco narrativo en el cuerpo (despues del hook):
+1. **Stakes** (Por que importa): Establece el costo real de ignorar el problema. Urgencia economica u operativa concreta — no generica. El lector debe sentir que le afecta directamente.
+2. **Story** (Caso de campo): Un escenario real con tension narrativa. Detalle sensorial (lugar, equipo, momento). El lector debe "estar ahi". Si no hay caso real en el contexto, usa "en una planta tipica de X MW..." con datos verificables.
+3. **Shift** (Principio universal): El insight que el lector se lleva. Un principio aplicable a su propia operacion. La frase que recordara manana.
+
+## SHARE TRIGGERS (al menos 1 por variante)
+Cada variante debe activar al menos uno de estos mecanismos de compartir:
+- **Identity**: El lector se ve como experto al compartir ("esto lo sabe alguien que entiende de verdad el O&M")
+- **Emotion**: Conecta con frustracion operativa real ("esto me pasa cada semana")
+- **Utility**: Contenido guardable y accionable ("necesito tener esto a mano")
+
 ## FORMATO OPTIMIZADO PARA LINKEDIN (basado en evidencia de algoritmo)
-- Longitud optima: 1500-2200 caracteres (maximiza dwell time sin perder atencion)
 - Parrafos de 1-2 lineas maximo (legibilidad movil)
 - Doble salto de linea entre ideas principales
 - NO empezar con emoji
@@ -245,16 +279,17 @@ ${weekly_brief ? `
 - Restriccion links: ${weekly_brief.restriccion_links ? 'NO incluir links' : 'Links permitidos'}
 - Reglas de tono: ${weekly_brief.tone_rules ?? 'No definidas'}` : ''}
 ${patternSection}
-${previous_hooks && previous_hooks.length > 0 ? `
-## ANTI-REPETITIVIDAD (CRITICO — posts previos en esta campana)
-Los siguientes hooks ya fueron usados en otros posts de esta misma campana semanal:
-${previous_hooks.map((h, i) => `${i + 1}. "${h}"`).join('\n')}
+${allPreviousHooks.length > 0 ? `
+## ANTI-REPETITIVIDAD (CRITICO — hooks recientes de TODAS las campanas)
+Los siguientes hooks ya fueron usados en posts recientes del workspace:
+${allPreviousHooks.slice(0, 30).map((h, i) => `${i + 1}. "${h}"`).join('\n')}
 
 PROHIBIDO:
 - Usar hooks similares a los listados arriba
-- Repetir la misma estructura narrativa (si uno usó pregunta, usar dato o escena)
+- Repetir la misma estructura narrativa (si uno uso pregunta, usar dato o escena)
 - Reutilizar el mismo angulo o argumento central
-- Cada post de la campana DEBE sentirse como contenido completamente independiente
+- Cada post DEBE sentirse como contenido completamente independiente y fresco
+- El hook debe ser NUEVO — no una variacion menor de uno existente
 ` : ''}
     ${buildVariantInstructions(funnel_stage)}
 

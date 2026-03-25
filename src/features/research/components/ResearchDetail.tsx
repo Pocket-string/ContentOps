@@ -34,12 +34,25 @@ interface SynthesisBullet {
   suggested_angle: string
 }
 
+// Format C: deep research fields (PRP-008)
+interface TopicCandidate {
+  title: string
+  angle: string
+  hook_idea: string
+  fit_score: number
+  ai_recommendation?: string
+}
+
 // Unified shape for display
 interface AiSynthesis {
   summary: string
   market_context?: string
+  invisible_enemy?: string
+  thesis?: string
+  conversion_resource?: string
   key_findings: KeyFinding[]
   suggested_topics: SuggestedTopic[]
+  topic_candidates?: TopicCandidate[]
   bullets: SynthesisBullet[]
   sources: string[]
 }
@@ -49,6 +62,9 @@ function parseSynthesis(raw: Record<string, unknown> | null): AiSynthesis | null
 
   const summary = typeof raw['summary'] === 'string' ? raw['summary'] : ''
   const marketContext = typeof raw['market_context'] === 'string' ? raw['market_context'] : undefined
+  const invisibleEnemy = typeof raw['invisible_enemy'] === 'string' ? raw['invisible_enemy'] : undefined
+  const thesis = typeof raw['thesis'] === 'string' ? raw['thesis'] : undefined
+  const conversionResource = typeof raw['conversion_resource'] === 'string' ? raw['conversion_resource'] : undefined
 
   // Parse Format A: key_findings + suggested_topics (from grounded research)
   const keyFindings: KeyFinding[] = Array.isArray(raw['key_findings'])
@@ -102,12 +118,39 @@ function parseSynthesis(raw: Record<string, unknown> | null): AiSynthesis | null
     ? (raw['sources'] as unknown[]).filter((s): s is string => typeof s === 'string')
     : []
 
+  // Parse topic_candidates (PRP-008 deep research)
+  const topicCandidates: TopicCandidate[] = Array.isArray(raw['topic_candidates'])
+    ? (raw['topic_candidates'] as Record<string, unknown>[]).flatMap((item) => {
+        if (item && typeof item === 'object' && typeof item['title'] === 'string') {
+          return [{
+            title: item['title'] as string,
+            angle: typeof item['angle'] === 'string' ? item['angle'] as string : '',
+            hook_idea: typeof item['hook_idea'] === 'string' ? item['hook_idea'] as string : '',
+            fit_score: typeof item['fit_score'] === 'number' ? item['fit_score'] as number : 0,
+            ai_recommendation: typeof item['ai_recommendation'] === 'string' ? item['ai_recommendation'] as string : undefined,
+          }]
+        }
+        return []
+      })
+    : []
+
   // Must have at least something meaningful
   if (!summary && keyFindings.length === 0 && suggestedTopics.length === 0 && bullets.length === 0) {
     return null
   }
 
-  return { summary, market_context: marketContext, key_findings: keyFindings, suggested_topics: suggestedTopics, bullets, sources }
+  return {
+    summary,
+    market_context: marketContext,
+    invisible_enemy: invisibleEnemy,
+    thesis,
+    conversion_resource: conversionResource,
+    key_findings: keyFindings,
+    suggested_topics: suggestedTopics,
+    topic_candidates: topicCandidates.length > 0 ? topicCandidates : undefined,
+    bullets,
+    sources,
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -583,6 +626,30 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
                   </p>
                 )}
 
+                {/* Enemigo Invisible (PRP-008) */}
+                {synthesis.invisible_enemy && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-red-800 mb-1">Enemigo Invisible</h4>
+                    <p className="text-sm text-red-700">{synthesis.invisible_enemy}</p>
+                  </div>
+                )}
+
+                {/* Tesis Contrarian (PRP-008) */}
+                {synthesis.thesis && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-amber-800 mb-1">Tesis Contrarian</h4>
+                    <p className="text-sm text-amber-700">{synthesis.thesis}</p>
+                  </div>
+                )}
+
+                {/* Recurso de Conversion BOFU (PRP-008) */}
+                {synthesis.conversion_resource && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-green-800 mb-1">Recurso de Conversion (BOFU)</h4>
+                    <p className="text-sm text-green-700">{synthesis.conversion_resource}</p>
+                  </div>
+                )}
+
                 {/* Key Findings (Format A — from grounded research) */}
                 {synthesis.key_findings.length > 0 && (
                   <div className="space-y-3">
@@ -687,6 +754,33 @@ export function ResearchDetail({ research, onDelete }: ResearchDetailProps) {
                         </Button>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Topic Candidates with fit score (PRP-008) */}
+                {synthesis.topic_candidates && synthesis.topic_candidates.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-foreground">Topic Candidates (con fit score)</h4>
+                    <div className="space-y-2">
+                      {synthesis.topic_candidates.map((tc, i) => (
+                        <div key={i} className="bg-surface border border-border rounded-xl p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">{tc.title}</span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                              tc.fit_score >= 90 ? 'bg-green-100 text-green-800' :
+                              tc.fit_score >= 70 ? 'bg-blue-100 text-blue-800' :
+                              tc.fit_score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>{tc.fit_score}</span>
+                          </div>
+                          <p className="text-xs text-foreground-secondary">{tc.angle}</p>
+                          <p className="text-xs text-foreground-muted italic">Hook: {tc.hook_idea}</p>
+                          {tc.ai_recommendation && (
+                            <p className="text-xs text-primary-600">{tc.ai_recommendation}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

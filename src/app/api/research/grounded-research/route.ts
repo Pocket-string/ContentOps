@@ -36,7 +36,26 @@ const researchOutputSchema = z.object({
   market_context: z.string().optional(),
   sources: z.array(z.string()).default([])
     .describe('Consolidated list of all unique source URLs or report names referenced'),
+  // PRP-008: Deep research enrichment fields
+  invisible_enemy: z.string().optional()
+    .describe('The hidden enemy: what the audience does not see that is costing them money'),
+  thesis: z.string().optional()
+    .describe('Main contrarian thesis from the research'),
+  conversion_resource: z.string().optional()
+    .describe('What resource to offer in BOFU (checklist, diagnostic, guide)'),
+  topic_candidates: z.array(z.object({
+    title: z.string(),
+    angle: z.string(),
+    hook_idea: z.string(),
+    fit_score: z.number().min(0).max(100),
+    ai_recommendation: z.string().optional(),
+  })).default([]),
 })
+
+/** Delay utility for staggering parallel requests */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 export type GroundedResearchOutput = z.infer<typeof researchOutputSchema>
 
@@ -101,14 +120,74 @@ Reglas:
 ${buyer_persona ? `- Enfoca para el perfil: ${buyer_persona}` : ''}
 ${region ? `- Region de interes: ${region}` : ''}${pillarInstruction}`
 
-    const { text: groundedText } = await generateText({
-      model: googleProvider(GEMINI_MODEL),
-      tools: {
-        google_search: googleProvider.tools.googleSearch({}),
-      },
-      system: systemPrompt,
-      prompt: researchPrompt,
-    })
+    // 4b-1. Multi-query parallel research (PRP-008 enhancement)
+    // Use search_queries from prompt builder if available, otherwise use the main prompt
+    const searchQueries = promptData?.search_queries?.length
+      ? promptData.search_queries.slice(0, 5)
+      : [researchPrompt]
+
+    const searchResults = await Promise.allSettled(
+      searchQueries.map((query: string, i: number) =>
+        delay(i * 500).then(() =>
+          generateText({
+            model: googleProvider(GEMINI_MODEL),
+            tools: {
+              google_search: googleProvider.tools.googleSearch({}),
+            },
+            system: systemPrompt,
+            prompt: query,
+          })
+        )
+      )
+    )
+
+    // Merge all successful results
+    const successfulTexts = searchResults
+      .filter(r => r.status === 'fulfilled')
+      .map(r => (r as PromiseFulfilledResult<{ text: string }>).value.text)
+      .filter(t => t.trim().length > 50)
+
+    const mergedGroundedText = successfulTexts.length > 0
+      ? successfulTexts.join('\n\n---\n\n')
+      : ''
+
+    // 4b-2. Iterative deepening: generate follow-up questions and research deeper
+    let deepenedText = ''
+    if (mergedGroundedText.length > 200) {
+      try {
+        const { text: followUpQuestions } = await generateText({
+          model: googleProvider(GEMINI_MODEL),
+          system: 'Genera 2 preguntas de seguimiento especificas para profundizar esta investigacion. Responde SOLO con las preguntas, una por linea.',
+          prompt: mergedGroundedText.slice(0, 3000),
+        })
+
+        const questions = followUpQuestions.split('\n').filter(q => q.trim().length > 10).slice(0, 2)
+        if (questions.length > 0) {
+          const deepResults = await Promise.allSettled(
+            questions.map((q, i) =>
+              delay(i * 500).then(() =>
+                generateText({
+                  model: googleProvider(GEMINI_MODEL),
+                  tools: { google_search: googleProvider.tools.googleSearch({}) },
+                  system: systemPrompt,
+                  prompt: q,
+                })
+              )
+            )
+          )
+          deepenedText = deepResults
+            .filter(r => r.status === 'fulfilled')
+            .map(r => (r as PromiseFulfilledResult<{ text: string }>).value.text)
+            .filter(t => t.trim().length > 50)
+            .join('\n\n---\n\n')
+        }
+      } catch (deepErr) {
+        // Non-fatal: iterative deepening is optional
+        console.error('[grounded-research] Deepening failed (continuing):', deepErr)
+      }
+    }
+
+    const groundedText = [mergedGroundedText, deepenedText].filter(Boolean).join('\n\n=== PROFUNDIZACION ===\n\n')
 
     // If grounded search returned empty text, use the original prompt as fallback
     const textForStructuring = groundedText.trim().length > 50
@@ -133,20 +212,29 @@ El JSON debe seguir esta estructura EXACTA:
     {"title": "titulo del post", "angle": "angulo editorial basado en un hallazgo especifico", "hook_idea": "idea de gancho con dato extraido del hallazgo"}
   ],
   "market_context": "contexto de mercado",
-  "sources": ["fuente 1 (URL o nombre del reporte)", "fuente 2"]
+  "sources": ["fuente 1 (URL o nombre del reporte)", "fuente 2"],
+  "invisible_enemy": "El enemigo invisible: lo que la audiencia NO ve que le esta costando dinero. Debe ser especifico (ej: 'El PR que miente porque no mide soiling heterogeneo'), NO generico (ej: 'las perdidas ocultas')",
+  "thesis": "Tesis contrarian principal de la investigacion. Una afirmacion que desafia la creencia instalada del sector. Especifica y provocadora.",
+  "conversion_resource": "Que recurso concreto ofrecer en BOFU: checklist, diagnostico, guia, template, calculadora. Debe derivarse de los hallazgos.",
+  "topic_candidates": [
+    {"title": "titulo", "angle": "angulo editorial", "hook_idea": "idea de hook con dato", "fit_score": 85, "ai_recommendation": "por que este topic es bueno para LinkedIn"}
+  ]
 }
 REGLAS:
 - key_findings: minimo 3, maximo 8 items
-- suggested_topics: minimo 3, maximo 6 items
-- CADA suggested_topic DEBE derivarse directamente de uno o mas key_findings. NO inventes topics que no esten respaldados por los hallazgos
-- El "angle" debe referenciar el hallazgo especifico del que se deriva (ej: "Basado en el dato de X% de perdidas por Y...")
-- El "hook_idea" debe usar un dato concreto extraido de los hallazgos, NO agregar enfoques de IA o tecnologia que no esten en la investigacion
-- NO agregues angulos de IA, machine learning, o automatizacion a los topics a menos que la investigacion original los mencione explicitamente
-- Todos los valores deben ser strings, no arrays ni objetos anidados
-- CADA key_finding DEBE tener un campo "source" con la fuente especifica (URL, nombre del reporte, organizacion)
-- El campo "sources" debe listar TODAS las fuentes unicas referenciadas en los hallazgos
+- suggested_topics: minimo 3, maximo 6 items (backward compat)
+- topic_candidates: 3-8 items con fit_score de 0-100 basado en potencial viral en LinkedIn
+- fit_score: 90+ = viral potencial, 70-89 = solido, 50-69 = aceptable, <50 = debil
+- CADA suggested_topic y topic_candidate DEBE derivarse de key_findings
+- El "angle" debe referenciar el hallazgo especifico del que se deriva
+- El "hook_idea" debe usar un dato concreto extraido de los hallazgos
+- invisible_enemy: DEBE ser especifico al tema investigado, NO generico
+- thesis: DEBE ser contrarian — desafiar una creencia comun del sector
+- NO agregues angulos de IA o tecnologia que no esten en la investigacion
+- CADA key_finding DEBE tener "source" con la fuente especifica
+- "sources" debe listar TODAS las fuentes unicas referenciadas
 - NO inventes fuentes — si no puedes atribuir un hallazgo, indica "Conocimiento del sector"${pillarContextForStructuring}`,
-      prompt: `Estructura esta investigacion en JSON:\n\n${textForStructuring.slice(0, 6000)}`,
+      prompt: `Estructura esta investigacion en JSON:\n\n${textForStructuring.slice(0, 8000)}`,
     })
 
     // Parse JSON from response — handle markdown code blocks, whitespace, etc.
@@ -164,9 +252,11 @@ REGLAS:
     const findings = Array.isArray(rawParsed.key_findings) ? rawParsed.key_findings.slice(0, 10) : []
     const topics = Array.isArray(rawParsed.suggested_topics) ? rawParsed.suggested_topics.slice(0, 8) : []
     const sources = Array.isArray(rawParsed.sources) ? rawParsed.sources.slice(0, 20) : []
+    const topicCandidates = Array.isArray(rawParsed.topic_candidates) ? rawParsed.topic_candidates.slice(0, 8) : []
     rawParsed.key_findings = findings
     rawParsed.suggested_topics = topics
     rawParsed.sources = sources
+    rawParsed.topic_candidates = topicCandidates
 
     const validated = researchOutputSchema.safeParse(rawParsed)
     if (!validated.success) {

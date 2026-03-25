@@ -226,12 +226,21 @@ export function CampaignList({ campaigns }: CampaignListProps) {
             {campaigns.length} {campaigns.length === 1 ? 'campana' : 'campanas'} en total
           </p>
         </div>
-        <Button
-          onClick={() => router.push('/campaigns/new')}
-          leftIcon={<PlusIcon className="w-4 h-4" />}
-        >
-          Nueva Campana
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => router.push('/campaigns/generate-week')}
+            leftIcon={<PlusIcon className="w-4 h-4" />}
+            variant="primary"
+          >
+            Generar Semana
+          </Button>
+          <Button
+            onClick={() => router.push('/campaigns/new')}
+            variant="secondary"
+          >
+            Nueva Campana
+          </Button>
+        </div>
       </div>
 
       {/* Status filters */}

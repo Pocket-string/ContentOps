@@ -242,6 +242,10 @@ export function VisualEditor({
   // Import bridge state
   const [importJsonText, setImportJsonText] = useState('')
   const [importError, setImportError] = useState('')
+  // Simplified visual generation state
+  const [isGeneratingComplete, setIsGeneratingComplete] = useState(false)
+  const [completeGenFeedback, setCompleteGenFeedback] = useState('')
+  const [completeGenStep, setCompleteGenStep] = useState<'idle' | 'json' | 'image' | 'done'>('idle')
   // Carousel state
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>([])
   const [isInitCarousel, setIsInitCarousel] = useState(false)
@@ -475,6 +479,48 @@ export function VisualEditor({
   }, [selectedVisualId, nbRunId, nbIterationReason, nbCustomReason, nbQaNotes])
 
   // ============================================
+  // Simplified visual generation (complete pipeline)
+  // ============================================
+
+  const handleGenerateComplete = useCallback(async (userFeedback?: string) => {
+    setIsGeneratingComplete(true)
+    setError('')
+    setCompleteGenStep('json')
+    try {
+      const res = await fetch('/api/ai/generate-visual-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: postId,
+          post_content: postContent,
+          funnel_stage: funnelStage,
+          visual_version_id: selectedVisualId,
+          feedback: userFeedback || null,
+          format: format || null,
+          topic: topicTitle || null,
+          keyword: keyword || null,
+          logo_url: logoUrl || null,
+        }),
+      })
+      setCompleteGenStep('image')
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'Error al generar visual')
+        return
+      }
+      setImageUrl(json.data.image_url)
+      setCompleteGenStep('done')
+      setCompleteGenFeedback('')
+      showSuccess('Visual generado correctamente')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error inesperado')
+    } finally {
+      setIsGeneratingComplete(false)
+      setTimeout(() => setCompleteGenStep('idle'), 3000)
+    }
+  }, [postId, postContent, funnelStage, selectedVisualId, format, topicTitle, keyword, logoUrl])
+
+  // ============================================
   // Render
   // ============================================
 
@@ -567,47 +613,117 @@ export function VisualEditor({
               </div>
             </div>
 
-            {/* 2. AI Generation — FIRST STEP in workflow */}
-            <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">Generar Prompt Visual</h2>
-              <div>
-                <label htmlFor="additional-instructions" className="block text-sm font-medium text-foreground mb-1.5">
-                  Instrucciones adicionales <span className="text-xs font-normal text-foreground-muted">(opcional)</span>
+            {/* 2. SIMPLIFIED Visual Generation — ONE CLICK */}
+            <div className="bg-surface border border-primary-200 rounded-2xl shadow-card p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-foreground">Generar Visual</h2>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700">Auto</span>
+              </div>
+              {/* Progress indicator */}
+              {isGeneratingComplete && (
+                <div className="flex items-center gap-3 text-xs">
+                  {[
+                    { key: 'json', label: 'Preparando' },
+                    { key: 'image', label: 'Generando imagen' },
+                    { key: 'done', label: 'Listo' },
+                  ].map(({ key, label }, i) => (
+                    <div key={key} className="flex items-center gap-1.5">
+                      <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold ${
+                        completeGenStep === key ? 'bg-primary text-white animate-pulse' :
+                        (['json', 'image', 'done'].indexOf(completeGenStep) > i) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'
+                      }`}>{(['json', 'image', 'done'].indexOf(completeGenStep) > i) ? '\u2713' : i + 1}</span>
+                      <span className={completeGenStep === key ? 'text-primary font-medium' : 'text-foreground-muted'}>{label}</span>
+                      {i < 2 && <span className="text-gray-300">&rarr;</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleGenerateComplete()}
+                isLoading={isGeneratingComplete}
+                leftIcon={<SparklesIcon />}
+                className="w-full"
+              >
+                Generar Visual Completo
+              </Button>
+              {/* Feedback for regeneration */}
+              <div className="space-y-2">
+                <label htmlFor="complete-gen-feedback" className="block text-xs font-medium text-foreground-secondary">
+                  Feedback para regenerar <span className="text-foreground-muted">(opcional)</span>
                 </label>
                 <textarea
-                  id="additional-instructions"
-                  value={additionalInstructions}
-                  onChange={(e) => setAdditionalInstructions(e.target.value)}
+                  id="complete-gen-feedback"
+                  value={completeGenFeedback}
+                  onChange={(e) => setCompleteGenFeedback(e.target.value)}
                   rows={2}
-                  placeholder="Ej: Enfoca en durabilidad de paneles bifaciales, usa tonos oscuros..."
+                  placeholder="Ej: Mas contraste, colores mas oscuros, texto mas grande..."
                   className={`${TEXTAREA_BASE} border-border hover:border-border-dark resize-none`}
                 />
+                {completeGenFeedback.trim() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGenerateComplete(completeGenFeedback)}
+                    isLoading={isGeneratingComplete}
+                    leftIcon={<SparklesIcon />}
+                  >
+                    Regenerar con feedback
+                  </Button>
+                )}
               </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={handleGenerate} isLoading={isGenerating} leftIcon={<SparklesIcon />}>Generar Prompt Visual</Button>
-                <CopyPromptButton
-                  getPrompt={() => buildVisualJsonPrompt({
-                    postContent: postContent,
-                    funnelStage: funnelStage,
-                    format: format,
-                    topicTitle: topicTitle,
-                    keyword: keyword,
-                    additionalInstructions: additionalInstructions,
-                  })}
-                  label="Copiar Prompt"
-                />
-              </div>
-              {visualReview && (
-                <AIReviewBadge
-                  score={visualReview.coherence_score}
-                  recommendation={visualReview.recommendation}
-                  summary={visualReview.one_line_summary}
-                />
-              )}
             </div>
 
-            {/* 3. JSON Editor */}
-            <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
+            {/* 2b. Advanced: Manual Prompt Generation */}
+            <details className="bg-surface border border-border rounded-2xl shadow-card">
+              <summary className="px-5 py-3 cursor-pointer text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors">
+                Avanzado: Generar Prompt Manual
+              </summary>
+              <div className="px-5 pb-5 pt-2 space-y-3">
+                <div>
+                  <label htmlFor="additional-instructions" className="block text-sm font-medium text-foreground mb-1.5">
+                    Instrucciones adicionales <span className="text-xs font-normal text-foreground-muted">(opcional)</span>
+                  </label>
+                  <textarea
+                    id="additional-instructions"
+                    value={additionalInstructions}
+                    onChange={(e) => setAdditionalInstructions(e.target.value)}
+                    rows={2}
+                    placeholder="Ej: Enfoca en durabilidad de paneles bifaciales, usa tonos oscuros..."
+                    className={`${TEXTAREA_BASE} border-border hover:border-border-dark resize-none`}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={handleGenerate} isLoading={isGenerating} leftIcon={<SparklesIcon />}>Generar Prompt Visual</Button>
+                  <CopyPromptButton
+                    getPrompt={() => buildVisualJsonPrompt({
+                      postContent: postContent,
+                      funnelStage: funnelStage,
+                      format: format,
+                      topicTitle: topicTitle,
+                      keyword: keyword,
+                      additionalInstructions: additionalInstructions,
+                    })}
+                    label="Copiar Prompt"
+                  />
+                </div>
+                {visualReview && (
+                  <AIReviewBadge
+                    score={visualReview.coherence_score}
+                    recommendation={visualReview.recommendation}
+                    summary={visualReview.one_line_summary}
+                  />
+                )}
+              </div>
+            </details>
+
+            {/* 3. JSON Editor — Hidden by default */}
+            <details className="bg-surface border border-border rounded-2xl shadow-card">
+            <summary className="px-5 py-3 cursor-pointer text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors">
+              Avanzado: Editor JSON
+            </summary>
+            <div className="px-5 pb-5 pt-2 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-foreground">Prompt JSON</h2>
                 {jsonText !== '' && (
@@ -635,6 +751,7 @@ export function VisualEditor({
                 <Button variant="outline" size="sm" onClick={handleCreateVisual} isLoading={isCreating} disabled={!isJsonValid} leftIcon={<PlusIcon />}>Nueva Version</Button>
               </div>
             </div>
+            </details>
 
             {/* 3b. Import JSON from external AI */}
             <details className="bg-surface border border-border rounded-2xl shadow-card">

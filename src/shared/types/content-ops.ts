@@ -108,6 +108,32 @@ export const structuredContentSchema = z.object({
 export type StructuredContent = z.infer<typeof structuredContentSchema>
 
 // ============================================
+// Pipeline Agentico (PRP-008)
+// ============================================
+
+export const PIPELINE_STAGES = ['research', 'topic', 'campaign', 'copy', 'visual', 'review', 'complete', 'error'] as const
+export type PipelineStage = (typeof PIPELINE_STAGES)[number]
+
+export const pipelineErrorSchema = z.object({
+  step: z.string(),
+  message: z.string(),
+  timestamp: z.string(),
+})
+
+export const pipelineStatusSchema = z.object({
+  stage: z.enum(PIPELINE_STAGES),
+  progress: z.number().min(0).max(100),
+  started_at: z.string(),
+  completed_steps: z.array(z.string()).default([]),
+  errors: z.array(pipelineErrorSchema).default([]),
+  current_post_index: z.number().optional(),
+  total_posts: z.number().optional(),
+})
+
+export type PipelineStatus = z.infer<typeof pipelineStatusSchema>
+export type PipelineError = z.infer<typeof pipelineErrorSchema>
+
+// ============================================
 // Zod Schemas (for parsing external data)
 // ============================================
 
@@ -205,6 +231,8 @@ export const campaignSchema = z.object({
   publishing_plan: publishingPlanSchema.nullable(),
   // Phase 3: Content Pillars
   pillar_id: z.string().uuid().nullable().optional(),
+  // PRP-008: Pipeline Agentico
+  pipeline_status: pipelineStatusSchema.nullable().optional(),
 })
 
 export const postSchema = z.object({
@@ -215,6 +243,8 @@ export const postSchema = z.object({
   objective: z.string().nullable(),
   status: z.enum(POST_STATUSES),
   selected_variant: z.enum(POST_VARIANTS).nullable().optional(),
+  // PRP-008: Pipeline rejection feedback
+  rejection_feedback: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -254,6 +284,8 @@ export const visualVersionSchema = z.object({
   iteration_reason: z.string().nullable(),
   // Carousel support
   slide_count: z.number().min(2).max(10).nullable().optional(),
+  // PRP-008: Pipeline rejection feedback
+  rejection_feedback: z.string().nullable().optional(),
 })
 
 // ============================================
