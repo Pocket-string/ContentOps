@@ -239,8 +239,8 @@ Cada variante debe activar al menos uno de estos mecanismos de compartir:
 - NO empezar con emoji
 - Emojis: MAXIMO 2 por post, solo como indicadores funcionales, nunca decorativos
 - NO incluir links externos en el cuerpo del post
-- CTA al final, antes de hashtags
-- 3-4 hashtags relevantes al final (no mas)
+- CTA al final del post
+- NO incluir hashtags (#) bajo ninguna circunstancia
 ${funnelGuideSection}
 ${pillarSection}
 
@@ -298,7 +298,7 @@ Responde con este JSON exacto:
   "variants": [
     {
       "variant": "contrarian",
-      "content": "El texto completo del post (formato LinkedIn: párrafos cortos, espacios, hashtags al final)",
+      "content": "El texto completo del post (formato LinkedIn: párrafos cortos, espacios, SIN hashtags)",
       "hook": "La primera línea que detiene el scroll",
       "cta": "El call-to-action al final del post",
       "structured_content": {
@@ -307,7 +307,7 @@ Responde con este JSON exacto:
         "signals": "Senales del mercado",
         "provocation": "La provocacion",
         "cta": "El call-to-action",
-        "hashtags": ["hashtag1", "hashtag2", "hashtag3"]
+        "hashtags": []
       }
     },
     {

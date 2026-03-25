@@ -449,7 +449,7 @@ PROHIBIDO: hooks genericos, empezar con emoji, "Sabias que..." sin dato.
 ## FORMATO LINKEDIN
 - Parrafos de 1-2 lineas. Doble salto entre ideas.
 - Max 2 emojis funcionales. Sin links externos.
-- 3-4 hashtags al final.
+- NO incluir hashtags (#) bajo ninguna circunstancia.
 
 IMPORTANTE: Responde UNICAMENTE con JSON valido, sin markdown, sin backticks.`
 
@@ -465,7 +465,7 @@ ${topicContext ? `\n## DATOS VERIFICADOS\n${topicContext}` : ''}
 ${patternSection}
 ${antiRepSection}
 
-Responde con JSON: {"variants": [{"variant": "contrarian", "content": "...", "hook": "...", "cta": "...", "structured_content": {"hook":"","context":"","signals":"","provocation":"","cta":"","hashtags":[]}},...]}
+Responde con JSON: {"variants": [{"variant": "contrarian", "content": "...", "hook": "...", "cta": "...", "structured_content": {"hook":"","context":"","signals":"","provocation":"","cta":""}},...]}
 Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
 
           const result = await generateText({

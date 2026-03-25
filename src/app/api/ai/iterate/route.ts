@@ -96,7 +96,7 @@ ${variant === 'contrarian' ? '- Revelacion Tecnica: desafia creencia instalada c
 - Iniciar: CTA apropiado al contexto, pregunta abierta genuina
 
 ## FORMATO
-- 1500-2200 chars optimo. Max 2 emojis. Parrafos 1-2 lineas. Sin links externos. CTA antes de hashtags. 3-4 hashtags.
+- 1500-2200 chars optimo. Max 2 emojis. Parrafos 1-2 lineas. Sin links externos. NO hashtags (#).
 
 IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`,
       prompt: `**Post actual (variante: ${variant})**:
