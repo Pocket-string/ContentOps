@@ -135,8 +135,10 @@ export async function executeWeekPipeline(params: PipelineParams): Promise<Pipel
 
   try {
     // =========================================================================
-    // STEP 1: Research
+    // PHASE A: Research + Topic + Campaign (synchronous — returns campaignId)
     // =========================================================================
+
+    // STEP 1: Research
     const googleProvider = await getGoogleProvider(workspaceId)
     const promptData = await buildResearchPrompt(tema, buyerPersona, undefined, undefined)
     const researchPrompt = promptData?.optimized_prompt ?? tema
@@ -312,6 +314,63 @@ key_findings: 3-8 items. suggested_topics: 3-6 items. topic_candidates: 3-8 item
     }
 
     // =========================================================================
+    // PHASE B: Copy + Visual generation (fire-and-forget background)
+    // Return campaignId NOW so UI can start polling
+    // =========================================================================
+    const bgParams = {
+      campaignId,
+      campaign,
+      topic,
+      workspaceId,
+      userId,
+      tema,
+      keyword,
+      pillarId,
+    }
+
+    // Fire-and-forget: don't await, let it run in the background
+    runPipelineBackground(bgParams).catch(err => {
+      console.error('[pipeline] Background pipeline error:', err)
+    })
+
+    return { campaignId, errors: [] }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown pipeline error'
+    console.error('[pipeline] Fatal error:', msg)
+
+    if (campaignId) {
+      await updatePipelineStatus(campaignId, {
+        stage: 'error',
+        progress: 0,
+        errors: [...errors, { step: 'fatal', message: msg, timestamp: new Date().toISOString() }],
+      })
+    }
+
+    return { campaignId, errors: [{ step: 'fatal', message: msg }] }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Background pipeline: Copy + Visual generation
+// ---------------------------------------------------------------------------
+
+interface BackgroundParams {
+  campaignId: string
+  campaign: { id: string; posts: Array<{ id: string; funnel_stage: string; day_of_week: number }> }
+  topic: Record<string, unknown>
+  workspaceId: string
+  userId: string
+  tema: string
+  keyword?: string
+  pillarId?: string
+}
+
+async function runPipelineBackground(params: BackgroundParams): Promise<void> {
+  const { campaignId, campaign, topic, workspaceId, userId, tema, keyword } = params
+  const errors: Array<{ step: string; message: string; timestamp: string }> = []
+
+  try {
+    // =========================================================================
     // STEP 4: Copy generation for each post
     // =========================================================================
     const [brandResult, hookPatterns, ctaPatterns] = await Promise.all([
@@ -325,13 +384,13 @@ key_findings: 3-8 items. suggested_topics: 3-6 items. topic_candidates: 3-8 item
 
     // Build topic context string for copy generation
     const topicContext = [
-      topic.hypothesis ? `Hipotesis: ${topic.hypothesis}` : '',
-      topic.evidence ? `Evidencia: ${topic.evidence}` : '',
-      topic.anti_myth ? `Anti-mito: ${topic.anti_myth}` : '',
-      topic.silent_enemy_name ? `Enemigo silencioso: ${topic.silent_enemy_name}` : '',
-      topic.expected_business_impact ? `Impacto: ${topic.expected_business_impact}` : '',
-      topic.source_context ? `Contexto: ${topic.source_context}` : '',
-      topic.market_context ? `Mercado: ${topic.market_context}` : '',
+      (topic as Record<string, string>).hypothesis ? `Hipotesis: ${(topic as Record<string, string>).hypothesis}` : '',
+      (topic as Record<string, string>).evidence ? `Evidencia: ${(topic as Record<string, string>).evidence}` : '',
+      (topic as Record<string, string>).anti_myth ? `Anti-mito: ${(topic as Record<string, string>).anti_myth}` : '',
+      (topic as Record<string, string>).silent_enemy_name ? `Enemigo silencioso: ${(topic as Record<string, string>).silent_enemy_name}` : '',
+      (topic as Record<string, string>).expected_business_impact ? `Impacto: ${(topic as Record<string, string>).expected_business_impact}` : '',
+      (topic as Record<string, string>).source_context ? `Contexto: ${(topic as Record<string, string>).source_context}` : '',
+      (topic as Record<string, string>).market_context ? `Mercado: ${(topic as Record<string, string>).market_context}` : '',
     ].filter(Boolean).join('\n')
 
     // Build pattern context
@@ -375,7 +434,7 @@ key_findings: 3-8 items. suggested_topics: 3-6 items. topic_candidates: 3-8 item
 - **CTA esperado**: ${stageConfig.cta_type}
 - **Profundidad**: ${stageConfig.content_depth}` : ''
 
-          const systemPrompt = `Eres un experto en copywriting para LinkedIn especializado en O&M fotovoltaico.
+          const copySystemPrompt = `Eres un experto en copywriting para LinkedIn especializado en O&M fotovoltaico.
 Tono de marca: ${brandTone}
 ${funnelGuideSection}
 
@@ -411,7 +470,7 @@ Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
 
           const result = await generateText({
             model: await getModel('generate-copy', workspaceId),
-            system: systemPrompt,
+            system: copySystemPrompt,
             prompt: userPrompt,
           })
 
@@ -456,7 +515,6 @@ Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
               workspaceId
             )
             if (review?.overall_score && review.overall_score >= 70) {
-              // Good score — auto-select first variant
               const supabaseInner = await createClient()
               await supabaseInner
                 .from('posts')
@@ -502,7 +560,6 @@ Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
       })
 
       try {
-        // Get current version content for the visual prompt
         const supabaseInner = await createClient()
         const { data: versions } = await supabaseInner
           .from('post_versions')
@@ -514,8 +571,6 @@ Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
         const postContent = versions?.[0]?.content
         if (!postContent) continue
 
-        // Call visual endpoint via internal HTTP (it has complex multi-step logic)
-        // This is an exception — visual generation has too many dependencies to extract
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
         const visualResponse = await fetch(`${baseUrl}/api/ai/generate-visual-complete`, {
           method: 'POST',
@@ -537,7 +592,6 @@ Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
         const msg = err instanceof Error ? err.message : 'Unknown error'
         console.error(`[pipeline] Visual gen failed for post ${i + 1}:`, msg)
         errors.push({ step: `visual_post_${i + 1}`, message: msg, timestamp: new Date().toISOString() })
-        // Continue — visuals are optional
       }
 
       if (i < campaign.posts.length - 1) {
@@ -548,6 +602,7 @@ Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
     // =========================================================================
     // STEP 6: Complete
     // =========================================================================
+    const supabaseFinal = await createClient()
     await updatePipelineStatus(campaignId, {
       stage: errors.length > 0 ? 'review' : 'complete',
       progress: 100,
@@ -555,25 +610,19 @@ Las 3 variantes: contrarian, story, data_driven. Funcionalmente distintas.`
       errors,
     })
 
-    // Update campaign status to in_progress (ready for review)
-    await supabase
+    await supabaseFinal
       .from('campaigns')
       .update({ status: 'in_progress' })
       .eq('id', campaignId)
 
-    return { campaignId, errors }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown pipeline error'
-    console.error('[pipeline] Fatal error:', msg)
+    const msg = err instanceof Error ? err.message : 'Unknown background pipeline error'
+    console.error('[pipeline] Background fatal error:', msg)
 
-    if (campaignId) {
-      await updatePipelineStatus(campaignId, {
-        stage: 'error',
-        progress: 0,
-        errors: [...errors, { step: 'fatal', message: msg, timestamp: new Date().toISOString() }],
-      })
-    }
-
-    return { campaignId, errors: [{ step: 'fatal', message: msg }] }
+    await updatePipelineStatus(campaignId, {
+      stage: 'error',
+      progress: 0,
+      errors: [...errors, { step: 'fatal', message: msg, timestamp: new Date().toISOString() }],
+    })
   }
 }
