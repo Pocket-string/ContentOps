@@ -1,26 +1,28 @@
-# 🏭 SaaS Factory - Template Documentation
+# SaaS Factory V4 - Template Documentation
 
-> **Esta es la fuente de verdad del template.** Guardada en `.claude/` para que no sea modificada durante el desarrollo de proyectos especificos.
+> **Fuente de verdad del template.** Guardada en `.claude/` para preservarla durante el desarrollo de proyectos.
 
 ---
 
-## 🎯 Que es SaaS Factory?
+## Que es SaaS Factory?
 
-Un template **production-ready** para crear aplicaciones SaaS modernas con desarrollo asistido por IA. Filosofia Henry Ford: un solo stack perfeccionado.
+Template **production-ready** para crear aplicaciones SaaS modernas con desarrollo asistido por IA. Filosofia Henry Ford: un solo stack perfeccionado.
 
 ### Lo que incluye
 
-- ✅ Next.js 16 (App Router) + TypeScript
-- ✅ Supabase (Database + Auth)
-- ✅ Tailwind CSS + shadcn/ui
-- ✅ Claude Code con comandos, agentes y skills
-- ✅ Arquitectura Feature-First optimizada para IA
-- ✅ Auto port detection (3000-3006)
-- ✅ Testing, linting y type checking configurados
+- Next.js 16 (App Router) + TypeScript
+- Supabase (Database + Auth)
+- Tailwind CSS + shadcn/ui
+- 19 Skills de Claude Code (V4 Skills 2.0)
+- Arquitectura Feature-First optimizada para IA
+- Auto port detection (3000-3006)
+- Testing, linting y type checking configurados
+- 5 Design Systems listos para usar
+- AI Templates (Vercel AI SDK v5 + OpenRouter)
 
 ---
 
-## 📦 Tech Stack (Golden Path)
+## Tech Stack (Golden Path)
 
 ```yaml
 Runtime: Node.js + TypeScript
@@ -30,8 +32,8 @@ Styling: Tailwind CSS 3.4
 Components: shadcn/ui
 State: Zustand
 Validation: Zod
-Testing: Jest + React Testing Library + Playwright
-AI Tooling: Claude Code + MCPs
+Testing: Playwright CLI + MCP
+AI Engine: Vercel AI SDK v5 + OpenRouter
 Deploy: Vercel
 ```
 
@@ -40,7 +42,7 @@ Para evitar bloqueos de bots durante testing. Google OAuth requiere verificacion
 
 ---
 
-## 🏗️ Arquitectura Feature-First
+## Arquitectura Feature-First
 
 ```
 src/
@@ -50,7 +52,7 @@ src/
 │   ├── layout.tsx
 │   └── page.tsx
 │
-├── features/                 # 🎯 Organizadas por funcionalidad
+├── features/                 # Organizadas por funcionalidad
 │   ├── auth/
 │   │   ├── components/      # LoginForm, SignupForm
 │   │   ├── hooks/           # useAuth, useSession
@@ -58,36 +60,26 @@ src/
 │   │   ├── types/           # User, Session
 │   │   └── store/           # authStore.ts
 │   │
-│   ├── dashboard/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   └── types/
-│   │
-│   └── [tu-feature]/
+│   └── [tu-feature]/        # Misma estructura
 │
 └── shared/                   # Codigo reutilizable
     ├── components/          # Button, Card, Input
     ├── hooks/               # useDebounce, useLocalStorage
-    ├── stores/              # appStore.ts
-    ├── types/               # api.ts, domain.ts
-    ├── utils/               # helpers
-    ├── lib/                 # supabase.ts, axios.ts
-    └── constants/
+    ├── lib/                 # supabase.ts
+    ├── types/               # Tipos compartidos
+    └── utils/               # helpers
 ```
 
 > **Por que Feature-First?** Cada feature tiene TODO lo necesario en un solo lugar. Perfecto para que la IA entienda contexto completo sin navegar multiples carpetas.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Instalar Dependencias
 
 ```bash
 npm install
-# o
-pnpm install
 ```
 
 ### 2. Configurar Variables de Entorno
@@ -116,7 +108,7 @@ npm run dev
 
 ---
 
-## 🛠️ Comandos npm
+## Comandos npm
 
 ### Development
 ```bash
@@ -127,8 +119,6 @@ npm run start        # Servidor produccion
 
 ### Quality Assurance
 ```bash
-npm run test         # Tests con Jest
-npm run test:watch   # Tests en modo watch
 npm run lint         # ESLint
 npm run lint:fix     # Fix automatico
 npm run typecheck    # TypeScript check
@@ -136,52 +126,71 @@ npm run typecheck    # TypeScript check
 
 ---
 
-## 🤖 Claude Code Integration
+## Skills (V4 Skills 2.0)
 
-### Comandos Disponibles
+> V4 migra TODO a Skills 2.0. Hot reload, auto-discovery, zero config.
+> Cada skill es una carpeta con `SKILL.md` (frontmatter YAML + instrucciones).
 
-| Comando | Descripcion |
-|---------|-------------|
-| `/new-app` | Arquitecto de Negocio - genera BUSINESS_LOGIC.md |
-| `/landing` | Money Maker - landing pages de alta conversion |
-| `/add-login` | Agrega autenticacion con Supabase |
-| `/primer` | Contextualiza a Claude sobre el proyecto |
+### Invocables por el Usuario (/)
 
-### Agentes Especializados
+| Skill | Comando | Descripcion |
+|-------|---------|-------------|
+| `new-app` | `/new-app` | Entrevista de negocio → BUSINESS_LOGIC.md |
+| `landing` | `/landing` | Landing page de alta conversion (entrevista + ejecucion) |
+| `primer` | `/primer` | Inicializar contexto del proyecto |
+| `add-login` | `/add-login` | Auth completo Supabase (login, signup, password reset, profiles, RLS) |
+| `eject-sf` | `/eject-sf` | Remover SaaS Factory del proyecto (DESTRUCTIVO) |
+| `update-sf` | `/update-sf` | Actualizar a ultima version |
+| `bucle-agentico` | `/bucle-agentico` | Bucle Agentico para sistemas complejos (por fases) |
+| `sprint` | `/sprint` | Bucle Agentico para tareas rapidas |
+| `prp` | `/prp [feature]` | Generar Product Requirements Proposal |
+| `ai` | `/ai [template]` | Implementar AI Templates (chat, RAG, vision, tools) |
+| `qa` | `/qa [descripcion]` | QA automatizado con Playwright CLI |
+| `skill-creator` | `/skill-creator` | Crear nuevos skills |
 
-| Agente | Especialidad |
-|--------|--------------|
-| **Codebase Analyst** | Analiza arquitectura y patrones |
-| **Frontend Specialist** | React, Next.js, Tailwind |
-| **Backend Specialist** | APIs, Supabase, DB |
-| **Supabase Admin** | Auth, migrations, RLS |
-| **Vercel Deployer** | Deploy, env vars, domains |
-| **Validacion Calidad** | Tests, linting, tipos |
-| **Gestor Documentacion** | Mantiene docs actualizados |
+### Invocables por Claude (automaticos)
 
-### MCPs Configurados
+| Skill | Se activa cuando... |
+|-------|---------------------|
+| `backend` | Tareas de Server Actions, APIs, logica de negocio, validaciones |
+| `frontend` | UI/UX, componentes React, Tailwind, animaciones |
+| `supabase-admin` | Migraciones, RLS, queries SQL, auth config |
+| `codebase-analyst` | Analisis de patrones, convenciones, arquitectura |
+| `vercel-deployer` | Deploy, env vars, dominios, rollbacks |
+| `documentacion` | Actualizar docs despues de cambios en codigo |
+| `calidad` | Testing, quality gates, validacion |
 
-- 🧠 **Next.js DevTools** - Conectado a `/_next/mcp` para debug en tiempo real
-- 👁️ **Playwright** - Validacion visual y testing automatizado
-- 🗄️ **Supabase** - Integracion directa con DB y auth
+### Crear un Nuevo Skill
+
+```bash
+# Opcion 1: Usar skill-creator
+/skill-creator
+
+# Opcion 2: Manual
+mkdir .claude/skills/mi-skill
+# Crear SKILL.md con frontmatter + instrucciones
+```
 
 ---
 
-## 📋 Sistema PRP (Product Requirements Proposals)
+## MCPs Configurados
 
-> **Contrato humano-IA antes de escribir codigo**
+- **Next.js DevTools** - Conectado a `/_next/mcp` para debug en tiempo real
+- **Playwright** - Validacion visual y testing automatizado (CLI preferido sobre MCP)
+- **Supabase** - Integracion directa con DB y auth
 
-### Flujo
+---
+
+## Sistema PRP (Product Requirements Proposals)
+
+> Contrato humano-IA antes de escribir codigo.
 
 ```
 1. Humano: "Necesito [feature]"
-2. IA: Investiga si es necesario
-3. IA: Genera PRP-XXX-nombre.md
-4. Humano: Revisa y aprueba
-5. IA: Ejecuta Blueprint fase por fase
+2. /prp [feature] → IA investiga y genera PRP
+3. Humano revisa y aprueba
+4. /bucle-agentico → Ejecuta fase por fase
 ```
-
-### Anatomia
 
 | Seccion | Proposito |
 |---------|-----------|
@@ -194,37 +203,30 @@ npm run typecheck    # TypeScript check
 
 ---
 
-## 🎨 AI Templates - Sistema de Bloques LEGO
+## AI Templates - Sistema de Bloques LEGO
 
 Templates copy-paste para construir agentes IA con **Vercel AI SDK v5 + OpenRouter**.
 
-### Bloques Disponibles
+| # | Bloque | Descripcion |
+|---|--------|-------------|
+| 00 | Setup Base | Configuracion inicial |
+| 01 | Chat Streaming | Chat con useChat |
+| 01-ALT | Action Stream | Agente transparente paso a paso |
+| 02 | Web Search | Busqueda con :online |
+| 03 | Historial | Persistencia en Supabase |
+| 04 | Vision | Analisis de imagenes |
+| 05 | Tools | Funciones/herramientas |
+| 06 | RAG | pgvector + embeddings |
 
-| # | Bloque | Tiempo | Descripcion |
-|---|--------|--------|-------------|
-| 00 | Setup Base | 10 min | Configuracion inicial |
-| 01 | Chat Streaming | 15 min | Chat con useChat |
-| 01-ALT | Action Stream | 30 min | Agente transparente |
-| 02 | Web Search | 5 min | Busqueda con :online |
-| 03 | Historial | 20 min | Persistencia en Supabase |
-| 04 | Vision | 25 min | Analisis de imagenes |
-| 05 | Tools | 20 min | Funciones/herramientas |
+Standalone: `single-call`, `structured-outputs`, `generative-ui`
 
-### Dos Caminos
-
-**A) Chat Tradicional**: `00 → 01 → 02 → 03 → 04 → 05`
-- Respuestas de texto con streaming
-- Ideal para: chatbots, asistentes, Q&A
-
-**B) Agente Transparente**: `00 → 01-ALT → 02 → 03 → 04`
-- Acciones visibles en tiempo real
-- Ideal para: calculadoras ROI, auditorias, diagnosticos
+Usa `/ai [template]` para implementar cualquier bloque.
 
 ---
 
-## 🎭 Design Systems
+## Design Systems
 
-Sistemas de diseno visuales listos para usar en `.claude/design-systems/`.
+Sistemas de diseno visuales en `.claude/design-systems/`.
 
 | Sistema | Estilo |
 |---------|--------|
@@ -236,39 +238,57 @@ Sistemas de diseno visuales listos para usar en `.claude/design-systems/`.
 
 ---
 
-## 🛠️ Skills System
-
-Skills son carpetas con instrucciones que ensenan a Claude como hacer tareas especializadas.
-
-### Estructura
+## Estructura de .claude/
 
 ```
-skill-name/
-├── SKILL.md              # Metadatos + Instrucciones (requerido)
-├── scripts/              # Codigo ejecutable (opcional)
-├── references/           # Documentacion (opcional)
-└── assets/              # Recursos (opcional)
-```
-
-### Skill Incluido: skill-creator
-
-```bash
-python .claude/skills/skill-creator/scripts/init_skill.py my-skill
-python .claude/skills/skill-creator/scripts/quick_validate.py ./my-skill
-python .claude/skills/skill-creator/scripts/package_skill.py ./my-skill
+.claude/
+├── skills/                    # Skills 2.0 (V4) - 19 skills
+│   ├── new-app/              # Entrevista de negocio
+│   ├── landing/              # Landing pages
+│   ├── primer/               # Context initialization
+│   ├── add-login/            # Auth completo
+│   ├── eject-sf/             # Remover SF
+│   ├── update-sf/            # Actualizar SF
+│   ├── bucle-agentico/       # Bucle Agentico BLUEPRINT
+│   ├── sprint/               # Bucle Agentico SPRINT
+│   ├── prp/                  # Generar PRPs
+│   ├── ai/                   # AI Templates hub
+│   ├── qa/                   # Playwright CLI QA
+│   ├── backend/              # Agent: backend specialist
+│   ├── frontend/             # Agent: frontend specialist
+│   ├── supabase-admin/       # Agent: Supabase admin
+│   ├── codebase-analyst/     # Agent: pattern analysis
+│   ├── vercel-deployer/      # Agent: deployment
+│   ├── documentacion/        # Agent: documentation
+│   ├── calidad/              # Agent: testing & QA
+│   └── skill-creator/        # Crear nuevos skills
+│
+├── PRPs/                      # Product Requirements Proposals
+│   └── prp-base.md           # Template base
+│
+│   │   └── references/       # AI Templates (11 bloques)
+│   ├── agents/               # Templates secuenciales
+│   └── [standalone]          # Templates independientes
+│
+├── design-systems/            # Sistemas de diseno
+│   ├── neobrutalism/
+│   ├── liquid-glass/
+│   ├── gradient-mesh/
+│   ├── bento-grid/
+│   └── neumorphism/
+│
+├── hooks/                     # Scripts en eventos
+├── example.mcp.json           # Config de MCPs
+└── README.md                  # Este archivo
 ```
 
 ---
 
-## 🔒 Supabase Setup
+## Supabase Setup
 
 ### 1. Crear Proyecto
 
-```bash
-# Visita: https://supabase.com/dashboard
-# Crea nuevo proyecto
-# Copia URL y Anon Key
-```
+Visita `supabase.com/dashboard`, crea nuevo proyecto, copia URL y Anon Key.
 
 ### 2. Cliente Configurado
 
@@ -291,74 +311,13 @@ export const supabase = createClient(
 
 ---
 
-## 🧪 Testing Strategy
-
-### Unit Tests
-
-```typescript
-// src/features/auth/hooks/useAuth.test.ts
-import { renderHook } from '@testing-library/react'
-import { useAuth } from './useAuth'
-
-test('should authenticate user', async () => {
-  const { result } = renderHook(() => useAuth())
-  await result.current.login('test@example.com', 'password')
-  expect(result.current.user).toBeDefined()
-})
-```
-
-### Run Tests
-
-```bash
-npm run test              # Run all tests
-npm run test:watch        # Watch mode
-npm run test:coverage     # Coverage report
-```
-
----
-
-## 🎯 Best Practices
-
-### Component Structure
-
-```typescript
-// ✅ GOOD: Clear props, typed
-interface ButtonProps {
-  children: React.ReactNode
-  variant?: 'primary' | 'secondary'
-  onClick: () => void
-}
-
-export function Button({ children, variant = 'primary', onClick }: ButtonProps) {
-  return (
-    <button onClick={onClick} className={`btn btn-${variant}`}>
-      {children}
-    </button>
-  )
-}
-```
-
-### Feature Organization
-
-```typescript
-// ✅ GOOD: Todo relacionado en un lugar
-src/features/auth/
-├── components/     # UI especificos de auth
-├── hooks/          # Logica de auth
-├── services/       # API calls
-├── types/          # Types de auth
-└── store/          # Estado de auth
-```
-
----
-
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Puerto Ocupado (EADDRINUSE)
 
 ```bash
 # El auto-port detection deberia resolver esto
-# Si persiste:
+# Si persiste, usa el alias kill-ports o:
 lsof -i :3000
 kill -9 <PID>
 ```
@@ -371,16 +330,9 @@ rm -rf .next
 npm install
 ```
 
-### Tests Failing
-
-```bash
-npm run test -- --clearCache
-npm run test -- --verbose
-```
-
 ---
 
-## 📦 Deploy
+## Deploy
 
 ### Vercel (Recomendado)
 
@@ -397,29 +349,9 @@ En tu dashboard de Vercel:
 
 ---
 
-## 📂 Estructura de .claude/
-
-```
-.claude/
-├── commands/           # Comandos slash (/comando)
-├── agents/             # Agentes especializados
-├── PRPs/               # Product Requirements Proposals
-├── skills/             # Skills reutilizables
-├── ai_templates/       # Bloques LEGO para agentes IA
-├── design-systems/     # Sistemas de diseno visuales
-├── prompts/            # Metodologias y patrones
-├── hooks/              # Scripts en eventos
-└── example.mcp.json    # Config de MCPs
-```
+**Template Version:** 4.0.0
+**Last Updated:** 2026-03-08
 
 ---
 
-## 🔄 Versionado
-
-**Template Version:** 2.0.0
-**Last Updated:** 2024-12-16
-
----
-
-*Este README es la fuente de verdad del template SaaS Factory.*
-*Guardado en `.claude/` para preservarlo durante el desarrollo de proyectos.*
+*SaaS Factory V4: Todo es un Skill. Hot reload. Auto-discovery. Zero config.*

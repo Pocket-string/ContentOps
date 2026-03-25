@@ -1,25 +1,38 @@
-# /add-login - Sistema de Autenticación Completo
+---
+name: add-login
+description: "Inyectar sistema de autenticacion completo: login, signup, password reset, profiles, Google OAuth, y RLS. Activar cuando el usuario dice: necesito login, agregar registro, autenticacion, que los usuarios puedan entrar, crear cuentas, o proteger rutas."
+allowed-tools: Read, Write, Edit, Bash
+---
 
-Inyecta autenticación B2B production-ready con Supabase + Next.js 16.
+# Sistema de Autenticacion Completo
 
-**NO preguntas. Ejecutas el Golden Path completo.**
+Inyecta autenticacion B2B production-ready con Supabase + Next.js 16.
+
+**NO preguntes. Ejecuta el Golden Path completo.**
 
 ---
 
-## Contexto Técnico
+## Contexto Tecnico
 
 **Next.js 16:**
 - `proxy.ts` (no middleware.ts) - Node.js runtime
-- Función: `proxy()` (no middleware())
+- Funcion: `proxy()` (no middleware())
 
 **Supabase SSR:**
 - `@supabase/ssr` con `getAll()` / `setAll()` (NUNCA get/set/remove)
 - Server: siempre `getUser()`, NUNCA `getSession()`
 
-**Patrón Profiles:**
+**Patron Profiles:**
 - `auth.users` es privado y limitado
 - `public.profiles` almacena datos del usuario
-- Trigger crea perfil automáticamente al signup
+- Trigger crea perfil automaticamente al signup
+
+**Google OAuth:**
+- Supabase tiene Google OAuth built-in (NO se necesita NextAuth)
+- `signInWithOAuth({ provider: 'google' })` maneja el redirect completo
+- `access_type: 'offline'` + `prompt: 'consent'` para obtener refresh tokens
+- Callback route en `/callback` intercambia code por sesión
+- Futuro: refresh tokens permiten integrar Google Workspace (Gmail, Calendar, Sheets)
 
 ---
 
@@ -77,7 +90,8 @@ export async function updateSession(request: NextRequest) {
   // Rutas protegidas
   const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-                      request.nextUrl.pathname.startsWith('/signup')
+                      request.nextUrl.pathname.startsWith('/signup') ||
+                      request.nextUrl.pathname.startsWith('/callback')
 
   if (isProtectedRoute && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -282,11 +296,18 @@ export function useAuth() {
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { login } from '@/actions/auth'
+import { GoogleSignInButton } from './GoogleSignInButton'
+import { AuthDivider } from './AuthDivider'
 
 export function LoginForm() {
-  const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const oauthError = searchParams.get('error')
+  const [error, setError] = useState<string | null>(
+    oauthError === 'auth_callback_failed' ? 'Error al iniciar sesión con Google. Intenta de nuevo.' : null
+  )
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(formData: FormData) {
@@ -302,51 +323,57 @@ export function LoginForm() {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-      </div>
+    <div className="space-y-6">
+      <GoogleSignInButton />
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-      </div>
+      <AuthDivider />
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      <form action={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? 'Signing in...' : 'Sign In'}
-      </button>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
 
-      <p className="text-center text-sm text-gray-600">
-        <Link href="/forgot-password" className="text-blue-600 hover:underline">
-          Forgot password?
-        </Link>
-      </p>
-    </form>
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Signing in...' : 'Sign In'}
+        </button>
+
+        <p className="text-center text-sm text-gray-600">
+          <Link href="/forgot-password" className="text-blue-600 hover:underline">
+            Forgot password?
+          </Link>
+        </p>
+      </form>
+    </div>
   )
 }
 ```
@@ -358,6 +385,8 @@ export function LoginForm() {
 
 import { useState } from 'react'
 import { signup } from '@/actions/auth'
+import { GoogleSignInButton } from './GoogleSignInButton'
+import { AuthDivider } from './AuthDivider'
 
 export function SignupForm() {
   const [error, setError] = useState<string | null>(null)
@@ -376,46 +405,52 @@ export function SignupForm() {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-      </div>
+    <div className="space-y-6">
+      <GoogleSignInButton label="Registrarse con Google" />
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minLength={6}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-      </div>
+      <AuthDivider />
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      <form action={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? 'Creating account...' : 'Create Account'}
-      </button>
-    </form>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Creating account...' : 'Create Account'}
+        </button>
+      </form>
+    </div>
   )
 }
 ```
@@ -548,6 +583,8 @@ export function UpdatePasswordForm() {
 ```typescript
 export { LoginForm } from './LoginForm'
 export { SignupForm } from './SignupForm'
+export { GoogleSignInButton } from './GoogleSignInButton'
+export { AuthDivider } from './AuthDivider'
 export { ForgotPasswordForm } from './ForgotPasswordForm'
 export { UpdatePasswordForm } from './UpdatePasswordForm'
 ```
@@ -684,12 +721,111 @@ export default function UpdatePasswordPage() {
 }
 ```
 
+### 16. `src/app/(auth)/callback/route.ts`
+
+```typescript
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  const next = searchParams.get('next') ?? '/dashboard'
+
+  if (code) {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
+      return NextResponse.redirect(`${origin}${next}`)
+    }
+  }
+
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+}
+```
+
+### 17. `src/features/auth/components/GoogleSignInButton.tsx`
+
+```tsx
+'use client'
+
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+interface GoogleSignInButtonProps {
+  redirectTo?: string
+  label?: string
+}
+
+export function GoogleSignInButton({
+  redirectTo = '/dashboard',
+  label = 'Continuar con Google',
+}: GoogleSignInButtonProps) {
+  const [loading, setLoading] = useState(false)
+
+  async function handleGoogleSignIn() {
+    setLoading(true)
+    const supabase = createClient()
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/callback?next=${redirectTo}`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    })
+
+    if (error) {
+      console.error('Google sign-in error:', error.message)
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleGoogleSignIn}
+      disabled={loading}
+      className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+    >
+      <svg className="h-5 w-5" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+      </svg>
+      {loading ? 'Redirigiendo...' : label}
+    </button>
+  )
+}
+```
+
+### 18. `src/features/auth/components/AuthDivider.tsx`
+
+```tsx
+export function AuthDivider() {
+  return (
+    <div className="relative my-6">
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full border-t border-gray-300" />
+      </div>
+      <div className="relative flex justify-center text-sm">
+        <span className="bg-white px-2 text-gray-500">o</span>
+      </div>
+    </div>
+  )
+}
+```
+
 ---
 
-## Flujo de Ejecución
+## Flujo de Ejecucion
 
-1. Crear TODOS los archivos de código listados arriba
-2. Verificar que `@supabase/ssr` esté instalado (si no: `npm install @supabase/ssr`)
+1. Crear TODOS los archivos de codigo listados arriba
+2. Verificar que `@supabase/ssr` este instalado (si no: `npm install @supabase/ssr`)
 3. **Usar Supabase MCP para crear la tabla profiles:**
 
 ```
@@ -716,12 +852,17 @@ create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id);
 
--- Trigger: crear perfil automáticamente al signup
+-- Trigger: crear perfil automaticamente al signup
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, email)
-  values (new.id, new.email);
+  insert into public.profiles (id, email, full_name, avatar_url)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'),
+    new.raw_user_meta_data->>'avatar_url'
+  );
   return new;
 end;
 $$ language plpgsql security definer;
@@ -731,26 +872,28 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 ```
 
-4. Mostrar mensaje de completación
+4. Mostrar mensaje de completacion
 
 ---
 
 ## Mensaje Final
 
-Después de crear archivos Y ejecutar la migración, muestra:
+Despues de crear archivos Y ejecutar la migracion, muestra:
 
 ```
 Auth B2B implementado!
 
 Incluye:
 - Login/Signup con Email/Password
+- Login/Signup con Google OAuth
 - Password Reset completo
-- Tabla profiles (creada vía MCP)
+- Tabla profiles (creada vía MCP) con full_name y avatar_url de Google
 - Hook useAuth() con user + profile
 - Rutas protegidas (/dashboard)
+- Callback OAuth (/callback)
 - Action updateProfile() para editar perfil
 
-Solo falta configurar credenciales:
+Configurar credenciales:
 
 1. Ve a supabase.com > tu proyecto > Settings > API
 2. Copia a .env.local:
@@ -763,7 +906,15 @@ Solo falta configurar credenciales:
    - Site URL: http://localhost:3000
    - Redirect URLs: http://localhost:3000/**
 
-4. npm run dev
+4. Para Google OAuth:
+   a. Google Cloud Console > APIs & Services > Credentials
+   b. Crear OAuth 2.0 Client ID (tipo: Web application)
+   c. Authorized redirect URI: https://TU_PROJECT_REF.supabase.co/auth/v1/callback
+   d. En Supabase Dashboard > Authentication > Providers > Google:
+      - Habilitar Google provider
+      - Pegar Client ID y Client Secret de Google
 
-Listo para probar en /login
+5. npm run dev
+
+Listo para probar en /login (Email/Password + Google)
 ```

@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Guide for creating custom skills in SaaS Factory. Use when you need to create a new skill to extend Claude's capabilities with specialized knowledge, workflows, or tools.
+description: Crear nuevos skills para extender la fabrica. Guia paso a paso con scripts de inicializacion, validacion y empaquetado. Usar cuando el usuario quiere crear un skill personalizado o extender las capacidades del agente.
 license: MIT
 ---
 

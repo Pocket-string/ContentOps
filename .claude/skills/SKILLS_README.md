@@ -1,161 +1,153 @@
-# 🎯 Skills System - SaaS Factory
+# Skills System - SaaS Factory V4
 
-**Skills** son carpetas con instrucciones que enseñan a Claude cómo hacer tareas especializadas. Son el corazón de la extensibilidad en Claude Code.
+> Todo es un Skill. Hot reload. Auto-discovery. Zero config.
 
-## 📚 Estructura Recomendada por Anthropic
+---
+
+## Inventario de Skills (25 total)
+
+### Invocables por el Usuario (/)
+
+| Skill | Comando | Descripcion |
+|-------|---------|-------------|
+| `new-app` | `/new-app` | Entrevista de negocio → BUSINESS_LOGIC.md |
+| `landing` | `/landing` | Landing cinematica: scroll-driven video + copy AIDA/PAS + glass-morphism |
+| `primer` | `/primer` | Inicializar contexto del proyecto |
+| `add-login` | `/add-login` | Auth completo Supabase (login, signup, password reset, profiles, RLS) |
+| `add-payments` | `/add-payments` | Pagos con Polar (MoR): checkout, webhooks, suscripciones, acceso |
+| `add-emails` | `/add-emails` | Emails transaccionales: Resend + React Email + batch + unsubscribe |
+| `add-mobile` | `/add-mobile` | PWA instalable + push notifications (iOS compatible) |
+| `eject-sf` | `/eject-sf` | Remover SaaS Factory del proyecto (DESTRUCTIVO) |
+| `update-sf` | `/update-sf` | Actualizar a ultima version |
+| `bucle-agentico` | `/bucle-agentico` | Bucle Agentico para sistemas complejos (por fases) |
+| `sprint` | `/sprint` | Bucle Agentico para tareas rapidas |
+| `prp` | `/prp [feature]` | Generar Product Requirements Proposal |
+| `ai` | `/ai [template]` | Implementar AI Templates (chat, RAG, vision, tools) |
+| `qa` | `/qa [descripcion]` | QA automatizado con Playwright CLI |
+| `skill-creator` | `/skill-creator` | Crear nuevos skills |
+| `memory-manager` | `/memory-manager` | Memoria persistente por proyecto (reemplaza auto-memory) |
+| `image-generation` | `/image-generation` | Generar/editar imagenes con OpenRouter + Gemini |
+| `autoresearch` | `/autoresearch [skill]` | Auto-optimizar skills con loop autonomo (Karpathy) |
+
+### Invocables por Claude (automaticos)
+
+| Skill | Se activa cuando... |
+|-------|---------------------|
+| `backend` | Tareas de Server Actions, APIs, logica de negocio, validaciones |
+| `frontend` | UI/UX, componentes React, Tailwind, animaciones |
+| `supabase-admin` | Migraciones, RLS, queries SQL, auth config |
+| `codebase-analyst` | Analisis de patrones, convenciones, arquitectura |
+| `vercel-deployer` | Deploy, env vars, dominios, rollbacks |
+| `documentacion` | Actualizar docs despues de cambios en codigo |
+| `calidad` | Testing, quality gates, validacion |
+
+---
+
+## Estructura de un Skill
 
 ```
 skill-name/
-├── SKILL.md              # Requerido: Metadatos + Instrucciones
-├── scripts/              # Opcional: Código ejecutable
-│   ├── helper.py
-│   └── processor.sh
-├── references/           # Opcional: Documentación de referencia
-│   ├── api_docs.md
-│   └── schemas.md
-└── assets/              # Opcional: Recursos de salida
-    ├── templates/
-    └── icons/
+├── SKILL.md              # Requerido: frontmatter YAML + instrucciones
+├── scripts/              # Opcional: codigo ejecutable (.py, .sh, .js)
+├── references/           # Opcional: docs de referencia (>5k palabras)
+└── assets/               # Opcional: templates, imagenes, fonts
 ```
 
-## SKILL.md - Estructura Mínima
+### Frontmatter YAML
 
 ```yaml
 ---
-name: skill-name              # Identificador único (lowercase, hyphens)
-description: What this skill  # Cuándo y por qué usarlo
-                does and when
-license: MIT                  # (Opcional)
+name: skill-name                    # Identificador (lowercase, hyphens, max 64 chars)
+description: Que hace               # Claude usa esto para decidir cuando activarlo
+argument-hint: "[argumento]"        # Hint en autocomplete (opcional)
+user-invocable: false               # Solo Claude puede invocarlo (opcional)
+disable-model-invocation: true      # Solo el usuario puede invocarlo (opcional)
+allowed-tools: Read, Write, Bash    # Tools permitidos sin pedir permiso (opcional)
+model: claude-sonnet-4-6            # Modelo especifico (opcional)
+context: fork                       # Ejecuta en subagent aislado (opcional)
+agent: Explore                      # Tipo de agente (opcional)
 ---
-
-# Skill Title
-
-## Purpose
-Qué hace el skill.
-
-## When to Use
-Cuándo Claude debería activarlo.
-
-## How to Use
-Instrucciones paso a paso.
 ```
 
-## ✅ Principios de Anthropic
+### Variables de Sustitucion
 
-### Progressive Disclosure (Carga Eficiente)
-1. **Metadata** (~100 palabras) - Siempre en contexto
+| Variable | Descripcion |
+|----------|-------------|
+| `$ARGUMENTS` | Todos los argumentos del usuario |
+| `$ARGUMENTS[N]` o `$N` | Argumento por indice (0-based) |
+| `${CLAUDE_SESSION_ID}` | ID de sesion actual |
+| `${CLAUDE_SKILL_DIR}` | Directorio del skill |
+| `` !`comando` `` | Inyeccion de contexto dinamico (ejecuta shell) |
+
+### Progressive Disclosure
+
+1. **Metadata** (~100 palabras) - Siempre en contexto (frontmatter)
 2. **SKILL.md** (<5k palabras) - Cuando se activa
-3. **Resources** (unlimited) - Bajo demanda
-
-### Organización
-
-| Carpeta | Cuándo Usar | Formato |
-|---------|------------|---------|
-| **scripts/** | Código reutilizable | .py, .sh, .js |
-| **references/** | Documentación >5k | .md, .txt |
-| **assets/** | Recursos de salida | .html, .png, .ttf |
-
-### Naming Conventions
-
-- **Skills**: `kebab-case` (skill-creator)
-- **Scripts**: `action_noun.py` (create_skill.py)
-- **References**: `descriptive_name.md` (api_docs.md)
-
-## 🛠️ Tools Incluidos
-
-### skill-creator
-Herramienta para crear nuevos skills en SaaS Factory.
-
-**Ubicación**: `.claude/skills/skill-creator/`
-
-**Scripts**:
-- `init_skill.py` - Crear nueva skill
-- `quick_validate.py` - Validar skill
-- `package_skill.py` - Empaquetar para distribución
-
-**Uso**:
-```bash
-python init_skill.py my-skill
-python quick_validate.py ./my-skill
-python package_skill.py ./my-skill
-```
-
-## 📖 Referencias Recomendadas
-
-- [Agent Skills Spec](https://docs.anthropic.com/) - Especificación formal
-- [Skill Creator Guide](https://docs.anthropic.com/) - Guía completa
-- [Best Practices](https://docs.anthropic.com/) - Patrones probados
-
-## 🎯 Flujo de Creación
-
-1. **Inicializar**: `python init_skill.py my-skill`
-2. **Desarrollar**: Editar SKILL.md + agregar scripts/references/assets
-3. **Validar**: `python quick_validate.py ./my-skill`
-4. **Empaquetar**: `python package_skill.py ./my-skill`
-5. **Instalar**: `/plugin install my-skill.zip`
-6. **Usar**: Mencionar el skill en conversación
-
-## 📝 Checklist para Crear un Skill
-
-```
-□ SKILL.md con YAML frontmatter válido
-  □ name (lowercase, hyphens)
-  □ description (3-5 oraciones)
-
-□ Contenido bien organizado
-  □ SKILL.md <5k palabras
-  □ scripts/ para código reutilizable
-  □ references/ para documentación
-  □ assets/ para recursos
-
-□ Scripts listos
-  □ Tienen --help
-  □ Incluyen docstrings
-  □ Manejan errores
-
-□ Validación
-  □ python quick_validate.py ./skill-name
-  □ Resultado: ✓ All OK!
-
-□ Empaquetado
-  □ python package_skill.py ./skill-name
-  □ Resultado: skill-name.zip
-```
-
-## 💡 Ejemplo: Skill Simple
-
-```
-my-skill/
-├── SKILL.md
-│   ---
-│   name: my-skill
-│   description: Do X when Y happens
-│   ---
-│
-│   # My Skill
-│
-│   ## Purpose
-│   This skill...
-│
-│   ## How to Use
-│   1. Step one
-│   2. Step two
-│
-├── scripts/
-│   └── processor.py
-│
-└── references/
-    └── api_docs.md
-```
-
-## 🚀 Próximos Pasos
-
-1. Usa `skill-creator` para crear nuevos skills
-2. Sigue estos principios para mantener consistencia
-3. Valida siempre antes de distribuir
-4. Documenta claramente para otros desarrolladores
+3. **Resources** (unlimited) - Bajo demanda (scripts/, references/, assets/)
 
 ---
 
-*Sistema de Skills estandardizado para SaaS Factory*
-*Basado en Anthropic Agent Skills Spec v1.0*
+## Memoria Persistente (.claude/memory/)
+
+SaaS Factory incluye un sistema de memoria persistente POR PROYECTO que reemplaza la auto-memory de Claude Code.
+
+**Por que?** La auto-memory de Claude Code guarda notas en `~/.claude/projects/` (local a tu maquina). Eso significa que no viaja con el repo, no es versionado, no es compartido con tu equipo, y Claude decide que guardar sin tu control.
+
+**Como funciona:**
+- `.claude/memory/MEMORY.md` es el indice (max 200 lineas, se carga automaticamente)
+- Carpetas por tipo: `user/`, `feedback/`, `project/`, `reference/`
+- Git-versioned: cada cambio es un commit que puedes revertir
+- El skill `memory-manager` gestiona cuando consultar y cuando guardar
+
+**Activacion:** La primera vez que se usa el skill `memory-manager`, automaticamente deshabilita la auto-memory de Claude Code en `.claude/settings.json` y crea la estructura de carpetas.
+
+---
+
+## Recursos Compartidos
+
+Los skills referencian estos directorios (NO se mueven):
+
+| Recurso | Path | Usado por |
+|---------|------|-----------|
+| PRP Template | `.claude/PRPs/prp-base.md` | Skill `prp` |
+| AI Templates | `.claude/skills/ai/references/` | Skill `ai` |
+| Design Systems | `.claude/design-systems/` | Directo (5 sistemas) |
+
+---
+
+## Crear un Nuevo Skill
+
+```bash
+# Opcion 1: Usar skill-creator
+/skill-creator
+
+# Opcion 2: Manual
+mkdir .claude/skills/mi-skill
+# Crear SKILL.md con frontmatter + instrucciones
+```
+
+### Checklist
+
+- [ ] SKILL.md con YAML frontmatter valido (name + description)
+- [ ] Contenido <5k palabras, forma imperativa
+- [ ] Scripts con --help y manejo de errores
+- [ ] References para docs >5k palabras
+- [ ] Descripcion clara de cuando usarlo
+
+---
+
+## Migracion V3 → V4
+
+| V3 | V4 |
+|----|-----|
+| `.claude/commands/*.md` | `.claude/skills/*/SKILL.md` |
+| `.claude/agents/*.md` | `.claude/skills/*/SKILL.md` (user-invocable: false, context: fork) |
+| `.claude/prompts/*.md` | `.claude/skills/*/SKILL.md` |
+| Agentes como archivos sueltos | Frontmatter `agent:` y `context: fork` en skills |
+| AI Templates como docs | Skill `/ai` con `references/` colocalizados |
+| PRPs como template suelto | Skill `/prp` que genera PRPs con context: fork |
+
+---
+
+*SaaS Factory V4: Todo es un Skill.*
+*Basado en Claude Code Skills 2.0 (CC 2.1.0+)*

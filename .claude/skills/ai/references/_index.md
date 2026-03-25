@@ -9,7 +9,7 @@ Templates copy-paste para IA con **Vercel AI SDK v5 + OpenRouter**.
 ## Estructura
 
 ```
-ai_templates/
+references/
 ├── _index.md              # Este archivo
 │
 ├── agents/                # Flujo secuencial para agentes
@@ -56,7 +56,7 @@ Camino B (Action):  00 → 01-ALT → 02 → 03 → 04 → 06
 
 ### 2. Standalone (Independientes)
 
-Capacidades que NO dependen del flujo de agente. En la raiz de `ai_templates/`.
+Capacidades que NO dependen del flujo de agente. En la raiz de `references/`.
 
 | Template | Descripcion | Estado |
 |----------|-------------|--------|
@@ -86,19 +86,19 @@ Capacidades que NO dependen del flujo de agente. En la raiz de `ai_templates/`.
 
 ### Agentes (secuenciales)
 ```
-@ai_templates/agents/00-setup-base.md
+references/agents/00-setup-base.md
 Configura el setup base para mi proyecto
 ```
 
 ### Standalone (independientes)
 ```
-@ai_templates/single-call.md
+references/single-call.md
 Implementa un boton que resuma texto con IA
 ```
 
 ### Combinacion
 ```
-@ai_templates/_index.md
+references/_index.md
 Necesito: Setup + Chat + RAG
 ```
 

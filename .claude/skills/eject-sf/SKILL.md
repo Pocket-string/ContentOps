@@ -1,5 +1,7 @@
 ---
-description: "DESTRUCTIVO: Elimina toda la configuracion de SaaS Factory y deja solo el software funcional. Usar antes de distribuir el proyecto."
+name: eject-sf
+description: "DESTRUCTIVO: Eliminar SaaS Factory del proyecto y dejar solo el software funcional. Activar cuando el usuario dice: quiero quitar SaaS Factory, eject, remover el template, limpiar el proyecto, o distribuir el codigo sin la fabrica. SIEMPRE confirmar antes de ejecutar."
+allowed-tools: Read, Write, Edit, Bash
 ---
 
 # Eject SaaS Factory
@@ -9,10 +11,13 @@ description: "DESTRUCTIVO: Elimina toda la configuracion de SaaS Factory y deja 
 Antes de ejecutar CUALQUIER accion, muestra este mensaje al usuario:
 
 ```
-⚠️  ADVERTENCIA: OPERACION DESTRUCTIVA
+ADVERTENCIA: OPERACION DESTRUCTIVA
 
 Este comando eliminara PERMANENTEMENTE:
-- .claude/ (comandos, agentes, PRPs, templates, skills)
+- .claude/skills/ (skills del proyecto)
+- .claude/design-systems/ (sistemas de diseno)
+- .claude/skills/ai/references/ (AI templates)
+- .claude/PRPs/ (templates PRP)
 - .mcp.json (configuracion de MCPs)
 - CLAUDE.md (system prompt)
 - Referencias a "SaaS Factory" en el codigo
@@ -21,7 +26,7 @@ El proyecto quedara como una aplicacion Next.js generica,
 lista para distribuir SIN las herramientas de desarrollo.
 
 Esta accion es IRREVERSIBLE.
-No podras usar /update-sf despues de esto.
+No podras usar update-sf despues de esto.
 
 Para confirmar, escribe exactamente: EJECT
 ```
@@ -143,7 +148,7 @@ rm -f src/shared/README.md
 
 ### Paso 4: Eliminar .claude/ (auto-destruccion)
 
-Este es el ULTIMO paso porque este comando esta dentro de `.claude/`:
+Este es el ULTIMO paso porque este skill esta dentro de `.claude/`:
 
 ```bash
 rm -rf .claude/
@@ -155,7 +160,10 @@ rm -rf .claude/
 Eject completado.
 
 Eliminado:
-- .claude/ (herramientas de desarrollo)
+- .claude/skills/ (skills del proyecto)
+- .claude/design-systems/ (sistemas de diseno)
+- .claude/skills/ai/references/ (AI templates)
+- .claude/PRPs/ (templates PRP)
 - .mcp.json (configuracion MCPs)
 - CLAUDE.md (system prompt)
 - Templates y READMEs internos
@@ -174,6 +182,6 @@ No queda rastro de SaaS Factory.
 
 ## Notas Importantes
 
-1. **Este comando se auto-destruye** - Despues de ejecutarlo, no existira mas
+1. **Este skill se auto-destruye** - Despues de ejecutarlo, no existira mas
 2. **No hay vuelta atras** - Para recuperar SF, tendrias que volver a ejecutar el alias `saas-factory`
 3. **El codigo funcional NO se toca** - Solo se eliminan herramientas de desarrollo

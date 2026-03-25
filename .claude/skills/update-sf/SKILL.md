@@ -1,10 +1,12 @@
 ---
-description: "Actualiza SaaS Factory a la ultima version. Busca el alias saas-factory, hace git pull y reemplaza la carpeta .claude/"
+name: update-sf
+description: "Actualizar SaaS Factory a la ultima version. Activar cuando el usuario dice: actualiza el template, hay nueva version, update SaaS Factory, quiero la ultima version, o cuando se detecta que el template esta desactualizado."
+allowed-tools: Read, Bash
 ---
 
 # Update SaaS Factory
 
-Este comando actualiza las herramientas de desarrollo (carpeta `.claude/`) a la ultima version disponible.
+Este skill actualiza las herramientas de desarrollo (carpeta `.claude/`) a la ultima version disponible.
 
 ## Proceso
 
@@ -59,13 +61,10 @@ Informa al usuario:
 SaaS Factory actualizado correctamente.
 
 Cambios aplicados:
-- .claude/commands/    (comandos actualizados)
-- .claude/agents/      (agentes actualizados)
-- .claude/PRPs/        (templates PRP actualizados)
-- .claude/ai_templates/ (bloques LEGO actualizados)
+- .claude/skills/ (skills actualizados)
+- .claude/PRPs/ (templates PRP actualizados)
+- .claude/skills/ai/references/ (AI templates actualizados)
 - .claude/design-systems/ (sistemas de diseno actualizados)
-- .claude/skills/      (skills actualizados)
-- .claude/prompts/     (metodologias actualizadas)
 
 Archivos NO modificados:
 - CLAUDE.md (tu configuracion de proyecto)
@@ -75,6 +74,6 @@ Archivos NO modificados:
 
 ## Notas
 
-- Este comando NO modifica `CLAUDE.md`, `.mcp.json` ni el codigo fuente
+- Este skill NO modifica `CLAUDE.md`, `.mcp.json` ni el codigo fuente
 - Solo actualiza la "toolbox" de desarrollo
 - Si necesitas actualizar `CLAUDE.md` manualmente, revisa el template en el repo SF
