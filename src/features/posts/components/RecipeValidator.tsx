@@ -217,6 +217,113 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
     })
   }
 
+  // === CHECKLIST NAVARRETE — "Ingeniero Poeta" Recipe Checks ===
+
+  // 13. Hook contradice expectativa — paradoja: estado ideal vs problema oculto
+  const contradictionWords = ['pero', 'sin embargo', 'y aun asi', 'aun asi', 'aunque', 'a pesar de', 'y sin embargo']
+  const hookContradicts = contradictionWords.some(w => firstLineLower.includes(w)) ||
+    (/\.\s/.test(firstLine) && firstLine.split(/\.\s/).length >= 2)
+  checks.push({
+    id: 'recipe-hook-contradicts',
+    label: 'Hook contradictorio',
+    passed: hookContradicts,
+    severity: 'warning',
+    detail: hookContradicts
+      ? 'Hook contiene contradiccion o paradoja (patron Ingeniero Poeta)'
+      : 'El hook debe contener una contradiccion: estado ideal vs problema oculto',
+  })
+
+  // 14. Personaje tecnico con nombre — componente humanizado
+  const componentWords = ['string', 'strings', 'diodo', 'inversor', 'mppt', 'combiner', 'tracker', 'modulo', 'panel', 'celda', 'bypass', 'scada', 'sensor']
+  const humanVerbs = ['protagonista', 'silencioso', 'grita', 'pide auxilio', 'se despega', 'se degrada', 'enfermo', 'sano', 'frenada', 'inutilizable', 'invisible', 'oculto']
+  const contentLower = trimmed.toLowerCase()
+  const hasNamedComponent = componentWords.some(c => contentLower.includes(c))
+  const hasHumanization = humanVerbs.some(v => contentLower.includes(v))
+  const namedCharacter = hasNamedComponent && hasHumanization
+  checks.push({
+    id: 'recipe-named-character',
+    label: 'Personaje tecnico',
+    passed: namedCharacter,
+    severity: 'warning',
+    detail: namedCharacter
+      ? 'Componente tecnico humanizado como personaje (patron Ingeniero Poeta)'
+      : !hasNamedComponent
+        ? 'Menciona un componente especifico (string, diodo, inversor, MPPT) como personaje'
+        : 'Humaniza el componente con lenguaje de agencia (silencioso, enfermo, grita, se degrada)',
+  })
+
+  // 15. Escena sensorial — verbos y sustantivos sensoriales
+  const sensoryWords = ['vi', 'vio', 'mir', 'sudor', 'temblo', 'calor', 'polvo', 'ruido', 'silencio', 'gota', 'cursor', 'pantalla', 'dashboard', 'refresco', 'sono', 'olor', 'frio', 'brillo', 'sombra']
+  const sensoryCount = sensoryWords.filter(w => contentLower.includes(w)).length
+  const hasSensoryScene = sensoryCount >= 2
+  checks.push({
+    id: 'recipe-sensory-scene',
+    label: 'Escena sensorial',
+    passed: hasSensoryScene,
+    severity: 'warning',
+    detail: hasSensoryScene
+      ? `${sensoryCount} elementos sensoriales detectados (patron Ingeniero Poeta)`
+      : 'Agrega una escena con detalles sensoriales (sudor, cursor temblando, calor, silencio)',
+  })
+
+  // 16. Dato con fuente citada — no "estudios dicen", sino fuente especifica
+  const sourcePatterns = /raptor|pv magazine|wood mackenzie|iea|irena|bloomberg|bnef|informe|reporte|estudio de|paper|publicacion|segun [a-z]/i
+  const hasSourcedData = sourcePatterns.test(trimmed) || /bit\.ly|doi\.org|https?:\/\//i.test(trimmed)
+  checks.push({
+    id: 'recipe-sourced-data',
+    label: 'Dato con fuente',
+    passed: hasSourcedData,
+    severity: 'warning',
+    detail: hasSourcedData
+      ? 'Dato respaldado por fuente especifica (credibilidad Ingeniero Poeta)'
+      : 'Cita una fuente concreta (Raptor Maps, PV Magazine) — no "estudios dicen"',
+  })
+
+  // 17. Pregunta final especifica — no generica
+  const lastParagraphFull = paragraphs[paragraphs.length - 1] ?? ''
+  const hasQuestion = /\?/.test(lastParagraphFull)
+  const genericQuestions = ['que piensas', 'que opinas', 'estan de acuerdo', 'les parece']
+  const isGenericQuestion = genericQuestions.some(q => lastParagraphFull.toLowerCase().includes(q))
+  const specificQuestion = hasQuestion && !isGenericQuestion
+  checks.push({
+    id: 'recipe-specific-question',
+    label: 'Pregunta especifica',
+    passed: specificQuestion,
+    severity: 'warning',
+    detail: specificQuestion
+      ? 'Cierra con pregunta especifica de experiencia (patron Ingeniero Poeta)'
+      : !hasQuestion
+        ? 'Cierra con una pregunta que invite a compartir experiencia real'
+        : 'Pregunta muy generica. Usa: "como lo detectaste tu?", "como se manifesto en tu planta?"',
+  })
+
+  // 18. Escalado numerico — al menos 2 numeros especificos que escalan de micro a macro
+  const numbers = trimmed.match(/\d[\d.,]*\s*(%|MW|kWh?|US\$|\$|strings?|metros?|km|m2|años?|meses?|dias?|horas?|MWh)/gi) ?? []
+  const hasEscalado = numbers.length >= 2
+  checks.push({
+    id: 'recipe-escalado',
+    label: 'Escalado numerico',
+    passed: hasEscalado,
+    severity: 'warning',
+    detail: hasEscalado
+      ? `${numbers.length} datos cuantificados detectados (micro→macro)`
+      : 'Agrega al menos 2 datos numericos con unidades (%, MW, kWh, US$) que escalen de micro a macro',
+  })
+
+  // 19. Triple leccion — lista de 3+ items guardable
+  const triplePattern = /▪|•|→|✅|❌|1\.|2\.|3\./g
+  const tripleMatches = (trimmed.match(triplePattern) ?? []).length
+  const hasTriple = tripleMatches >= 3 || hasListStructure
+  checks.push({
+    id: 'recipe-triple-lesson',
+    label: 'Triple leccion',
+    passed: hasTriple,
+    severity: 'warning',
+    detail: hasTriple
+      ? 'Contiene lista de 3+ items guardable (optimizado para Saves)'
+      : 'Agrega 3 puntos de leccion con ▪ para que el lector quiera guardarlo',
+  })
+
   return checks
 }
 
