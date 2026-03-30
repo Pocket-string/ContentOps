@@ -15,6 +15,7 @@ interface VariantEval {
     ganar: number
     provocar: number
     iniciar: number
+    receta?: number
     total: number
   }
   findings: Array<{
@@ -188,6 +189,7 @@ export function CriticPanel({
       ganar: evaluation.score.ganar,
       provocar: evaluation.score.provocar,
       iniciar: evaluation.score.iniciar,
+      receta: evaluation.score.receta ?? 0,
       total: evaluation.score.total,
       notes: `AI Critic: ${evaluation.verdict}. ${evaluation.suggestions.join('. ')}`,
     }
@@ -301,14 +303,14 @@ export function CriticPanel({
                       : evaluation.score.total >= 10 ? 'bg-yellow-100 text-yellow-700'
                       : 'bg-red-100 text-red-700'
                   }`}>
-                    {evaluation.score.total}/20
+                    {evaluation.score.total}/25
                   </span>
                 </div>
 
                 {/* D/G/P/I Score bars */}
-                <div className="grid grid-cols-4 gap-2">
-                  {(['detener', 'ganar', 'provocar', 'iniciar'] as const).map((dim) => {
-                    const val = evaluation.score[dim]
+                <div className="grid grid-cols-5 gap-2">
+                  {(['detener', 'ganar', 'provocar', 'iniciar', 'receta'] as const).map((dim) => {
+                    const val = evaluation.score[dim] ?? 0
                     const pct = (val / 5) * 100
                     return (
                       <div key={dim} className="text-center">

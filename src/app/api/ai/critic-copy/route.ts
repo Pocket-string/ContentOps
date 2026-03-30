@@ -16,7 +16,8 @@ const variantEvalSchema = z.object({
     ganar: z.number().min(0).max(5),
     provocar: z.number().min(0).max(5),
     iniciar: z.number().min(0).max(5),
-    total: z.number().min(0).max(20),
+    receta: z.number().min(0).max(5).default(0),
+    total: z.number().min(0).max(25),
   }),
   findings: z.array(z.object({
     category: z.string(),
@@ -108,17 +109,26 @@ export async function POST(request: Request): Promise<Response> {
       model: await getModel('critic-copy', workspaceId),
       system: `Eres un critico experto de copy LinkedIn para O&M fotovoltaico.
 Eres exigente pero justo. Tu mision: que cada post sea excelente antes de publicarse.
+Evaluas con la rubrica D/G/P/I/R — la R es RECETA, que mide cumplimiento del estilo "Ingeniero Poeta" de Jonathan.
 
 ## CONTEXTO DEL AUTOR
 Jonathan Navarrete (@jnavarreter) — Co-Founder en Bitalize, optimiza performance en plantas FV con datos.
 Audiencia: O&M Managers, Asset Managers, ingenieros solares en LATAM/Espana.
 Pilares: perdidas ocultas en FV, Data/SCADA/IA para O&M, herramientas Bitalize.
+Estilo: "Ingeniero Poeta" — fusiona rigor tecnico con literatura de suspenso. Posts ganadores siguen el Framework Solar Story de 9 pasos.
 
-## RUBRICA D/G/P/I (basada en senales reales de LinkedIn)
-- **Detener (D, 0-5)**: Hook detiene el scroll? NO empieza con emoji? NO usa frases genericas ("En el mundo de...", "Hoy quiero...")? Usa dato concreto, contradiccion, escena o pregunta provocadora?
-- **Ganar (G, 0-5)**: Mantendria al lector hasta el final? (potencial de dwell time alto) Aporta valor real, insights unicos del sector FV?
+## RUBRICA D/G/P/I/R (basada en senales reales de LinkedIn + receta ganadora)
+- **Detener (D, 0-5)**: Hook detiene el scroll? NO empieza con emoji? NO usa frases genericas ("En el mundo de...", "Hoy quiero...")? Usa dato concreto, contradiccion, escena o pregunta provocadora? El hook contradice una expectativa (estado ideal vs problema oculto)?
+- **Ganar (G, 0-5)**: Mantendria al lector hasta el final? (potencial de dwell time alto) Aporta valor real, insights unicos del sector FV? La narrativa tiene TENSION que obliga a llegar al final?
 - **Provocar (P, 0-5)**: Genera comentarios SUSTANTIVOS (no "buen post" o "interesante")? Provoca debate tecnico real donde la audiencia quiera compartir su experiencia?
-- **Iniciar (I, 0-5)**: CTA apropiado al funnel stage${stageConfig ? ` (esperado: ${stageConfig.cta_type})` : ''}? Genera accion medible? ${stageConfig ? stageConfig.critic_penalty : 'Es una pregunta abierta genuina (no "comenta SI o NO")?'}
+- **Iniciar (I, 0-5)**: CTA apropiado al funnel stage${stageConfig ? ` (esperado: ${stageConfig.cta_type})` : ''}? Genera accion medible? ${stageConfig ? stageConfig.critic_penalty : 'Es una pregunta abierta genuina (no "comenta SI o NO")?'} La pregunta final es ESPECIFICA (no "que piensas?")?
+- **Receta (R, 0-5)**: Cumple la receta "Ingeniero Poeta" / Framework Solar Story? Evalua presencia de estos elementos:
+  - Hook contradictorio (paradoja estado ideal vs problema oculto) — 1 punto
+  - Humanizacion de componente tecnico (diodo, string, inversor con agencia humana) — 1 punto
+  - Escena sensorial (detalles de campo: sudor, cursor, calor, polvo, silencio) — 1 punto
+  - Dato de shock con fuente citada (Raptor Maps, PV Magazine, no "estudios dicen") — 1 punto
+  - Triple leccion guardable (lista de 3+ items con ▪ o numerados) — 1 punto
+  Si faltan 3+ elementos, el post NO suena como Jonathan y debe mejorar.
 
 ## PROBLEMAS QUE DETECTAS
 - **generico**: Contenido que podria ser de cualquier sector, sin vocabulario especifico de O&M/FV
@@ -135,6 +145,7 @@ Pilares: perdidas ocultas en FV, Data/SCADA/IA para O&M, herramientas Bitalize.
 - **repeticion_campana**: Hook o argumento central muy similar a un post previo de la misma campana semanal
 - **cta_incongruente**: CTA no apropiado para la etapa del funnel${stageConfig ? `. ${stageConfig.critic_penalty}` : ''}
 - **desalineacion_pilar**: El contenido no se alinea con el pilar tematico asignado
+- **recipe_violation**: El post no sigue la receta "Ingeniero Poeta" / Framework Solar Story. Le faltan elementos clave como: hook contradictorio, humanizacion de componente, escena sensorial, dato con fuente, o triple leccion
 ${stageConfig ? `
 ## EVALUACION POR ETAPA DEL FUNNEL (${funnel_stage})
 - **Objetivo esperado**: ${stageConfig.objective}
@@ -152,8 +163,8 @@ Reglas:
 - MAXIMO 3 findings por variante (los mas impactantes)
 - MAXIMO 3 suggestions por variante (cambios concretos, accionables)
 - Severity: blocker (debe corregirse), warning (recomendado), suggestion (opcional)
-- Verdict: pass (score >= 16), needs_work (10-15), rewrite (< 10)
-- total = detener + ganar + provocar + iniciar
+- Verdict: pass (score >= 20), needs_work (12-19), rewrite (< 12)
+- total = detener + ganar + provocar + iniciar + receta
 - SIEMPRE recomienda la MEJOR variante con razon clara
 - Si las variantes son demasiado similares, reporta "sin_diversificacion" como blocker
 - Si un hook es muy similar a un hook previo de la campana, reporta "repeticion_campana" como blocker
@@ -177,7 +188,7 @@ Responde con este JSON exacto:
   "evaluations": [
     {
       "variant": "contrarian",
-      "score": { "detener": 4, "ganar": 3, "provocar": 4, "iniciar": 3, "total": 14 },
+      "score": { "detener": 4, "ganar": 3, "provocar": 4, "iniciar": 3, "receta": 3, "total": 17 },
       "findings": [
         { "category": "hook_debil", "severity": "warning", "description": "El hook podria ser mas provocador" }
       ],

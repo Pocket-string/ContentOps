@@ -57,7 +57,8 @@ export const scoreJsonSchema = z.object({
   ganar: z.number().min(0).max(5),
   provocar: z.number().min(0).max(5),
   iniciar: z.number().min(0).max(5),
-  total: z.number().min(0).max(20),
+  receta: z.number().min(0).max(5).default(0),
+  total: z.number().min(0).max(25),
   notes: z.string().optional(),
 })
 
