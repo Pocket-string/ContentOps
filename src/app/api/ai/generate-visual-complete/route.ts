@@ -9,7 +9,7 @@ import { buildImagePrompt } from '@/features/visuals/services/image-prompt-build
 import { uploadImageToStorage } from '@/features/visuals/services/image-storage-service'
 import { updateVisualImageUrl, createVisualVersion } from '@/features/visuals/services/visual-service'
 import { compositeLogoOnImage } from '@/features/visuals/services/logo-compositor'
-import { selectVisualFormat } from '@/features/visuals/services/visual-format-selector'
+import { selectVisualFormat, selectConceptType } from '@/features/visuals/services/visual-format-selector'
 import { FORMAT_TO_ASPECT_RATIO } from '@/features/visuals/constants/image-models'
 import { visualPromptSchemaV2 } from '@/features/visuals/schemas/visual-prompt-schema'
 import {
@@ -115,6 +115,9 @@ export async function POST(request: Request): Promise<Response> {
     format = selectVisualFormat(funnel_stage, post_content)
   }
 
+  // Auto-select concept type (single image vs carousel)
+  const conceptType = selectConceptType(funnel_stage, post_content)
+
   const workspaceId = await getWorkspaceId()
 
   try {
@@ -181,7 +184,17 @@ RECUERDA: prompt_overall debe ser EXHAUSTIVO. Incluye logo Bitalize con banda bl
 
     const promptJson = jsonResult.object as Record<string, unknown>
 
-    // Step 3b: Save JSON to DB (user never sees it)
+    // Step 3b: Ensure signature is always present
+    const contentObj = promptJson.content as Record<string, unknown> | undefined
+    if (contentObj && !contentObj.signature) {
+      contentObj.signature = {
+        use_signature: true,
+        text: BRAND_SIGNATURE.text,
+        placement: BRAND_SIGNATURE.default_placement,
+      }
+    }
+
+    // Step 3c: Save JSON to DB (user never sees it)
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
     await supabase
@@ -240,6 +253,7 @@ RECUERDA: prompt_overall debe ser EXHAUSTIVO. Incluye logo Bitalize con banda bl
         image_url: publicUrl,
         visual_version_id,
         format,
+        concept_type: conceptType,
       },
     })
   } catch (error) {

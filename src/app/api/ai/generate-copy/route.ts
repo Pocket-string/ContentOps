@@ -9,6 +9,7 @@ import { getTopPatterns } from '@/features/patterns/services/pattern-service'
 import { getModel } from '@/shared/lib/ai-router'
 import { reviewCopy } from '@/shared/lib/ai-reviewer'
 import { FUNNEL_STAGE_GUIDE } from '@/shared/lib/funnel-stage-guide'
+import { ensureParagraphBreaks } from '@/shared/lib/format-copy'
 import { getRecentHooks } from '@/features/posts/services/hook-history-service'
 import type { FunnelStage } from '@/shared/types/content-ops'
 
@@ -283,13 +284,19 @@ El contenido NO debe parecer generado por IA. Para lograrlo:
 - **Emotion**: Conecta con frustracion operativa real ("esto me pasa cada semana")
 - **Utility**: Contenido guardable y accionable ("necesito tener esto a mano")
 
-## FORMATO OPTIMIZADO PARA LINKEDIN
-- Parrafos de 1-2 lineas maximo (legibilidad movil). Cada parrafo max 280 caracteres
-- Doble salto de linea entre ideas principales
+## FORMATO OPTIMIZADO PARA LINKEDIN (CRITICO — SEGUIR AL PIE DE LA LETRA)
+- OBLIGATORIO: Cada bloque narrativo separado por DOBLE SALTO DE LINEA (\\n\\n)
+- Parrafos de 1-2 lineas maximo. Cada parrafo max 280 caracteres
+- Minimo 6 bloques separados por \\n\\n (hook, desarrollo, escena, dato, leccion, CTA)
 - NO empezar con emoji
 - Emojis: MAXIMO 2 por post, solo como indicadores funcionales (▪ para listas), nunca decorativos
 - NO incluir links externos en el cuerpo del post
 - Longitud total: 1500-2200 caracteres (zona optima para algoritmo LinkedIn)
+
+EJEMPLO DE FORMATO CORRECTO (nota los \\n\\n entre cada bloque):
+"Tu planta reporta un PR aceptable. Pero un 15% de potencia se esfuma en silencio.\\n\\nEl modulo PERC, ese soldado silencioso, lleva meses cediendo eficiencia.\\n\\nLo vi en Atacama. El Asset Manager, con el cuello mojado de sudor, miraba la tablet. Los numeros 'verdes' no sumaban.\\n\\nEl LeTID ataca con fuerza: hasta un 20% en 2-3 anos. (Fuente: PV Magazine 2025).\\n\\n▪ El LeTID roba hasta 20% de potencia\\n▪ Temperaturas de LATAM lo aceleran\\n▪ Tu SCADA no lo detecta\\n\\nSi te ha tocado ver esta brecha entre lo proyectado y lo real, cual fue la primera pista?"
+
+CRITICO: Sin \\n\\n entre bloques, el post es ILEGIBLE en movil y falla la validacion.
 ${funnelGuideSection}
 ${pillarSection}
 
@@ -407,6 +414,11 @@ Responde con este JSON exacto:
         { error: 'La IA genero un formato invalido. Intenta de nuevo.' },
         { status: 500 }
       )
+    }
+
+    // 5b. Post-process: ensure paragraph breaks (Gemini often ignores formatting instructions)
+    for (const variant of validated.data.variants) {
+      variant.content = ensureParagraphBreaks(variant.content)
     }
 
     // 6. ChatGPT review (optional — runs on first variant, non-blocking on failure)

@@ -407,10 +407,15 @@ export function PostEditor({
       if (result.error) {
         setError(result.error)
       } else {
+        // Update editor content immediately with the selected version
+        const version = post.versions.find((v) => v.id === versionId)
+        if (version) {
+          setEditContent(version.content)
+        }
         showSuccess('Version activada')
       }
     },
-    [onSetCurrent]
+    [onSetCurrent, post.versions]
   )
 
   const handleStatusChange = useCallback(
@@ -885,7 +890,7 @@ export function PostEditor({
                     <span
                       id="char-counter"
                       className={`text-xs font-medium tabular-nums ${
-                        isOverLimit ? 'text-red-500' : 'text-foreground-muted'
+                        isOverLimit ? 'text-red-500' : charCount > 2500 ? 'text-yellow-600' : 'text-foreground-muted'
                       }`}
                       aria-live="polite"
                       aria-label={`${charCount} de ${MAX_CHARS} caracteres`}

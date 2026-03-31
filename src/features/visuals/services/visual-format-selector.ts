@@ -44,8 +44,35 @@ export function shouldSuggestCarousel(
 ): boolean {
   const lines = postContent.split('\n').filter((l) => l.trim())
   const bulletCount = lines.filter((l) =>
-    /^\s*[-*\d•►▸▹◆]/.test(l.trim())
+    /^\s*[-*\d•►▸▹◆▪]/.test(l.trim())
   ).length
 
   return bulletCount >= 4
+}
+
+/**
+ * Auto-select concept type (single image vs carousel) based on funnel stage and content.
+ * Carousel for data-heavy/structured posts (MOFU/BOFU with lists, steps, data points).
+ * Single image for narrative/emotional posts (TOFU problema with sensory scenes).
+ */
+export function selectConceptType(
+  funnelStage: string,
+  postContent: string
+): 'single' | 'carousel_4x5' {
+  const lines = postContent.split('\n').filter((l) => l.trim())
+  const bulletCount = lines.filter((l) =>
+    /^\s*[-*\d•►▸▹◆▪]/.test(l.trim())
+  ).length
+
+  const hasSteps = /paso \d|step \d/i.test(postContent)
+  const dataPointCount = (postContent.match(/\d[\d.,]*\s*(%|MW|kWh|US\$|\$|GW)/gi) ?? []).length
+  const isStructuredStage = ['mofu_solution', 'mofu_problem', 'bofu_conversion'].includes(funnelStage)
+
+  // Carousel for structured/data-heavy content
+  if (isStructuredStage && (bulletCount >= 4 || hasSteps || dataPointCount >= 4)) {
+    return 'carousel_4x5'
+  }
+
+  // Single image for narrative content
+  return 'single'
 }

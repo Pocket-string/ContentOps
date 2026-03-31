@@ -29,6 +29,7 @@ interface VisualCriticPanelProps {
   format: string
   conceptType?: string
   campaignId: string
+  onRegenerateWithFeedback?: (feedback: string) => void
 }
 
 // ============================================
@@ -86,6 +87,7 @@ export function VisualCriticPanel({
   format,
   conceptType,
   campaignId,
+  onRegenerateWithFeedback,
 }: VisualCriticPanelProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -235,6 +237,27 @@ export function VisualCriticPanel({
                 ))}
               </ul>
             </div>
+          )}
+
+          {/* Auto-fix button when visual needs work */}
+          {result.verdict !== 'pass' && onRegenerateWithFeedback && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const parts: string[] = []
+                for (const f of result.findings) {
+                  parts.push(`[${f.severity}] ${f.category}: ${f.description}`)
+                }
+                for (const s of result.suggestions) {
+                  parts.push(`Sugerencia: ${s}`)
+                }
+                onRegenerateWithFeedback(parts.join('\n'))
+              }}
+              className="w-full bg-yellow-500 text-white hover:bg-yellow-600 border-0"
+            >
+              Corregir con IA
+            </Button>
           )}
         </div>
       )}

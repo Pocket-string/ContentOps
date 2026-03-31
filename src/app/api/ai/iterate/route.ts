@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
 import { getModel } from '@/shared/lib/ai-router'
+import { ensureParagraphBreaks } from '@/shared/lib/format-copy'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
 const iteratedCopySchema = z.object({
@@ -95,8 +96,11 @@ ${variant === 'contrarian' ? '- Revelacion Tecnica: desafia creencia instalada c
 - Provocar: generar comentarios sustantivos, debate tecnico real
 - Iniciar: CTA apropiado al contexto, pregunta abierta genuina
 
-## FORMATO
-- 1500-2200 chars optimo. Max 2 emojis. Parrafos 1-2 lineas. Sin links externos. NO hashtags (#).
+## FORMATO (CRITICO)
+- OBLIGATORIO: Separar CADA bloque narrativo con doble salto de linea (\\n\\n). Minimo 4 bloques separados.
+- Parrafos 1-2 lineas. Cada parrafo max 280 chars. MAXIMO ABSOLUTO: 2800 caracteres total.
+- Max 2 emojis. Sin links externos. NO hashtags (#).
+- Sin \\n\\n entre bloques = post ILEGIBLE en movil. Esto es critico.
 
 IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`,
       prompt: `**Post actual (variante: ${variant})**:
@@ -139,6 +143,9 @@ Genera una versión mejorada aplicando el feedback. Responde con este JSON exact
         { status: 500 }
       )
     }
+
+    // Post-process: ensure paragraph breaks (Gemini often ignores formatting)
+    validated.data.content = ensureParagraphBreaks(validated.data.content)
 
     return Response.json({ data: validated.data })
   } catch (error) {

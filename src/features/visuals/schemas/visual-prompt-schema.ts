@@ -100,10 +100,10 @@ export const visualPromptSchemaV2 = z.object({
       description: z.string().describe('Detailed description of the visual/infographic content'),
     }),
     signature: z.object({
-      use_signature: z.boolean().describe('Whether to include author signature'),
-      text: z.string().describe('e.g. "Jonathan Navarrete — Bitalize"'),
-      placement: z.string().describe('e.g. "bottom-left, small, muted"'),
-    }).optional(),
+      use_signature: z.boolean().default(true).describe('Whether to include author signature'),
+      text: z.string().default('Jonathan Navarrete — Bitalize').describe('Author signature text'),
+      placement: z.string().default('bottom-left, small 10px, text color #94A3B8').describe('Signature placement'),
+    }).default({ use_signature: true, text: 'Jonathan Navarrete — Bitalize', placement: 'bottom-left, small 10px, text color #94A3B8' }),
   }),
 
   style_guidelines: z.array(z.string())
