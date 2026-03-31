@@ -148,16 +148,20 @@ export function VisualCriticPanel({
   }
 
   return (
-    <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
+    <div className="bg-accent-50 border-2 border-accent-300 rounded-2xl shadow-card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-foreground">VisualCritic AI</h2>
+        <div>
+          <h2 className="text-sm font-bold text-accent-700">VisualCritic AI</h2>
+          <p className="text-xs text-accent-600 mt-0.5">Evaluacion obligatoria antes de publicar</p>
+        </div>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={handleEvaluate}
           isLoading={isLoading || isSaving}
           disabled={!canEvaluate}
           leftIcon={<SparklesIcon className="w-4 h-4" />}
+          className="bg-accent-600 text-white hover:bg-accent-700 border-0"
         >
           Evaluar Visual
         </Button>
@@ -236,11 +240,16 @@ export function VisualCriticPanel({
       )}
 
       {!result && !isLoading && (
-        <p className="text-xs text-foreground-muted text-center py-2">
-          {canEvaluate
-            ? 'Haz click en Evaluar Visual para obtener feedback AI'
-            : 'Selecciona una version con prompt JSON para evaluar'}
-        </p>
+        <div className="text-center py-3">
+          <p className="text-sm font-medium text-accent-700">
+            {canEvaluate
+              ? 'Haz click en Evaluar Visual para aprobar este visual'
+              : 'Selecciona una version con prompt JSON para evaluar'}
+          </p>
+          {canEvaluate && (
+            <p className="text-xs text-accent-600 mt-1">Paso obligatorio antes de publicar</p>
+          )}
+        </div>
       )}
     </div>
   )
