@@ -82,6 +82,14 @@ ${additionalInstructions ? `**Instrucciones adicionales**: ${additionalInstructi
 
 ---
 
+## REGLA DE DENSIDAD DE TEXTO (CRITICO)
+- MAXIMO 3 elementos de texto visibles en la imagen
+- Cada elemento: MAXIMO 8 palabras
+- title: maximo 60 caracteres (5-8 palabras impactantes)
+- subtitle: maximo 80 caracteres (preferiblemente OMITIR)
+- key_elements: maximo 3 items, cada uno maximo 40 caracteres
+- Menos texto = mejor legibilidad en movil = mejor rendimiento en LinkedIn
+
 ## INSTRUCCION
 
 Genera un JSON con esta estructura V2:

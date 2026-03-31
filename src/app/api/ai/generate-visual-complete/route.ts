@@ -33,6 +33,7 @@ const inputSchema = z.object({
   topic: z.string().nullable().optional(),
   keyword: z.string().nullable().optional(),
   logo_url: z.string().url().nullable().optional(),
+  minimal_text: z.boolean().optional(),
 })
 
 function buildSystemPrompt(brandOverrides: {
@@ -44,16 +45,29 @@ function buildSystemPrompt(brandOverrides: {
   imageryStyle: string
   negativePrompts: string[]
   authorSignature?: string
-}): string {
+}, minimalMode?: boolean): string {
   const { colors, tone, imagerySubjects, mood, typographyHeading, imageryStyle, negativePrompts } = brandOverrides
   const sigText = brandOverrides.authorSignature ?? BRAND_SIGNATURE.text
+
+  const minimalSection = minimalMode ? `
+## MODO EDITORIAL MINIMO (ACTIVADO — REGLA ABSOLUTA)
+MAXIMO 15 palabras de texto total en la imagen. Esto es innegociable.
+- Headline: 5-7 palabras maximo (grande, bold, impactante)
+- Data point: 3-5 palabras maximo (dato de shock, color acento)
+- Firma del autor: "${sigText}" (pequena, banda inferior)
+- NO bullet points, NO subtitle largo, NO description, NO body_text, NO tablas
+- visual_type DEBE ser "editorial_photo" o "quote_card"
+- El prompt_overall debe describir una FOTO de alta calidad de planta solar / campo tecnico
+  con overlay tipografico MINIMO (solo headline + dato)
+- Estilo: fotografia editorial documental con tipografia overlay limpia
+` : ''
 
   return `## ROL
 Eres el Director de Arte Senior de Bitalize. Generas prompt JSONs estructurados (schema V2) para crear visuales de LinkedIn con modelos de imagen AI.
 
 ## FORMATO DE SALIDA
 Responde UNICAMENTE con JSON valido segun el schema V2.
-
+${minimalSection}
 ## PRIORIDAD MAXIMA: prompt_overall
 El campo prompt_overall es el MAS IMPORTANTE del JSON. Es lo que se envia DIRECTAMENTE al modelo de generacion de imagenes.
 
@@ -65,6 +79,13 @@ Reglas para prompt_overall:
 - Firma del autor: "${sigText}"
 - NUNCA incluir specs tecnicos como "Inter Bold 48px #FFFFFF" — el modelo los renderiza literalmente
 - Ser PRECISO pero VISUAL, no tecnico
+
+## REGLA DE DENSIDAD DE TEXTO
+- MAXIMO 3 elementos de texto visibles en la imagen
+- Cada elemento: MAXIMO 8 palabras
+- title: maximo 60 caracteres
+- subtitle: maximo 80 caracteres (preferiblemente omitir)
+- Menos texto = mejor legibilidad en movil = mejor rendimiento en LinkedIn
 
 ## IDENTIDAD DE MARCA
 Colores: primario ${colors.primary}, secundario ${colors.secondary}, acento ${colors.accent}
@@ -107,7 +128,7 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  const { post_id, post_content, funnel_stage, feedback, topic, keyword, logo_url } = parsed.data
+  const { post_id, post_content, funnel_stage, feedback, topic, keyword, logo_url, minimal_text } = parsed.data
   let { visual_version_id, format } = parsed.data
 
   // Auto-select format if not provided
@@ -158,7 +179,7 @@ export async function POST(request: Request): Promise<Response> {
     // Step 3: Generate visual JSON
     const dims = FORMAT_DIMENSIONS[format as VisualFormat] ?? FORMAT_DIMENSIONS['1:1']
     const dimensionsStr = `${dims.width}x${dims.height}`
-    const systemPrompt = buildSystemPrompt(brandConfig)
+    const systemPrompt = buildSystemPrompt(brandConfig, !!minimal_text)
 
     const feedbackSection = feedback
       ? `\n\n**FEEDBACK DEL USUARIO (PRIORIDAD MAXIMA)**: ${feedback}\nAjusta el visual segun este feedback manteniendo la identidad de marca.`

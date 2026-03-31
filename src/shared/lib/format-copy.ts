@@ -47,6 +47,13 @@ export function ensureParagraphBreaks(content: string): string {
   // Normalize existing line breaks
   let text = content.replace(/\r\n/g, '\n')
 
+  // Step 0: Convert UNICODE paragraph markers to actual newlines
+  // Gemini respects ⏎⏎ as a visible token better than \n\n
+  text = text.replace(/⏎⏎/g, '\n\n')
+  text = text.replace(/⏎/g, '\n')
+  text = text.replace(/¶¶/g, '\n\n')
+  text = text.replace(/§§/g, '\n\n')
+
   // Check if already well-formatted (4+ paragraphs)
   const existingParagraphs = text.split(/\n\n+/).filter(Boolean)
   if (existingParagraphs.length >= 4) {

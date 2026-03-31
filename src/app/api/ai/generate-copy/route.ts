@@ -58,7 +58,13 @@ LONGITUD: 1500-2200 caracteres. Directo al punto. Sin preambulos.
 
 2. **Costo de No Actuar** (variant: "story"): Muestra cuanto puede costar seguir operando sin el nuevo enfoque. Urgencia economica sin exagerar ni sonar alarmista. Estructura: escenario sin cambio → perdida cuantificada → accion disponible ahora. Hook: el numero o consecuencia mas directa de no cambiar.
 
-3. **Siguiente Paso Practico** (variant: "data_driven"): No vende teoria — ofrece el recurso como herramienta concreta para dar el primer paso hoy. Friccion minima. Estructura: por que el recurso existe → que resuelve concretamente → como obtenerlo. Hook: la accion mas simple que el lector puede tomar para empezar.`
+3. **Siguiente Paso Practico** (variant: "data_driven"): No vende teoria — ofrece el recurso como herramienta concreta para dar el primer paso hoy. Friccion minima. Estructura: por que el recurso existe → que resuelve concretamente → como obtenerlo. Hook: la accion mas simple que el lector puede tomar para empezar.
+
+CTA OBLIGATORIO PARA CONVERSION (cada variante DEBE usar uno de estos):
+- "Escribeme por DM: '[KEYWORD]'. Te respondo en 24h con [recurso concreto]."
+- "Agenda una evaluacion de [X] — link en el primer comentario."
+- "Comenta '[KEYWORD]' y te envio [recurso de diagnostico concreto]."
+PROHIBIDO: multiples CTAs, "que opinas?", preguntas abiertas sin accion medible.`
   }
 
   if (isSolution) {
@@ -70,7 +76,13 @@ LONGITUD: 1800-2500 caracteres. Espacio para educar con profundidad tecnica.
 
 2. **Implementacion** (variant: "story"): Caso concreto o escenario de como se implementa en la practica. Primera persona o tercera persona cercana. NO inventar escenarios — basa todo en la evidencia del contexto. Estructura: situacion inicial → decision de implementar → proceso → resultado medible. Hook: resultado o hallazgo obtenido al implementar.
 
-3. **Framework Comparativo** (variant: "data_driven"): Compara el enfoque antiguo vs el nuevo con datos concretos. Estructura clara tipo "antes / despues" o tabla mental. Cuantifica la diferencia. Optimizado para que el usuario lo GUARDE como referencia. Hook: el contraste mas impactante entre los dos enfoques.`
+3. **Framework Comparativo** (variant: "data_driven"): Compara el enfoque antiguo vs el nuevo con datos concretos. Estructura clara tipo "antes / despues" o tabla mental. Cuantifica la diferencia. Optimizado para que el usuario lo GUARDE como referencia. Hook: el contraste mas impactante entre los dos enfoques.
+
+CTA OBLIGATORIO PARA SOLUCION (cada variante DEBE usar uno de estos):
+- "Enviame un DM con '[KEYWORD]' y te comparto [recurso especifico: checklist, guia, caso de estudio]."
+- "Guarda este post como referencia para cuando [situacion especifica del lector]."
+- "Comenta '[KEYWORD]' y te envio [recurso concreto] sin costo."
+El CTA debe mencionar un RECURSO CONCRETO, no generico. Debe ser accionable y medible.`
   }
 
   // Default: PROBLEM stage (tofu_problem / mofu_problem) — ALCANCE content type
@@ -285,18 +297,19 @@ El contenido NO debe parecer generado por IA. Para lograrlo:
 - **Utility**: Contenido guardable y accionable ("necesito tener esto a mano")
 
 ## FORMATO OPTIMIZADO PARA LINKEDIN (CRITICO — SEGUIR AL PIE DE LA LETRA)
-- OBLIGATORIO: Cada bloque narrativo separado por DOBLE SALTO DE LINEA (\\n\\n)
+- USA el marcador ⏎⏎ para separar cada bloque narrativo. El sistema lo convierte a saltos de linea.
+- USA ⏎ (simple) para separar lineas dentro de un bloque (ej: items de lista)
 - Parrafos de 1-2 lineas maximo. Cada parrafo max 280 caracteres
-- Minimo 6 bloques separados por \\n\\n (hook, desarrollo, escena, dato, leccion, CTA)
+- Minimo 6 bloques separados por ⏎⏎ (hook, desarrollo, escena, dato, leccion, CTA)
 - NO empezar con emoji
 - Emojis: MAXIMO 2 por post, solo como indicadores funcionales (▪ para listas), nunca decorativos
 - NO incluir links externos en el cuerpo del post
 - Longitud total: 1500-2200 caracteres (zona optima para algoritmo LinkedIn)
 
-EJEMPLO DE FORMATO CORRECTO (nota los \\n\\n entre cada bloque):
-"Tu planta reporta un PR aceptable. Pero un 15% de potencia se esfuma en silencio.\\n\\nEl modulo PERC, ese soldado silencioso, lleva meses cediendo eficiencia.\\n\\nLo vi en Atacama. El Asset Manager, con el cuello mojado de sudor, miraba la tablet. Los numeros 'verdes' no sumaban.\\n\\nEl LeTID ataca con fuerza: hasta un 20% en 2-3 anos. (Fuente: PV Magazine 2025).\\n\\n▪ El LeTID roba hasta 20% de potencia\\n▪ Temperaturas de LATAM lo aceleran\\n▪ Tu SCADA no lo detecta\\n\\nSi te ha tocado ver esta brecha entre lo proyectado y lo real, cual fue la primera pista?"
+EJEMPLO DE FORMATO CORRECTO (usa ⏎⏎ entre bloques):
+"Tu planta reporta un PR aceptable. Pero un 15% de potencia se esfuma en silencio.⏎⏎El modulo PERC, ese soldado silencioso, lleva meses cediendo eficiencia.⏎⏎Lo vi en Atacama. El Asset Manager, con el cuello mojado de sudor, miraba la tablet. Los numeros 'verdes' no sumaban.⏎⏎El LeTID ataca con fuerza: hasta un 20% en 2-3 anos. (Fuente: PV Magazine 2025).⏎⏎▪ El LeTID roba hasta 20% de potencia⏎▪ Temperaturas de LATAM lo aceleran⏎▪ Tu SCADA no lo detecta⏎⏎Si te ha tocado ver esta brecha entre lo proyectado y lo real, cual fue la primera pista?"
 
-CRITICO: Sin \\n\\n entre bloques, el post es ILEGIBLE en movil y falla la validacion.
+CRITICO: Sin ⏎⏎ entre bloques, el post es ILEGIBLE en movil y falla la validacion.
 ${funnelGuideSection}
 ${pillarSection}
 

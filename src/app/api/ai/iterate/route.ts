@@ -97,10 +97,11 @@ ${variant === 'contrarian' ? '- Revelacion Tecnica: desafia creencia instalada c
 - Iniciar: CTA apropiado al contexto, pregunta abierta genuina
 
 ## FORMATO (CRITICO)
-- OBLIGATORIO: Separar CADA bloque narrativo con doble salto de linea (\\n\\n). Minimo 4 bloques separados.
-- Parrafos 1-2 lineas. Cada parrafo max 280 chars. MAXIMO ABSOLUTO: 2800 caracteres total.
-- Max 2 emojis. Sin links externos. NO hashtags (#).
-- Sin \\n\\n entre bloques = post ILEGIBLE en movil. Esto es critico.
+- USA el marcador ⏎⏎ para separar CADA bloque narrativo. El sistema lo convierte a saltos de linea.
+- USA ⏎ (simple) para separar lineas dentro de listas (items con ▪)
+- Minimo 4 bloques separados por ⏎⏎. Parrafos 1-2 lineas. Cada parrafo max 280 chars.
+- MAXIMO ABSOLUTO: 2800 caracteres total. Max 2 emojis. Sin links externos. NO hashtags (#).
+- Sin ⏎⏎ entre bloques = post ILEGIBLE en movil. Esto es critico.
 
 IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`,
       prompt: `**Post actual (variante: ${variant})**:

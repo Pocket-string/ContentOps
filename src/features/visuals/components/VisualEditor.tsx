@@ -248,6 +248,7 @@ export function VisualEditor({
   const [isGeneratingComplete, setIsGeneratingComplete] = useState(false)
   const [completeGenFeedback, setCompleteGenFeedback] = useState('')
   const [completeGenStep, setCompleteGenStep] = useState<'idle' | 'json' | 'image' | 'done'>('idle')
+  const [minimalText, setMinimalText] = useState(false)
   // Carousel state
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>([])
   const [isInitCarousel, setIsInitCarousel] = useState(false)
@@ -502,6 +503,7 @@ export function VisualEditor({
           topic: topicTitle || null,
           keyword: keyword || null,
           logo_url: logoUrl || null,
+          minimal_text: minimalText || undefined,
         }),
       })
       setCompleteGenStep('image')
@@ -523,7 +525,7 @@ export function VisualEditor({
       setIsGeneratingComplete(false)
       setTimeout(() => setCompleteGenStep('idle'), 3000)
     }
-  }, [postId, postContent, funnelStage, selectedVisualId, format, topicTitle, keyword, logoUrl, router])
+  }, [postId, postContent, funnelStage, selectedVisualId, format, topicTitle, keyword, logoUrl, minimalText, router])
 
   // ============================================
   // Render
@@ -643,6 +645,15 @@ export function VisualEditor({
                   ))}
                 </div>
               )}
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={minimalText}
+                  onChange={(e) => setMinimalText(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-foreground-secondary">Texto minimo (editorial)</span>
+              </label>
               <Button
                 variant="primary"
                 size="sm"
@@ -1050,6 +1061,10 @@ export function VisualEditor({
                 format={format}
                 conceptType={selectedVisual?.concept_type ?? undefined}
                 campaignId={campaignId}
+                onRegenerateWithFeedback={(feedbackStr) => {
+                  setCompleteGenFeedback(feedbackStr)
+                  handleGenerateComplete(feedbackStr)
+                }}
               />
             )}
           </div>

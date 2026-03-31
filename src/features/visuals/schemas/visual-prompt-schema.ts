@@ -84,8 +84,8 @@ export const visualPromptSchemaV2 = z.object({
   }),
 
   content: z.object({
-    title: z.string().describe('Main headline text to render in the image'),
-    subtitle: z.string().optional().describe('Secondary text below the title'),
+    title: z.string().max(60).describe('Main headline — max 60 chars, 5-8 words'),
+    subtitle: z.string().max(80).optional().describe('Secondary text — max 80 chars, preferably omit'),
     body_text: z.string().optional().describe('Supporting body text if applicable'),
     cta: z.object({
       text: z.string().describe('Call-to-action text'),
@@ -95,8 +95,8 @@ export const visualPromptSchemaV2 = z.object({
     }).optional(),
     visual_elements: z.object({
       type: z.string().describe('e.g. "bar chart", "process flow diagram", "icon grid", "data callout"'),
-      key_elements: z.array(z.string())
-        .describe('List of specific visual elements to include — be precise'),
+      key_elements: z.array(z.string().max(40)).max(3)
+        .describe('Max 3 elements, each max 40 chars — be concise'),
       description: z.string().describe('Detailed description of the visual/infographic content'),
     }),
     signature: z.object({
