@@ -158,7 +158,9 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
   })
 
   // 9. Emojis moderados — Max 2 emojis (evidencia: exceso = patron bot)
-  const emojiCount = (trimmed.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) ?? []).length
+  // Exclude bullet characters (▪▸▹►▻●○◆◇■□•→←↑↓) used in triple-lesson lists
+  const emojiCount = (trimmed.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) ?? [])
+    .filter(ch => !/[▪▸▹►▻●○◆◇■□•→←↑↓▫▬▲△▼▽◀▶◁▷★☆※‣⁃∎⦿⦾]/.test(ch)).length
   const emojisOk = emojiCount <= 2
   checks.push({
     id: 'emojis',
