@@ -3,7 +3,7 @@ import { generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
-import { weeklyBriefSchema, structuredContentSchema } from '@/shared/types/content-ops'
+import { structuredContentSchema } from '@/shared/types/content-ops'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import { getTopPatterns } from '@/features/patterns/services/pattern-service'
 import { getModel } from '@/shared/lib/ai-router'
@@ -37,6 +37,20 @@ const siblingSchema = z.object({
   content_preview: z.string(),
 })
 
+// Lenient weekly_brief schema: coerce all fields to strings to handle DB JSONB quirks
+const lenientWeeklyBriefSchema = z.object({
+  tema: z.coerce.string().min(1),
+  enemigo_silencioso: z.coerce.string().optional(),
+  evidencia_clave: z.coerce.string().optional(),
+  senales_mercado: z.array(z.coerce.string()).default([]),
+  anti_mito: z.coerce.string().optional(),
+  buyer_persona: z.coerce.string().optional(),
+  keyword: z.coerce.string().optional(),
+  recurso: z.coerce.string().optional(),
+  restriccion_links: z.boolean().default(true),
+  tone_rules: z.coerce.string().optional(),
+})
+
 const inputSchema = z.object({
   topic: z.string().min(1, 'El tema es requerido'),
   keyword: z.string().optional(),
@@ -45,11 +59,11 @@ const inputSchema = z.object({
   objective: z.string().optional(),
   audience: z.string().optional(),
   context: z.string().optional(),
-  weekly_brief: weeklyBriefSchema.optional(),
-  previous_hooks: z.array(z.string()).optional(),
+  weekly_brief: lenientWeeklyBriefSchema.optional(),
+  previous_hooks: z.array(z.coerce.string()).optional(),
   sibling_summaries: z.array(siblingSchema).optional(),
-  pillar_name: z.string().optional(),
-  pillar_description: z.string().optional(),
+  pillar_name: z.coerce.string().optional(),
+  pillar_description: z.coerce.string().optional(),
 })
 
 // Stage-aware variant instructions injected into userPrompt
