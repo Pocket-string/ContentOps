@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { generateImage } from 'ai'
+import { generateImage, generateText } from 'ai'
 import { requireAuth } from '@/lib/auth'
 import { aiRateLimiter } from '@/lib/rate-limit'
 import { getWorkspaceId } from '@/lib/workspace'
-import { generateObjectWithFallback, getImageModel } from '@/shared/lib/ai-router'
+import { getModel, getImageModel } from '@/shared/lib/ai-router'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import { buildImagePrompt } from '@/features/visuals/services/image-prompt-builder'
 import { uploadImageToStorage } from '@/features/visuals/services/image-storage-service'
@@ -209,11 +209,11 @@ export async function POST(request: Request): Promise<Response> {
       ? `\n\n**FEEDBACK DEL USUARIO (PRIORIDAD MAXIMA)**: ${feedback}\nAjusta el visual segun este feedback manteniendo la identidad de marca.`
       : ''
 
-    const jsonResult = await generateObjectWithFallback({
-      task: 'generate-visual-json',
-      workspaceId,
-      schema: visualPromptSchemaV2,
-      system: systemPrompt,
+    // Use generateText + manual JSON parse (generateObject fails with long prompts on Gemini)
+    const model = await getModel('generate-visual-json', workspaceId)
+    const textResult = await generateText({
+      model,
+      system: systemPrompt + '\n\nIMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.',
       prompt: `Genera el prompt JSON V2 para este visual de LinkedIn.
 
 **Contenido del post**:
@@ -227,7 +227,31 @@ ${keyword ? `**Keyword**: ${keyword}` : ''}${feedbackSection}
 RECUERDA: prompt_overall debe ser EXHAUSTIVO. Incluye logo Bitalize con banda blanca inferior y firma "${brandConfig.authorSignature}".`,
     })
 
-    const promptJson = jsonResult.object as Record<string, unknown>
+    // Parse JSON from text response
+    let jsonText = textResult.text.trim()
+    if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
+    }
+
+    let promptJson: Record<string, unknown>
+    try {
+      promptJson = JSON.parse(jsonText) as Record<string, unknown>
+    } catch {
+      console.error('[generate-visual-complete] Failed to parse AI JSON:', jsonText.slice(0, 500))
+      return Response.json(
+        { error: 'Error al parsear el JSON del visual. Intenta de nuevo.' },
+        { status: 500 }
+      )
+    }
+
+    // Validate with Zod (lenient — don't reject, just log warnings)
+    const validated = visualPromptSchemaV2.safeParse(promptJson)
+    if (!validated.success) {
+      console.warn('[generate-visual-complete] JSON validation warnings:', validated.error.issues.slice(0, 3))
+      // Continue with raw JSON — partial data is better than no visual
+    } else {
+      promptJson = validated.data as unknown as Record<string, unknown>
+    }
 
     // Step 3b: Ensure signature is always present
     const contentObj = promptJson.content as Record<string, unknown> | undefined
