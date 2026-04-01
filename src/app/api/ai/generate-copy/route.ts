@@ -14,18 +14,16 @@ import { getRecentHooks } from '@/features/posts/services/hook-history-service'
 import type { FunnelStage } from '@/shared/types/content-ops'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
+const variantSchema = z.object({
+  variant: z.enum(['contrarian', 'story', 'data_driven']),
+  content: z.string().min(1),
+  hook: z.string().default(''),
+  cta: z.string().default(''),
+  structured_content: structuredContentSchema.optional(),
+})
+
 const generatedCopySchema = z.object({
-  variants: z
-    .array(
-      z.object({
-        variant: z.enum(['contrarian', 'story', 'data_driven']),
-        content: z.string().min(1),
-        hook: z.string().min(1),
-        cta: z.string().min(1),
-        structured_content: structuredContentSchema.optional(),
-      })
-    )
-    .min(3),
+  variants: z.array(variantSchema).min(1),
 })
 
 export type GeneratedCopy = z.infer<typeof generatedCopySchema>
@@ -538,9 +536,13 @@ Responde con este JSON exacto:
 
     const validated = generatedCopySchema.safeParse(parsed_ai)
     if (!validated.success) {
-      console.error('[generate-copy] Zod validation failed:', validated.error.issues)
+      const firstIssue = validated.error.issues[0]
+      const issuePath = firstIssue?.path?.join('.') || 'unknown'
+      const issueMsg = firstIssue?.message || 'unknown'
+      console.error('[generate-copy] Zod validation failed:', JSON.stringify(validated.error.issues.slice(0, 3)))
+      console.error('[generate-copy] AI response keys:', Object.keys(parsed_ai as Record<string, unknown>))
       return Response.json(
-        { error: 'La IA genero un formato invalido. Intenta de nuevo.' },
+        { error: `La IA genero un formato invalido (${issuePath}: ${issueMsg}). Intenta de nuevo.` },
         { status: 500 }
       )
     }
