@@ -550,3 +550,41 @@ export async function getCampaignPostHooks(
     return { error: 'Error inesperado al obtener hooks previos' }
   }
 }
+
+export async function getCampaignPostSummaries(
+  campaignId: string,
+  excludePostId: string
+): Promise<ServiceResult<{ day_of_week: string; funnel_stage: string; content_preview: string }[]>> {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, day_of_week, funnel_stage, post_versions(content, version)')
+      .eq('campaign_id', campaignId)
+      .neq('id', excludePostId)
+      .order('version', { referencedTable: 'post_versions', ascending: false })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    const summaries: { day_of_week: string; funnel_stage: string; content_preview: string }[] = []
+    for (const post of data ?? []) {
+      const p = post as { day_of_week?: string; funnel_stage?: string; post_versions?: { content: string; version: number }[] }
+      const versions = p.post_versions
+      if (versions && versions.length > 0 && p.day_of_week && p.funnel_stage) {
+        summaries.push({
+          day_of_week: p.day_of_week,
+          funnel_stage: p.funnel_stage,
+          content_preview: versions[0].content.slice(0, 400),
+        })
+      }
+    }
+
+    return { data: summaries }
+  } catch (err) {
+    console.error('[post-service] getCampaignPostSummaries unexpected error', err)
+    return { error: 'Error inesperado al obtener summaries' }
+  }
+}

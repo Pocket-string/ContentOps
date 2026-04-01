@@ -154,7 +154,7 @@ export function VisualCriticPanel({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-bold text-accent-700">VisualCritic AI</h2>
-          <p className="text-xs text-accent-600 mt-0.5">Evaluacion obligatoria antes de publicar</p>
+          <p className="text-xs text-accent-600 mt-0.5">Evalua el prompt JSON, no la imagen final</p>
         </div>
         <Button
           variant="secondary"
@@ -245,7 +245,11 @@ export function VisualCriticPanel({
               variant="secondary"
               size="sm"
               onClick={() => {
-                const parts: string[] = []
+                const prefix = `VERDICT: ${result.verdict}. MOBILE_READABILITY: ${result.mobile_readability}. BRAND: ${result.brand_consistency}.`
+                const structural = result.verdict === 'rewrite'
+                  ? 'INSTRUCCION: Genera un visual COMPLETAMENTE diferente. Cambiar visual_type y estructura.'
+                  : 'INSTRUCCION: Ajustar findings especificos manteniendo la estructura base.'
+                const parts: string[] = [prefix, structural]
                 for (const f of result.findings) {
                   parts.push(`[${f.severity}] ${f.category}: ${f.description}`)
                 }

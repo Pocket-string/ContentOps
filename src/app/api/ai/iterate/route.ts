@@ -21,6 +21,7 @@ const inputSchema = z.object({
   current_content: z.string().min(1, 'El contenido actual es requerido'),
   feedback: z.string().min(1, 'El feedback es requerido'),
   variant: z.enum(['contrarian', 'story', 'data_driven']),
+  funnel_stage: z.string().optional(),
   score: z
     .object({
       detener: z.number().min(0).max(5).optional(),
@@ -65,7 +66,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
-    const { current_content, feedback, variant, score } = parsed.data
+    const { current_content, feedback, variant, funnel_stage, score } = parsed.data
 
     // Build optional D/G/P/I score context for the prompt
     let scoreContext = ''
@@ -78,11 +79,13 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
+    const funnelContext = funnel_stage ? `\n## ETAPA DEL FUNNEL: ${funnel_stage}\nRespeta el tono de esta etapa. TOFU = emocional/narrativo. MOFU = didactico/analitico. BOFU = directo/urgente.\n` : ''
+
     const result = await generateText({
       model: await getModel('iterate', workspaceId),
       system: `Eres un editor experto de copy para LinkedIn en O&M fotovoltaico.
 Tu trabajo es iterar sobre un post existente aplicando el feedback del usuario.
-
+${funnelContext}
 ## PERFIL DEL AUTOR
 Jonathan Navarrete (@jnavarreter) — Co-Founder en Bitalize, plantas FV con datos/SCADA/IA.
 Voz: tecnico pero cercano, desde experiencia real de terreno, datos verificables.

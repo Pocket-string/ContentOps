@@ -36,6 +36,7 @@ interface PostEditorProps {
   weeklyBrief?: WeeklyBrief
   topicContext?: string
   previousHooks?: string[]
+  siblingPosts?: { day_of_week: string; funnel_stage: string; content_preview: string }[]
   pillarContext?: string
   onSaveVersion: (formData: FormData) => Promise<{ success?: true; error?: string }>
   onSetCurrent: (versionId: string) => Promise<{ success?: true; error?: string }>
@@ -287,6 +288,7 @@ export function PostEditor({
   weeklyBrief,
   topicContext,
   previousHooks,
+  siblingPosts,
   pillarContext,
   onSaveVersion,
   onSetCurrent,
@@ -481,10 +483,12 @@ export function PostEditor({
           topic: topicTitle ?? 'O&M fotovoltaico',
           keyword: keyword,
           funnel_stage: post.funnel_stage,
+          day_of_week: post.day_of_week ?? undefined,
           objective: objective || undefined,
           context: topicContext || undefined,
           weekly_brief: weeklyBrief,
           previous_hooks: previousHooks?.length ? previousHooks : undefined,
+          sibling_summaries: siblingPosts?.length ? siblingPosts : undefined,
           pillar_name: pillarContext?.split(' — ')[0],
           pillar_description: pillarContext?.includes(' — ') ? pillarContext.split(' — ').slice(1).join(' — ') : undefined,
         }),
@@ -517,7 +521,7 @@ export function PostEditor({
     } finally {
       setIsGenerating(false)
     }
-  }, [topicTitle, keyword, weeklyBrief, topicContext, previousHooks, pillarContext, post.funnel_stage, post.id, objective, onSaveVersion])
+  }, [topicTitle, keyword, weeklyBrief, topicContext, previousHooks, siblingPosts, pillarContext, post.funnel_stage, post.day_of_week, post.id, objective, onSaveVersion])
 
   const handleIterate = useCallback(async () => {
     if (!editContent.trim() || !feedback.trim()) return
@@ -533,6 +537,7 @@ export function PostEditor({
           current_content: editContent,
           feedback,
           variant: activeVariant,
+          funnel_stage: post.funnel_stage,
           score: existingScore?.total ? existingScore : undefined,
         }),
       })

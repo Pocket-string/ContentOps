@@ -621,7 +621,7 @@ export function VisualEditor({
             </div>
 
             {/* 2. SIMPLIFIED Visual Generation — ONE CLICK */}
-            <div className="bg-surface border border-primary-200 rounded-2xl shadow-card p-5 space-y-4">
+            <div id="visual-gen-section" className="bg-surface border border-primary-200 rounded-2xl shadow-card p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-foreground">Generar Visual</h2>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700">Auto</span>
@@ -1008,7 +1008,24 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 4. QA Checklist (show when image exists or carousel has slides with images) */}
+            {/* 4. VisualCritic AI — moved up, near image generation */}
+            {selectedVisualId && (
+              <VisualCriticPanel
+                visualVersionId={selectedVisualId}
+                promptJson={selectedVisual ? selectedVisual.prompt_json : null}
+                postContent={postContent}
+                format={format}
+                conceptType={selectedVisual?.concept_type ?? undefined}
+                campaignId={campaignId}
+                onRegenerateWithFeedback={(feedbackStr) => {
+                  setCompleteGenFeedback(feedbackStr)
+                  handleGenerateComplete(feedbackStr)
+                  document.getElementById('visual-gen-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+              />
+            )}
+
+            {/* 5. QA Checklist (show when image exists or carousel has slides with images) */}
             {selectedVisualId && (isCarousel ? carouselSlides.length > 0 : hasImage) && (
               <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-4">
                 <div className="flex items-center justify-between">
@@ -1044,28 +1061,12 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 5. Visual Validator (deterministic rules) */}
+            {/* 6. Visual Validator (deterministic rules) */}
             {selectedVisualId && selectedVisual?.prompt_json && Object.keys(selectedVisual.prompt_json).length > 0 && (
               <>
                 <QAScoreCard checks={runVisualChecks(selectedVisual.prompt_json, format)} label="Visual QA" />
                 <VisualValidator promptJson={selectedVisual.prompt_json} format={format} />
               </>
-            )}
-
-            {/* 6. VisualCritic AI */}
-            {selectedVisualId && (
-              <VisualCriticPanel
-                visualVersionId={selectedVisualId}
-                promptJson={selectedVisual ? selectedVisual.prompt_json : null}
-                postContent={postContent}
-                format={format}
-                conceptType={selectedVisual?.concept_type ?? undefined}
-                campaignId={campaignId}
-                onRegenerateWithFeedback={(feedbackStr) => {
-                  setCompleteGenFeedback(feedbackStr)
-                  handleGenerateComplete(feedbackStr)
-                }}
-              />
             )}
           </div>
         </div>

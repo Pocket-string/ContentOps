@@ -31,70 +31,137 @@ const generatedCopySchema = z.object({
 export type GeneratedCopy = z.infer<typeof generatedCopySchema>
 
 // Input schema — validated before touching the AI
+const siblingSchema = z.object({
+  day_of_week: z.string(),
+  funnel_stage: z.string(),
+  content_preview: z.string(),
+})
+
 const inputSchema = z.object({
   topic: z.string().min(1, 'El tema es requerido'),
   keyword: z.string().optional(),
   funnel_stage: z.string().min(1, 'La etapa del funnel es requerida'),
+  day_of_week: z.number().min(1).max(7).optional(),
   objective: z.string().optional(),
   audience: z.string().optional(),
   context: z.string().optional(),
   weekly_brief: weeklyBriefSchema.optional(),
   previous_hooks: z.array(z.string()).optional(),
+  sibling_summaries: z.array(siblingSchema).optional(),
   pillar_name: z.string().optional(),
   pillar_description: z.string().optional(),
 })
 
 // Stage-aware variant instructions injected into userPrompt
 function buildVariantInstructions(funnelStage: string): string {
-  const isBofu = funnelStage === 'bofu_conversion'
-  const isSolution = funnelStage === 'tofu_solution' || funnelStage === 'mofu_solution'
+  if (funnelStage === 'bofu_conversion') {
+    return `Las 3 variantes deben ser FUNCIONALMENTE distintas.
 
-  if (isBofu) {
-    return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este es el post de CIERRE — NO es educativo ni de awareness. El lector ya conoce el problema y la solucion. Ahora debe tomar una accion concreta. UN solo CTA principal. NO mezclar multiples CTAs.
+TONO BOFU CONVERSION: El lector ya decidio. Necesita el ULTIMO empujon.
+- CERO educacion — ir directo al costo de NO actuar
+- Urgencia economica sin alarmismo (numeros reales, no inflados)
+- UN SOLO CTA directo y medible
+- El lector debe pensar: "ya lo pense suficiente, necesito dar el paso"
 
 LONGITUD: 1500-2200 caracteres. Directo al punto. Sin preambulos.
 
-1. **Diagnostico Ejecutivo** (variant: "contrarian"): Hace que el lector se reconozca en el dolor operativo. "Si hoy gestionas X con Y, probablemente estes viendo una version incompleta de tu rendimiento." Estructura: situacion real del lector → consecuencia economica concreta → siguiente paso. Hook: situacion operativa que el Asset Manager / O&M Manager vive hoy.
+1. **Diagnostico Ejecutivo** (variant: "contrarian"): Hace que el lector se reconozca en el dolor operativo. Estructura: situacion real del lector → consecuencia economica concreta → siguiente paso.
 
-2. **Costo de No Actuar** (variant: "story"): Muestra cuanto puede costar seguir operando sin el nuevo enfoque. Urgencia economica sin exagerar ni sonar alarmista. Estructura: escenario sin cambio → perdida cuantificada → accion disponible ahora. Hook: el numero o consecuencia mas directa de no cambiar.
+2. **Costo de No Actuar** (variant: "story"): Muestra cuanto puede costar seguir operando sin el nuevo enfoque. Urgencia economica sin exagerar. Estructura: escenario sin cambio → perdida cuantificada → accion disponible ahora.
 
-3. **Siguiente Paso Practico** (variant: "data_driven"): No vende teoria — ofrece el recurso como herramienta concreta para dar el primer paso hoy. Friccion minima. Estructura: por que el recurso existe → que resuelve concretamente → como obtenerlo. Hook: la accion mas simple que el lector puede tomar para empezar.
+3. **Siguiente Paso Practico** (variant: "data_driven"): Ofrece el recurso como herramienta concreta. Friccion minima. Estructura: por que el recurso existe → que resuelve → como obtenerlo.
 
-CTA OBLIGATORIO PARA CONVERSION (cada variante DEBE usar uno de estos):
+CTA OBLIGATORIO (cada variante DEBE usar uno de estos):
 - "Escribeme por DM: '[KEYWORD]'. Te respondo en 24h con [recurso concreto]."
 - "Agenda una evaluacion de [X] — link en el primer comentario."
 - "Comenta '[KEYWORD]' y te envio [recurso de diagnostico concreto]."
 PROHIBIDO: multiples CTAs, "que opinas?", preguntas abiertas sin accion medible.`
   }
 
-  if (isSolution) {
-    return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este post es de etapa SOLUCION — NO repetir el diagnostico del problema. El lector ya lo conoce. Enfocarse en el COMO funciona la solucion y POR QUE es superior al enfoque anterior. El CTA debe invitar a guardar o profundizar, NO a convertir.
+  if (funnelStage === 'mofu_solution') {
+    return `Las 3 variantes deben ser FUNCIONALMENTE distintas. NO repetir diagnostico del problema.
 
-LONGITUD: 1800-2500 caracteres. Espacio para educar con profundidad tecnica.
+TONO MOFU SOLUCION: El lector evalua opciones. Quiere EVIDENCIA de que funciona.
+- Caso de estudio concreto con datos medibles (antes vs despues)
+- Framework paso a paso que el lector pueda GUARDAR
+- Comparacion tecnica viejo enfoque vs nuevo enfoque con datos
+- El lector debe pensar: "esto es aplicable a mi planta, necesito explorarlo"
 
-1. **Mecanismo** (variant: "contrarian"): Explica el "como funciona" tecnico de la solucion. Contrasta punto a punto con el enfoque anterior. Estructura: como se hace hoy → que se pierde con ese enfoque → como funciona la alternativa → impacto cuantificado. Hook: declaracion que reencuadra como vemos el rendimiento ahora.
+LONGITUD: 1800-2500 caracteres.
 
-2. **Implementacion** (variant: "story"): Caso concreto o escenario de como se implementa en la practica. Primera persona o tercera persona cercana. NO inventar escenarios — basa todo en la evidencia del contexto. Estructura: situacion inicial → decision de implementar → proceso → resultado medible. Hook: resultado o hallazgo obtenido al implementar.
+1. **Mecanismo** (variant: "contrarian"): Contrasta punto a punto enfoque anterior vs alternativa. Hook: declaracion que reencuadra como vemos el rendimiento.
 
-3. **Framework Comparativo** (variant: "data_driven"): Compara el enfoque antiguo vs el nuevo con datos concretos. Estructura clara tipo "antes / despues" o tabla mental. Cuantifica la diferencia. Optimizado para que el usuario lo GUARDE como referencia. Hook: el contraste mas impactante entre los dos enfoques.
+2. **Implementacion** (variant: "story"): Caso concreto de implementacion en la practica. NO inventar escenarios. Estructura: situacion inicial → decision → proceso → resultado medible.
 
-CTA OBLIGATORIO PARA SOLUCION (cada variante DEBE usar uno de estos):
-- "Enviame un DM con '[KEYWORD]' y te comparto [recurso especifico: checklist, guia, caso de estudio]."
-- "Guarda este post como referencia para cuando [situacion especifica del lector]."
-- "Comenta '[KEYWORD]' y te envio [recurso concreto] sin costo."
-El CTA debe mencionar un RECURSO CONCRETO, no generico. Debe ser accionable y medible.`
+3. **Framework Comparativo** (variant: "data_driven"): Antes/despues con datos concretos. Optimizado para GUARDAR como referencia.
+
+CTA OBLIGATORIO:
+- "Enviame un DM con '[KEYWORD]' y te comparto [recurso especifico]."
+- "Guarda este post como referencia para cuando [situacion del lector]."
+- "Comenta '[KEYWORD]' y te envio [recurso concreto] sin costo."`
   }
 
-  // Default: PROBLEM stage (tofu_problem / mofu_problem) — ALCANCE content type
-  return `Las 3 variantes deben ser FUNCIONALMENTE distintas. CRITICO: Este post es de etapa PROBLEMA (contenido de ALCANCE) — NO mencionar la solucion. Enfocarse 100% en diagnosticar el problema con precision. El CTA debe ser una pregunta ESPECIFICA de experiencia que invite a comentar, NO una invitacion a descargar o contactar. Terminar siempre con pregunta abierta que democratice la conversacion.
+  if (funnelStage === 'tofu_solution') {
+    return `Las 3 variantes deben ser FUNCIONALMENTE distintas. NO repetir diagnostico del problema.
 
-LONGITUD: 1500-2200 caracteres. Zona optima para algoritmo LinkedIn.
+TONO TOFU SOLUCION: El lector conoce el problema. Ahora descubre que HAY solucion.
+- Presentar la solucion como REVELACION, no como venta
+- Mostrar el mecanismo de deteccion/mitigacion sin jerga comercial
+- Ejemplo de implementacion real pero sin presionar
+- El lector debe pensar: "ah, entonces SI se puede detectar/prevenir"
 
-1. **Ingeniero Poeta** (variant: "contrarian"): La variante FLAGSHIP. Sigue la receta completa de 9 pasos del Framework Solar Story con todos los elementos: hook contradictorio, humanizacion del componente, escalado numerico, escena sensorial con el avatar del operador, revelacion del metodo (sin vender), dato de shock con fuente, triple punto de leccion, y pregunta especifica de experiencia. TODOS los pasos deben estar presentes. Esta es la variante que replica el estilo ganador de Jonathan.
+LONGITUD: 1800-2500 caracteres.
 
-2. **Terreno Sensorial** (variant: "story"): Enfasis FUERTE en pasos 2 y 4 (humanizacion del componente + escena sensorial). Narrativa en primera persona o tercera persona cercana. El lector debe SENTIR que estuvo ahi — polvo del desierto, calor de mediodia, ruido de inversores. Incluye: escena especifica (lugar, equipo, momento), el avatar del operador paralizado, problema encontrado, tension narrativa. NO inventes escenarios — basa todo en la evidencia del contexto. Hook: escena que arranca in media res. La leccion emerge de la experiencia, no se declara.
+1. **Mecanismo** (variant: "contrarian"): Explica el "como funciona" tecnico. Hook: declaracion que reencuadra el problema desde la solucion.
 
-3. **Dato Revelacion** (variant: "data_driven"): Enfasis FUERTE en pasos 3 y 6 (escalado numerico + dato de shock con fuente). Los numeros hacen el trabajo pesado. Estructura: dato mas impactante al frente → escala de micro a macro → cuanto cuesta → triple punto de leccion guardable → pregunta que invita a reflexionar. Hook: el dato mas sorprendente. Optimizado para SAVES: debe contener al menos una lista de 3 items o framework que el lector quiera guardar como referencia.`
+2. **Implementacion** (variant: "story"): Escenario de implementacion. Primera persona cercana. Estructura: situacion → accion → resultado inesperado.
+
+3. **Framework Comparativo** (variant: "data_driven"): Viejo enfoque vs nuevo con datos. Optimizado para SAVES.
+
+CTA: Pregunta que invite a explorar la solucion o guardar el post como referencia.`
+  }
+
+  if (funnelStage === 'mofu_problem') {
+    return `Las 3 variantes deben ser FUNCIONALMENTE distintas. NO mencionar la solucion.
+
+TONO MOFU PROBLEMA: El lector YA SABE que el problema existe. Ahora quiere ENTENDER.
+- PROFUNDIZAR en el mecanismo tecnico (como funciona, por que ocurre)
+- Senales operacionales concretas: como se manifiesta en datos de planta?
+- Trampas del monitoreo: por que el SCADA no lo ve?
+- Comparacion con problemas similares (LeTID vs LID vs PID)
+- MENOS narrativa sensorial, MAS PATRON RECONOCIBLE
+- El lector debe pensar: "esto me puede estar pasando y no lo estoy viendo"
+
+LONGITUD: 1500-2200 caracteres.
+
+1. **Ingeniero Analista** (variant: "contrarian"): Usa Framework Solar Story pasos 1, 3, 5, 6, 7, 8. Mas analitico que poetico. Hook contradictorio basado en DATO, no en escena. Estructura: dato que desestabiliza → mecanismo tecnico → por que el monitoreo falla → triple leccion → pregunta especifica.
+
+2. **Terreno Diagnostico** (variant: "story"): Narrativa de terreno CORTA enfocada en el momento de descubrimiento. No repetir el "sol quema, polvo, sudor" — enfocarse en la SEÑAL que alerto al tecnico. Hook: el hallazgo operacional, no el paisaje.
+
+3. **Dato Comparativo** (variant: "data_driven"): Compara este problema vs otros similares con datos. LeTID vs LID vs PID. Estructura tipo tabla mental. Optimizado para SAVES.
+
+CTA: Pregunta ESPECIFICA que invite a compartir experiencia de deteccion en planta.`
+  }
+
+  // Default: TOFU PROBLEM — primera exposicion al problema
+  return `Las 3 variantes deben ser FUNCIONALMENTE distintas. NO mencionar la solucion.
+
+TONO TOFU PROBLEMA: Primera exposicion al problema. El lector NO conoce el fenomeno.
+- Gancho emocional fuerte pero sin exagerar
+- UNA sola idea central, desarrollada con profundidad
+- Escena de terreno vivida pero creible (sin apocalipsis)
+- Terminar con curiosidad, no con miedo
+- El lector debe pensar: "no sabia que esto existia, quiero saber mas"
+
+LONGITUD: 1500-2200 caracteres.
+
+1. **Ingeniero Poeta** (variant: "contrarian"): La variante FLAGSHIP. Sigue la receta completa de 9 pasos del Framework Solar Story. TODOS los pasos presentes. Esta es la variante que replica el estilo ganador de Jonathan.
+
+2. **Terreno Sensorial** (variant: "story"): Enfasis en pasos 2 y 4 (humanizacion + escena sensorial). Narrativa en primera persona. El lector debe SENTIR que estuvo ahi. Hook: escena que arranca in media res. La leccion emerge de la experiencia.
+
+3. **Dato Revelacion** (variant: "data_driven"): Enfasis en pasos 3 y 6 (escalado numerico + dato shock). Los numeros hacen el trabajo pesado. Optimizado para SAVES: lista de 3+ items guardable.
+
+CTA: Pregunta ESPECIFICA de experiencia que democratice la conversacion.`
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -158,7 +225,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
-    const { topic, keyword, funnel_stage, objective, audience, context, weekly_brief, previous_hooks: campaignHooks, pillar_name, pillar_description } = parsed.data
+    const { topic, keyword, funnel_stage, day_of_week, objective, audience, context, weekly_brief, previous_hooks: campaignHooks, sibling_summaries, pillar_name, pillar_description } = parsed.data
 
     // Fetch cross-campaign hooks for workspace-wide anti-repetition
     const crossCampaignHooks = await getRecentHooks(workspaceId, 50)
@@ -208,8 +275,12 @@ CRITICO: El hook, tono, y CTA DEBEN alinearse con esta etapa del funnel. Un post
 - **Provocar (P)**: Genera comentarios SUSTANTIVOS (no "buen post"). La pregunta final es ESPECIFICA a la experiencia del lector. Provoca debate tecnico real
 - **Iniciar (I)**: CTA claro y apropiado al funnel stage. Genera accion medible
 
-## RECETA "INGENIERO POETA" — FRAMEWORK SOLAR STORY (OBLIGATORIO)
-Cada post DEBE seguir esta estructura de 9 pasos. Es la firma narrativa que distingue a Jonathan:
+## RECETA "INGENIERO POETA" — FRAMEWORK SOLAR STORY (REFERENCIA)
+Esta es la firma narrativa de Jonathan. Su uso depende de la variante:
+- **Contrarian (Revelacion)**: Seguir los 9 pasos COMPLETOS (es la variante flagship)
+- **Story (Terreno)**: Solo pasos 1, 2, 4, 7, 8 (hook, humanizacion, escena, lecciones, pregunta)
+- **Data_driven (Framework)**: Solo pasos 1, 3, 6, 7, 8 (hook, escalado, dato shock, lecciones, pregunta)
+- **SOLUCION y BOFU**: Usar como CONTEXTO de estilo pero NO obligatorio — cada stage tiene sus propias instrucciones
 
 **PASO 1 — HOOK CONTRADICTORIO (max 15 palabras)**
 Formula: "Hoy [estado ideal], pero [problema oculto]..."
@@ -291,6 +362,15 @@ El contenido NO debe parecer generado por IA. Para lograrlo:
 - NUNCA uses frases como "es importante destacar", "cabe mencionar", "en conclusion", "sin duda alguna"
 - El tono debe sentirse como si Jonathan estuviera contando esto en persona, tomando un cafe
 
+## REGLAS DE CREDIBILIDAD TECNICA (OBLIGATORIO)
+- Usa lenguaje CONDICIONAL: "puede exceder", "hasta un X%", "en condiciones de..."
+- NUNCA absolutos: no "siempre", no "todos", no "imposible", no "casi no hay recuperacion"
+- Cita fuentes ESPECIFICAS: "IEA-PVPS Task 13 Report 2025", "PV Magazine", no "estudios documentados"
+- LeTID afecta "modulos p-type PERC susceptibles", NO "todos los modulos PERC"
+- Perdidas "pueden exceder el 10%", NO "siempre 20%"
+- Recuperacion "depende del tipo de modulo y condiciones", NO "casi nula"
+- Tono DIDACTICO, no alarmista. El lector debe APRENDER, no solo asustarse
+
 ## SHARE TRIGGERS (al menos 1 por variante)
 - **Identity**: El lector se ve como experto al compartir ("esto lo sabe alguien que entiende de verdad el O&M")
 - **Emotion**: Conecta con frustracion operativa real ("esto me pasa cada semana")
@@ -360,6 +440,26 @@ PROHIBIDO:
 - Reutilizar el mismo angulo o argumento central
 - Cada post DEBE sentirse como contenido completamente independiente y fresco
 - El hook debe ser NUEVO — no una variacion menor de uno existente
+` : ''}
+${sibling_summaries && sibling_summaries.length > 0 ? `
+## POSTS HERMANOS EN ESTA CAMPAÑA (PROHIBIDO repetir contenido, angulos o estructura)
+${sibling_summaries.map(s => `- ${s.day_of_week} (${s.funnel_stage}): "${s.content_preview.slice(0, 200)}..."`).join('\n')}
+
+CRITICO: Tu post debe sentirse COMPLETAMENTE diferente a los hermanos listados.
+- Diferente angulo narrativo
+- Diferente estructura (si uno uso escena sensorial, usa datos; si uno uso datos, usa framework)
+- Diferentes datos citados (no reusar el mismo %)
+- Diferente apertura/hook
+` : ''}
+${day_of_week ? `
+## ROTACION DE DATOS (dia ${day_of_week} de 5)
+Cada dia de la semana debe PRIORIZAR datos de un tipo diferente:
+- Dia 1 (Lunes): Datos de ESCALA (% plantas afectadas, MW totales)
+- Dia 2 (Martes): Datos de MECANISMO (como funciona tecnicamente el problema)
+- Dia 3 (Miercoles): Datos ECONOMICOS (USD perdidos, ROI impactado, LCOE)
+- Dia 4 (Jueves): Datos de COMPARACION (antes vs despues, con vs sin, tecnologia A vs B)
+- Dia 5 (Viernes): Datos de URGENCIA/TIMELINE (anos de vida util, velocidad de degradacion)
+Si los datos disponibles no cubren esa prioridad, usa los que haya pero desde un ANGULO diferente al de los dias anteriores.
 ` : ''}
     ${buildVariantInstructions(funnel_stage)}
 

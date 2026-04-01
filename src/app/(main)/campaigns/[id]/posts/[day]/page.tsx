@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getCampaignById } from '@/features/campaigns/services/campaign-service'
-import { getPostByCampaignAndDay, getCampaignPostHooks } from '@/features/posts/services/post-service'
+import { getPostByCampaignAndDay, getCampaignPostHooks, getCampaignPostSummaries } from '@/features/posts/services/post-service'
 import { getPillarById } from '@/features/pillars/services/pillar-service'
 import { PostEditorClient } from './client'
 import type { FunnelStage } from '@/shared/types/content-ops'
@@ -175,6 +175,10 @@ export default async function PostEditorPage({ params }: Props) {
   const hooksResult = await getCampaignPostHooks(campaignId, postResult.data.id)
   const previousHooks = hooksResult.data ?? []
 
+  // Fetch full content summaries from sibling posts for cross-day diversity
+  const summariesResult = await getCampaignPostSummaries(campaignId, postResult.data.id)
+  const siblingPosts = summariesResult.data ?? []
+
   // Build DAY-SPECIFIC context based on funnel stage
   const topicContext = buildDaySpecificContext(
     campaign.topics,
@@ -202,6 +206,7 @@ export default async function PostEditorPage({ params }: Props) {
         weeklyBrief={weeklyBrief}
         topicContext={topicContext}
         previousHooks={previousHooks}
+        siblingPosts={siblingPosts}
         pillarContext={pillarContext}
       />
     </div>

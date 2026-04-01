@@ -102,6 +102,29 @@ ${negativePrompts.map((p) => `- ${p}`).join('\n')}
 NotebookLM educational + newspaper. Full color. Legible en movil. Sin fotos stock.`
 }
 
+function buildFeedbackSystemSection(feedback: string): string {
+  const rules: string[] = []
+  const fl = feedback.toLowerCase()
+  if (fl.includes('legibilidad') || fl.includes('texto') || fl.includes('ilegible') || fl.includes('dense')) {
+    rules.push('REDUCE TEXT: Omitir subtitle y body_text. Title max 5 palabras. Usar visual_type "editorial_photo".')
+  }
+  if (fl.includes('saturada') || fl.includes('caos') || fl.includes('demasiado') || fl.includes('overcrowded')) {
+    rules.push('SIMPLIFY: Max 2 visual elements. Sin CTA button. key_elements max 2 items. Fondo limpio.')
+  }
+  if (fl.includes('marca') || fl.includes('brand') || fl.includes('color') || fl.includes('logo')) {
+    rules.push('FIX BRAND: Usar SOLO colores de marca. Logo exacto. Sin variaciones.')
+  }
+  if (fl.includes('rewrite') || fl.includes('completamente')) {
+    rules.push('REWRITE: Generar visual COMPLETAMENTE diferente. Cambiar visual_type, estructura y composicion.')
+  }
+  if (fl.includes('copy') || fl.includes('coherencia') || fl.includes('contradice')) {
+    rules.push('FIX COHERENCE: El visual debe COMPLEMENTAR el copy, no repetirlo textualmente ni contradecirlo.')
+  }
+  return rules.length > 0
+    ? `\n## CORRECCIONES ESTRUCTURALES (basadas en evaluacion previa)\n${rules.join('\n')}\nEstas correcciones tienen PRIORIDAD sobre las reglas generales.`
+    : ''
+}
+
 export async function POST(request: Request): Promise<Response> {
   const user = await requireAuth()
 
@@ -179,7 +202,8 @@ export async function POST(request: Request): Promise<Response> {
     // Step 3: Generate visual JSON
     const dims = FORMAT_DIMENSIONS[format as VisualFormat] ?? FORMAT_DIMENSIONS['1:1']
     const dimensionsStr = `${dims.width}x${dims.height}`
-    const systemPrompt = buildSystemPrompt(brandConfig, !!minimal_text)
+    const feedbackRules = feedback ? buildFeedbackSystemSection(feedback) : ''
+    const systemPrompt = buildSystemPrompt(brandConfig, !!minimal_text) + feedbackRules
 
     const feedbackSection = feedback
       ? `\n\n**FEEDBACK DEL USUARIO (PRIORIDAD MAXIMA)**: ${feedback}\nAjusta el visual segun este feedback manteniendo la identidad de marca.`

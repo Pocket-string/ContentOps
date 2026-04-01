@@ -148,9 +148,7 @@ function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat, logoDesc
   if (p.content.subtitle) {
     parts.push(`Subtitle: "${p.content.subtitle}".`)
   }
-  if (p.content.body_text) {
-    parts.push(`Body text: "${p.content.body_text}".`)
-  }
+  // body_text omitted from image prompts — adds text density without visual value
 
   // CTA
   if (p.content.cta) {
