@@ -571,11 +571,11 @@ export async function getCampaignPostSummaries(
 
     const summaries: { day_of_week: string; funnel_stage: string; content_preview: string }[] = []
     for (const post of data ?? []) {
-      const p = post as { day_of_week?: string; funnel_stage?: string; post_versions?: { content: string; version: number }[] }
+      const p = post as { day_of_week?: string | number; funnel_stage?: string; post_versions?: { content: string; version: number }[] }
       const versions = p.post_versions
       if (versions && versions.length > 0 && p.day_of_week && p.funnel_stage) {
         summaries.push({
-          day_of_week: p.day_of_week,
+          day_of_week: String(p.day_of_week),
           funnel_stage: p.funnel_stage,
           content_preview: versions[0].content.slice(0, 400),
         })

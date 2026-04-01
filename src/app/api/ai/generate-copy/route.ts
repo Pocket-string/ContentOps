@@ -32,7 +32,7 @@ export type GeneratedCopy = z.infer<typeof generatedCopySchema>
 
 // Input schema — validated before touching the AI
 const siblingSchema = z.object({
-  day_of_week: z.string(),
+  day_of_week: z.coerce.string(),
   funnel_stage: z.string(),
   content_preview: z.string(),
 })
