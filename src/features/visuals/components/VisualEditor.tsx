@@ -307,9 +307,46 @@ export function VisualEditor({
     setNbQaNotes(selectedVisual.qa_notes ?? '')
     setNbIterationReason(reason === '' ? '' : isPreset ? reason : 'Otro')
     setNbCustomReason(isPreset ? '' : reason)
-    // Load carousel slides from map
+    // Load carousel slides from map, syncing rich data from prompt_json if available
     if (selectedVisual && carouselSlidesMap?.[selectedVisual.id]) {
-      setCarouselSlides(carouselSlidesMap[selectedVisual.id])
+      const dbSlides = carouselSlidesMap[selectedVisual.id]
+      // Check if prompt_json has rich per-slide data (content.slides[])
+      const pj = selectedVisual.prompt_json as Record<string, unknown> | null
+      const contentObj = pj?.content as { slides?: Array<{ title?: string; subtitle?: string; body_text?: string; prompt_overall?: string; visual_elements?: unknown[]; role?: string }> } | undefined
+      const richSlides = contentObj?.slides
+      if (richSlides && richSlides.length > 0) {
+        // Sync: populate carousel_slides headline/body_text/prompt_json from rich data
+        const synced = dbSlides.map((s) => {
+          const rich = richSlides[s.slide_index]
+          if (!rich) return s
+          const isGeneric = !s.headline || s.headline.startsWith('Slide ') || s.headline === (pj?.content as { title?: string })?.title
+          if (!isGeneric && s.headline && s.headline !== '') return s // Already has real data
+          return {
+            ...s,
+            headline: rich.title ?? s.headline,
+            body_text: rich.body_text ?? rich.subtitle ?? s.body_text,
+            prompt_json: {
+              ...s.prompt_json,
+              prompt_overall: rich.prompt_overall ?? (s.prompt_json as Record<string, unknown>)?.prompt_overall,
+              visual_elements: rich.visual_elements ?? (s.prompt_json as Record<string, unknown>)?.visual_elements,
+              role: rich.role ?? (s.prompt_json as Record<string, unknown>)?.role,
+            },
+          }
+        })
+        setCarouselSlides(synced)
+        // Auto-save synced data back to DB so it persists
+        const hasChanges = synced.some((s, i) => s.headline !== dbSlides[i]?.headline || s.body_text !== dbSlides[i]?.body_text)
+        if (hasChanges && selectedVisual.id) {
+          saveCarouselSlidesAction(selectedVisual.id, synced.map(s => ({
+            slide_index: s.slide_index,
+            headline: s.headline ?? undefined,
+            body_text: s.body_text ?? undefined,
+            prompt_json: s.prompt_json as Record<string, unknown>,
+          }))).catch(err => console.error('[VisualEditor] Auto-save synced slides failed:', err))
+        }
+      } else {
+        setCarouselSlides(dbSlides)
+      }
     } else {
       setCarouselSlides([])
     }
