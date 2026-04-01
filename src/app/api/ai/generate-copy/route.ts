@@ -41,7 +41,7 @@ const inputSchema = z.object({
   topic: z.string().min(1, 'El tema es requerido'),
   keyword: z.string().optional(),
   funnel_stage: z.string().min(1, 'La etapa del funnel es requerida'),
-  day_of_week: z.number().min(1).max(7).optional(),
+  day_of_week: z.coerce.number().min(1).max(7).optional(),
   objective: z.string().optional(),
   audience: z.string().optional(),
   context: z.string().optional(),
