@@ -315,15 +315,13 @@ export function VisualEditor({
       const contentObj = pj?.content as { slides?: Array<{ title?: string; subtitle?: string; body_text?: string; prompt_overall?: string; visual_elements?: unknown[]; role?: string }> } | undefined
       const richSlides = contentObj?.slides
       if (richSlides && richSlides.length > 0) {
-        // Sync: populate carousel_slides headline/body_text/prompt_json from rich data
+        // Sync: always overwrite carousel_slides with rich data from prompt_json
         const synced = dbSlides.map((s) => {
           const rich = richSlides[s.slide_index]
-          if (!rich) return s
-          const isGeneric = !s.headline || s.headline.startsWith('Slide ') || s.headline === (pj?.content as { title?: string })?.title
-          if (!isGeneric && s.headline && s.headline !== '') return s // Already has real data
+          if (!rich || !rich.title) return s
           return {
             ...s,
-            headline: rich.title ?? s.headline,
+            headline: rich.title,
             body_text: rich.body_text ?? rich.subtitle ?? s.body_text,
             prompt_json: {
               ...s.prompt_json,
