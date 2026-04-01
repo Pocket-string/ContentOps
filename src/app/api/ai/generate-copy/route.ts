@@ -187,8 +187,10 @@ export async function POST(request: Request): Promise<Response> {
 
   const parsed = inputSchema.safeParse(body)
   if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    const path = issue?.path?.join('.') || 'unknown'
     return Response.json(
-      { error: parsed.error.issues[0]?.message ?? 'Datos invalidos' },
+      { error: `${issue?.message ?? 'Datos invalidos'} (field: ${path})` },
       { status: 400 }
     )
   }
