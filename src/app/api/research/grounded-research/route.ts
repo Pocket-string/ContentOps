@@ -247,8 +247,27 @@ REGLAS:
       throw new Error('La IA no pudo estructurar los resultados. Intenta de nuevo.')
     }
 
-    // Lenient parse: accept extra items by slicing arrays
-    const rawParsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
+    // Lenient JSON parse: attempt repair on truncated Gemini output
+    let rawParsed: Record<string, unknown>
+    try {
+      rawParsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
+    } catch (parseErr) {
+      // Attempt to repair truncated JSON by closing open structures
+      let repaired = jsonMatch[0]
+      // Remove trailing incomplete string values (e.g., "key": "value trunc...)
+      repaired = repaired.replace(/,\s*"[^"]*":\s*"[^"]*$/, '')
+      repaired = repaired.replace(/,\s*"[^"]*$/, '')
+      // Close any open arrays and objects
+      const openBrackets = (repaired.match(/\[/g) ?? []).length - (repaired.match(/\]/g) ?? []).length
+      const openBraces = (repaired.match(/\{/g) ?? []).length - (repaired.match(/\}/g) ?? []).length
+      repaired += ']'.repeat(Math.max(0, openBrackets)) + '}'.repeat(Math.max(0, openBraces))
+      try {
+        rawParsed = JSON.parse(repaired) as Record<string, unknown>
+        console.warn('[grounded-research] JSON was truncated but repaired successfully')
+      } catch {
+        throw new Error(`Expected ',' or '}' — JSON truncado por Gemini. Intenta de nuevo con un tema mas corto.`)
+      }
+    }
     const findings = Array.isArray(rawParsed.key_findings) ? rawParsed.key_findings.slice(0, 10) : []
     const topics = Array.isArray(rawParsed.suggested_topics) ? rawParsed.suggested_topics.slice(0, 8) : []
     const sources = Array.isArray(rawParsed.sources) ? rawParsed.sources.slice(0, 20) : []
@@ -312,7 +331,18 @@ REGLAS:
       const enrichmentCleaned = enrichmentText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       const enrichmentMatch = enrichmentCleaned.match(/\{[\s\S]*\}/)
       if (enrichmentMatch) {
-        const enrichment = JSON.parse(enrichmentMatch[0]) as Record<string, unknown>
+        let enrichmentJsonStr = enrichmentMatch[0]
+        let enrichment: Record<string, unknown>
+        try {
+          enrichment = JSON.parse(enrichmentJsonStr) as Record<string, unknown>
+        } catch {
+          // Repair truncated JSON
+          enrichmentJsonStr = enrichmentJsonStr.replace(/,\s*"[^"]*":\s*"[^"]*$/, '').replace(/,\s*"[^"]*$/, '')
+          const ob = (enrichmentJsonStr.match(/\[/g) ?? []).length - (enrichmentJsonStr.match(/\]/g) ?? []).length
+          const oc = (enrichmentJsonStr.match(/\{/g) ?? []).length - (enrichmentJsonStr.match(/\}/g) ?? []).length
+          enrichmentJsonStr += ']'.repeat(Math.max(0, ob)) + '}'.repeat(Math.max(0, oc))
+          enrichment = JSON.parse(enrichmentJsonStr) as Record<string, unknown>
+        }
         if (Array.isArray(enrichment.source_quality)) sourceQualityJson = enrichment.source_quality as typeof sourceQualityJson
         if (Array.isArray(enrichment.narrative_angles)) narrativeAnglesJson = enrichment.narrative_angles as typeof narrativeAnglesJson
         if (Array.isArray(enrichment.conversion_resources)) conversionResourcesJson = enrichment.conversion_resources as typeof conversionResourcesJson
