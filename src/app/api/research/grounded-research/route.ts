@@ -22,17 +22,17 @@ const inputSchema = z.object({
 })
 
 const researchOutputSchema = z.object({
-  summary: z.string(),
+  summary: z.string().default(''),
   key_findings: z.array(z.object({
     finding: z.string(),
     relevance: z.string(),
-    source: z.string().describe('Source name, report title, or URL where this finding comes from'),
-  })).min(1).max(10),
+    source: z.string().default('Conocimiento del sector'),
+  })).default([]),
   suggested_topics: z.array(z.object({
     title: z.string(),
     angle: z.string(),
-    hook_idea: z.string(),
-  })).min(1).max(8),
+    hook_idea: z.string().default(''),
+  })).default([]),
   market_context: z.string().optional(),
   sources: z.array(z.string()).default([])
     .describe('Consolidated list of all unique source URLs or report names referenced'),
@@ -279,8 +279,9 @@ REGLAS:
 
     const validated = researchOutputSchema.safeParse(rawParsed)
     if (!validated.success) {
-      console.error('[grounded-research] Validation failed:', validated.error.issues)
-      throw new Error('Los resultados no coinciden con el formato esperado. Intenta de nuevo.')
+      const issues = validated.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+      console.error('[grounded-research] Validation failed:', issues)
+      throw new Error(`Formato invalido: ${issues.slice(0, 200)}`)
     }
     const researchData = validated.data
 

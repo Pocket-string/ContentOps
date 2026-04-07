@@ -205,22 +205,24 @@ function isUrl(value: string): boolean {
   }
 }
 
+const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+
 function formatDateTime(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const d = new Date(dateString)
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = MONTHS_ES[d.getMonth()]
+  const year = d.getFullYear()
+  const hour = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${day} de ${month} de ${year}, ${hour}:${min}`
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
+  const d = new Date(dateString)
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = MONTHS_ES[d.getMonth()]
+  const year = d.getFullYear()
+  return `${day} de ${month} de ${year}`
 }
 
 // Score bar: shows a filled bar proportional to value/10

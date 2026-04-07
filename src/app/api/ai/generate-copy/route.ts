@@ -11,7 +11,7 @@ import { reviewCopy } from '@/shared/lib/ai-reviewer'
 import { FUNNEL_STAGE_GUIDE } from '@/shared/lib/funnel-stage-guide'
 import { ensureParagraphBreaks } from '@/shared/lib/format-copy'
 import { getRecentHooks } from '@/features/posts/services/hook-history-service'
-import { getValidatorRulesSummary } from '@/features/posts/components/RecipeValidator'
+import { getValidatorRulesSummary } from '@/features/posts/services/validator-rules'
 import { createClient } from '@/lib/supabase/server'
 import type { FunnelStage } from '@/shared/types/content-ops'
 
@@ -211,7 +211,6 @@ export async function POST(request: Request): Promise<Response> {
 
   // 4. Fetch active brand profile, top patterns, and golden templates
   const workspaceId = await getWorkspaceId()
-  const supabase = await createClient()
 
   // Map funnel stage to content_type for golden template lookup
   const funnelToContentType: Record<string, string> = {
@@ -221,17 +220,25 @@ export async function POST(request: Request): Promise<Response> {
   }
   const contentTypeForStage = funnelToContentType[parsed.data.funnel_stage] ?? 'alcance'
 
-  const [brandResult, hookPatterns, ctaPatterns, goldenResult] = await Promise.all([
-    getActiveBrandProfile(workspaceId),
-    getTopPatterns(workspaceId, 'hook', parsed.data.funnel_stage, 5),
-    getTopPatterns(workspaceId, 'cta', undefined, 5),
-    supabase
+  // Fetch golden templates (non-fatal if it fails)
+  let goldenResult: { data: Array<{ template_content: string; content_type: string }> | null } = { data: null }
+  try {
+    const supabase = await createClient()
+    goldenResult = await supabase
       .from('golden_templates')
       .select('template_content, content_type')
       .eq('workspace_id', workspaceId)
       .eq('content_type', contentTypeForStage)
       .eq('is_active', true)
-      .limit(2),
+      .limit(2)
+  } catch (goldenErr) {
+    console.error('[generate-copy] Golden templates fetch failed (continuing):', goldenErr)
+  }
+
+  const [brandResult, hookPatterns, ctaPatterns] = await Promise.all([
+    getActiveBrandProfile(workspaceId),
+    getTopPatterns(workspaceId, 'hook', parsed.data.funnel_stage, 5),
+    getTopPatterns(workspaceId, 'cta', undefined, 5),
   ])
   const brandTone = brandResult.data?.tone ?? 'profesional, tecnico pero accesible, confiable'
 
