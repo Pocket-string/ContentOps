@@ -173,6 +173,34 @@ export const researchReportSchema = z.object({
   recommended_angles: z.array(z.string()).default([]),
   ai_synthesis: z.record(z.unknown()).nullable(),
   pillar_id: z.string().uuid().nullable().optional(),
+  // PRP-010: Deep Research enrichment
+  source_quality_json: z.array(z.object({
+    source: z.string(),
+    recency_score: z.number().min(0).max(10),
+    authority_score: z.number().min(0).max(10),
+    relevance_score: z.number().min(0).max(10),
+  })).default([]),
+  narrative_angles_json: z.array(z.object({
+    angle: z.string(),
+    funnel_stage: z.string(),
+    hook_idea: z.string(),
+    evidence_base: z.string(),
+  })).default([]),
+  conversion_resources_json: z.array(z.object({
+    type: z.string(),
+    title: z.string(),
+    description: z.string(),
+    target_stage: z.string(),
+  })).default([]),
+  topic_deepening_json: z.object({
+    subproblems: z.array(z.string()).default([]),
+    specific_evidence: z.array(z.object({ fact: z.string(), source: z.string() })).default([]),
+    daily_angles: z.array(z.object({ day: z.number(), angle: z.string(), funnel_stage: z.string() })).default([]),
+    objections: z.array(z.string()).default([]),
+    cta_suggestions: z.array(z.string()).default([]),
+  }).nullable().optional(),
+  research_depth_score: z.number().min(0).max(100).nullable().optional(),
+  campaign_readiness_score: z.number().min(0).max(100).nullable().optional(),
 })
 
 export const topicSchema = z.object({
@@ -313,6 +341,9 @@ export const assetSchema = z.object({
   created_at: z.string(),
 })
 
+export const PERFORMANCE_LABELS = ['top_performer', 'average', 'underperformer'] as const
+export type PerformanceLabel = (typeof PERFORMANCE_LABELS)[number]
+
 export const metricsSchema = z.object({
   id: z.string().uuid(),
   post_id: z.string().uuid(),
@@ -332,6 +363,9 @@ export const metricsSchema = z.object({
   demographics_json: z.unknown().nullable().optional(),
   notes: z.string().nullable(),
   captured_at: z.string(),
+  // PRP-010: Performance analytics
+  weighted_engagement_rate: z.number().nullable().optional(),
+  performance_label: z.enum(PERFORMANCE_LABELS).nullable().optional(),
 })
 
 export const learningSchema = z.object({
@@ -674,6 +708,11 @@ export const patternSchema = z.object({
   tags: z.array(z.string()),
   created_by: z.string().uuid().nullable(),
   created_at: z.string(),
+  // PRP-010: Pattern enrichment
+  recipe_step: z.string().nullable().optional(),
+  effectiveness_score: z.number().nullable().optional(),
+  extracted_by: z.string().default('manual'),
+  source_post_content: z.string().nullable().optional(),
 })
 
 export type Pattern = z.infer<typeof patternSchema>
@@ -689,3 +728,68 @@ export const createPatternSchema = z.object({
 })
 
 export type CreatePatternInput = z.infer<typeof createPatternSchema>
+
+// ============================================
+// PRP-010: Prompt Versioning & Karpathy Loop
+// ============================================
+
+export const PROMPT_TYPES = ['copy_system', 'research_system', 'topic_deepening_system', 'critic_system'] as const
+export type PromptType = (typeof PROMPT_TYPES)[number]
+
+export const OPTIMIZATION_STATUSES = ['baseline', 'keep', 'discard', 'rollback'] as const
+export type OptimizationStatus = (typeof OPTIMIZATION_STATUSES)[number]
+
+export const promptVersionSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  prompt_type: z.enum(PROMPT_TYPES),
+  version: z.number().int().min(1),
+  content: z.string().min(1),
+  is_active: z.boolean(),
+  performance_score: z.number().nullable().optional(),
+  posts_generated: z.number().int().default(0),
+  parent_version_id: z.string().uuid().nullable().optional(),
+  hypothesis: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export type PromptVersion = z.infer<typeof promptVersionSchema>
+
+export const promptOptimizationLogSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  prompt_version_id: z.string().uuid(),
+  iteration: z.number().int().min(1),
+  hypothesis: z.string().nullable().optional(),
+  change_description: z.string().nullable().optional(),
+  eval_results: z.record(z.unknown()).default({}),
+  score: z.number().nullable().optional(),
+  previous_score: z.number().nullable().optional(),
+  status: z.enum(OPTIMIZATION_STATUSES),
+  created_at: z.string(),
+})
+
+export type PromptOptimizationLog = z.infer<typeof promptOptimizationLogSchema>
+
+// ============================================
+// PRP-010: Golden Templates
+// ============================================
+
+export const CONTENT_TYPES = ['alcance', 'nutricion', 'conversion'] as const
+export type ContentType = (typeof CONTENT_TYPES)[number]
+
+export const goldenTemplateSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  content_type: z.enum(CONTENT_TYPES),
+  template_content: z.string().min(1),
+  metrics_snapshot: z.record(z.unknown()).default({}),
+  recipe_analysis: z.record(z.unknown()).default({}),
+  is_active: z.boolean().default(true),
+  created_by: z.string().uuid().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export type GoldenTemplate = z.infer<typeof goldenTemplateSchema>

@@ -9,7 +9,7 @@ import { buildResearchPrompt } from '@/features/research/services/research-promp
 import { getWorkspaceId } from '@/lib/workspace'
 
 // Allow up to 120 seconds for 3 sequential AI calls (ChatGPT + 2x Gemini)
-export const maxDuration = 120
+export const maxDuration = 180
 
 const inputSchema = z.object({
   tema: z.string().min(3, 'El tema debe tener al menos 3 caracteres'),
@@ -265,7 +265,75 @@ REGLAS:
     }
     const researchData = validated.data
 
-    // 4d. Persist results
+    // 4d. PRP-010: Research enrichment — source quality, narrative angles, depth/readiness scores
+    let sourceQualityJson: Array<{ source: string; recency_score: number; authority_score: number; relevance_score: number }> = []
+    let narrativeAnglesJson: Array<{ angle: string; funnel_stage: string; hook_idea: string; evidence_base: string }> = []
+    let conversionResourcesJson: Array<{ type: string; title: string; description: string; target_stage: string }> = []
+    let researchDepthScore = 0
+    let campaignReadinessScore = 0
+
+    try {
+      const enrichmentPrompt = `Analiza esta investigacion y responde UNICAMENTE con JSON valido (sin markdown, sin backticks):
+{
+  "source_quality": [
+    {"source": "nombre de la fuente", "recency_score": 8, "authority_score": 7, "relevance_score": 9}
+  ],
+  "narrative_angles": [
+    {"angle": "angulo narrativo para LinkedIn", "funnel_stage": "tofu_problem|mofu_problem|tofu_solution|mofu_solution|bofu_conversion", "hook_idea": "idea de hook con dato", "evidence_base": "hallazgo que lo soporta"}
+  ],
+  "conversion_resources": [
+    {"type": "checklist|guia|diagnostico|calculadora|template", "title": "nombre del recurso", "description": "que contiene y para quien", "target_stage": "bofu_conversion"}
+  ],
+  "depth_score": 72,
+  "readiness_score": 65
+}
+
+REGLAS:
+- source_quality: evalua CADA fuente mencionada en los hallazgos (1-10 para recencia, autoridad, relevancia)
+- narrative_angles: 5-7 angulos distintos mapeados a etapas del funnel (L-V), con hook y evidencia
+- conversion_resources: 2-4 recursos concretos derivados de los hallazgos
+- depth_score (0-100): basado en cantidad de hallazgos con fuentes (>5=+20), datos cuantitativos (+20), diversidad de fuentes (+20), follow-up depth (+20), especificidad de invisible_enemy (+20)
+- readiness_score (0-100): basado en claridad de invisible_enemy (+25), fuerza de thesis (+25), existencia de conversion_resource (+25), variedad de angulos para 5 dias (+25)`
+
+      const { text: enrichmentText } = await generateText({
+        model: googleProvider(GEMINI_MODEL),
+        system: enrichmentPrompt,
+        prompt: JSON.stringify({
+          summary: researchData.summary,
+          key_findings: researchData.key_findings,
+          sources: researchData.sources,
+          invisible_enemy: researchData.invisible_enemy,
+          thesis: researchData.thesis,
+          conversion_resource: researchData.conversion_resource,
+          topic_candidates: researchData.topic_candidates,
+        }),
+      })
+
+      const enrichmentCleaned = enrichmentText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+      const enrichmentMatch = enrichmentCleaned.match(/\{[\s\S]*\}/)
+      if (enrichmentMatch) {
+        const enrichment = JSON.parse(enrichmentMatch[0]) as Record<string, unknown>
+        if (Array.isArray(enrichment.source_quality)) sourceQualityJson = enrichment.source_quality as typeof sourceQualityJson
+        if (Array.isArray(enrichment.narrative_angles)) narrativeAnglesJson = enrichment.narrative_angles as typeof narrativeAnglesJson
+        if (Array.isArray(enrichment.conversion_resources)) conversionResourcesJson = enrichment.conversion_resources as typeof conversionResourcesJson
+        if (typeof enrichment.depth_score === 'number') researchDepthScore = Math.min(100, Math.max(0, Math.round(enrichment.depth_score)))
+        if (typeof enrichment.readiness_score === 'number') campaignReadinessScore = Math.min(100, Math.max(0, Math.round(enrichment.readiness_score)))
+      }
+    } catch (enrichErr) {
+      // Non-fatal: enrichment is optional
+      console.error('[grounded-research] Enrichment failed (continuing):', enrichErr)
+    }
+
+    // Build enrichment fields to persist alongside ai_synthesis
+    const enrichmentFields = {
+      source_quality_json: sourceQualityJson,
+      narrative_angles_json: narrativeAnglesJson,
+      conversion_resources_json: conversionResourcesJson,
+      research_depth_score: researchDepthScore || null,
+      campaign_readiness_score: campaignReadinessScore || null,
+    }
+
+    // 4e. Persist results
     let savedResearchId: string | undefined
 
     if (research_id) {
@@ -273,7 +341,7 @@ REGLAS:
       const supabase = await createClient()
       await supabase
         .from('research_reports')
-        .update({ ai_synthesis: researchData })
+        .update({ ai_synthesis: researchData, ...enrichmentFields })
         .eq('id', research_id)
       savedResearchId = research_id
     } else {
@@ -292,6 +360,7 @@ REGLAS:
             tags_json: [],
             ai_synthesis: researchData,
             ...(pillar_id ? { pillar_id } : {}),
+            ...enrichmentFields,
           })
           .select('id')
           .single()
@@ -307,7 +376,17 @@ REGLAS:
       }
     }
 
-    return Response.json({ data: researchData, research_id: savedResearchId })
+    return Response.json({
+      data: researchData,
+      research_id: savedResearchId,
+      enrichment: {
+        source_quality: sourceQualityJson,
+        narrative_angles: narrativeAnglesJson,
+        conversion_resources: conversionResourcesJson,
+        depth_score: researchDepthScore,
+        readiness_score: campaignReadinessScore,
+      },
+    })
   } catch (error) {
     console.error('[grounded-research] Error:', error)
     const message = error instanceof Error ? error.message : 'Error desconocido'

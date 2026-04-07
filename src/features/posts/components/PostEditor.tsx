@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { RecipeValidator, runChecks } from './RecipeValidator'
+import { UnicodeToolbar } from './UnicodeToolbar'
 import { QAScoreCard } from '@/features/qa/components/QAScoreCard'
 import { CopyPromptButton } from '@/shared/components/copy-prompt-button'
 import { buildCopyPrompt } from '@/features/prompts/templates/copy-template'
@@ -336,6 +337,7 @@ export function PostEditor({
 
   // Track whether editor has been initialized with content
   const hasInitializedRef = useRef(false)
+  const copyTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   // --- Derived ---
   const dayMeta = WEEKLY_PLAN[post.day_of_week]
@@ -865,12 +867,18 @@ export function PostEditor({
                   </div>
                 )}
 
-                {/* Textarea editor */}
-                <div>
+                {/* Unicode formatting toolbar + Textarea editor */}
+                <div className="space-y-1.5">
+                  <UnicodeToolbar
+                    textareaRef={copyTextareaRef}
+                    value={editContent}
+                    onTextChange={setEditContent}
+                  />
                   <label htmlFor="copy-editor" className="sr-only">
                     Contenido del post — variante {VARIANT_LABELS[activeVariant]}
                   </label>
                   <textarea
+                    ref={copyTextareaRef}
                     id="copy-editor"
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}

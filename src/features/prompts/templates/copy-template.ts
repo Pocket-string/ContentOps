@@ -75,7 +75,7 @@ Este post NO debe mencionar la solucion — enfocarse 100% en diagnosticar el pr
 - Sin links en el cuerpo
 - CTA al final (pregunta abierta que invite a comentar)
 - Maximo 3 emojis
-- 3-5 hashtags al final
+- NO incluir hashtags (#) bajo ninguna circunstancia
 
 ## REGLAS DE CONTENIDO
 - Usa datos y cifras concretas para validar el problema
@@ -107,7 +107,7 @@ Genera 3 variantes, cada una con un angulo diferente:
 - Hook (primera linea)
 - Post completo en formato LinkedIn
 - CTA final
-- 3-5 hashtags
+- SIN hashtags
 
 ## CRITERIO DE CALIDAD
 Cada variante debe:
@@ -132,7 +132,7 @@ Este post NO debe volver a diagnosticar el problema — el lector ya lo conoce. 
 - Sin links en el cuerpo
 - CTA orientado a guardar o profundizar (no a comprar)
 - Maximo 3 emojis
-- 3-5 hashtags al final
+- NO incluir hashtags (#) bajo ninguna circunstancia
 
 ## REGLAS DE CONTENIDO
 - Explica el mecanismo tecnico de forma accesible
@@ -165,7 +165,7 @@ Genera 3 variantes, cada una con un angulo diferente:
 - Hook (primera linea)
 - Post completo en formato LinkedIn
 - CTA final
-- 3-5 hashtags
+- SIN hashtags
 
 ## CRITERIO DE CALIDAD
 Cada variante debe:
@@ -197,7 +197,7 @@ NO mezclar multiples CTAs — elegir uno y ejecutarlo con claridad.
 - Sin links en el cuerpo
 - CTA unico y directo al final
 - Maximo 2 emojis en todo el post
-- 3-5 hashtags al final
+- NO incluir hashtags (#) bajo ninguna circunstancia
 
 ## REGLAS DE CONTENIDO
 - No repetir el diagnostico del problema ni la explicacion tecnica de la solucion
@@ -231,7 +231,7 @@ Genera 3 variantes, cada una con un angulo diferente:
 - Hook (primera linea)
 - Post completo en formato LinkedIn
 - CTA final (uno solo)
-- 3-5 hashtags
+- SIN hashtags
 
 ## CRITERIO DE CALIDAD
 Cada variante debe:

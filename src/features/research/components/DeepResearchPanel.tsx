@@ -29,6 +29,14 @@ interface ResearchResult {
   market_context?: string
 }
 
+interface ResearchEnrichment {
+  depth_score: number
+  readiness_score: number
+  source_quality: Array<{ source: string; recency_score: number; authority_score: number; relevance_score: number }>
+  narrative_angles: Array<{ angle: string; funnel_stage: string; hook_idea: string; evidence_base: string }>
+  conversion_resources: Array<{ type: string; title: string; description: string; target_stage: string }>
+}
+
 interface DeepResearchPanelProps {
   /** If provided, saves results to this existing research report */
   researchId?: string
@@ -83,6 +91,7 @@ export function DeepResearchPanel({
   const [isResearching, setIsResearching] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<ResearchResult | null>(null)
+  const [enrichment, setEnrichment] = useState<ResearchEnrichment | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
 
   // -----------------------------------------------------------------------
@@ -131,11 +140,13 @@ export function DeepResearchPanel({
         return
       }
 
-      const { data, research_id: returnedId } = json as {
+      const { data, research_id: returnedId, enrichment: enrichmentData } = json as {
         data: ResearchResult
         research_id?: string
+        enrichment?: ResearchEnrichment
       }
       setResult(data)
+      if (enrichmentData) setEnrichment(enrichmentData)
       if (returnedId) {
         setSavedId(returnedId)
       }
@@ -314,6 +325,52 @@ export function DeepResearchPanel({
               )}
             </CardContent>
           </Card>
+
+          {/* PRP-010: Research Quality Scores */}
+          {enrichment && (enrichment.depth_score > 0 || enrichment.readiness_score > 0) && (
+            <Card>
+              <CardContent>
+                <h2 className="text-sm font-semibold text-foreground-secondary uppercase tracking-wider mb-3">
+                  Calidad de Investigacion
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-foreground-secondary">Profundidad</span>
+                      <span className={`text-sm font-semibold ${enrichment.depth_score >= 70 ? 'text-success-600' : enrichment.depth_score >= 40 ? 'text-warning-600' : 'text-error-600'}`}>
+                        {enrichment.depth_score}/100
+                      </span>
+                    </div>
+                    <div className="w-full bg-border rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${enrichment.depth_score >= 70 ? 'bg-success-500' : enrichment.depth_score >= 40 ? 'bg-warning-500' : 'bg-error-500'}`}
+                        style={{ width: `${enrichment.depth_score}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-foreground-secondary">Listo para campana</span>
+                      <span className={`text-sm font-semibold ${enrichment.readiness_score >= 70 ? 'text-success-600' : enrichment.readiness_score >= 40 ? 'text-warning-600' : 'text-error-600'}`}>
+                        {enrichment.readiness_score}/100
+                      </span>
+                    </div>
+                    <div className="w-full bg-border rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${enrichment.readiness_score >= 70 ? 'bg-success-500' : enrichment.readiness_score >= 40 ? 'bg-warning-500' : 'bg-error-500'}`}
+                        style={{ width: `${enrichment.readiness_score}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                {enrichment.readiness_score < 50 && (
+                  <p className="text-xs text-warning-600 mt-2">
+                    Esta investigacion puede no tener suficiente profundidad para sostener 5 dias de campana. Considera reinvestigar con un tema mas especifico.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Key Findings */}
           {result.key_findings.length > 0 && (

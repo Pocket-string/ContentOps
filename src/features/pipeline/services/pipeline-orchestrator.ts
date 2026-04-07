@@ -10,6 +10,7 @@ import { createCampaignWithPosts } from '@/features/campaigns/services/campaign-
 import { createPostVersion } from '@/features/posts/services/post-service'
 import { createTopic } from '@/features/topics/services/topic-service'
 import { deriveTopicFromResearch } from '@/features/topics/services/topic-derivation'
+import { deepenTopic } from '@/features/research/services/topic-deepener'
 import { buildResearchPrompt } from '@/features/research/services/research-prompt-builder'
 import { FUNNEL_STAGE_GUIDE } from '@/shared/lib/funnel-stage-guide'
 import { reviewCopy } from '@/shared/lib/ai-reviewer'
@@ -265,6 +266,29 @@ key_findings: 3-8 items. suggested_topics: 3-6 items. topic_candidates: 3-8 item
     const topic = topicResult.data
 
     // =========================================================================
+    // STEP 2b: Topic deepening (PRP-010) — second focused research pass
+    // =========================================================================
+    let topicDeepeningData: Awaited<ReturnType<typeof deepenTopic>> = null
+    try {
+      const researchIdForDeepening = researchRow?.id as string | undefined
+      if (researchIdForDeepening) {
+        topicDeepeningData = await deepenTopic({
+          workspaceId,
+          researchId: researchIdForDeepening,
+          topicTitle: topic.title,
+          hypothesis: derivedFields.hypothesis ?? null,
+          silentEnemyName: derivedFields.silent_enemy_name ?? null,
+          evidence: derivedFields.evidence ?? null,
+          contentAngles: derivedFields.content_angles ?? [],
+          existingSynthesis: researchData as Record<string, unknown>,
+        })
+      }
+    } catch (deepenErr) {
+      // Non-fatal: topic deepening is optional enhancement
+      errors.push({ step: 'topic_deepening', message: String(deepenErr), timestamp: new Date().toISOString() })
+    }
+
+    // =========================================================================
     // STEP 3: Campaign creation
     // =========================================================================
     const campaignResult = await createCampaignWithPosts(workspaceId, userId, {
@@ -293,11 +317,14 @@ key_findings: 3-8 items. suggested_topics: 3-6 items. topic_candidates: 3-8 item
       total_posts: campaign.posts.length,
     })
 
-    // Update weekly brief on the campaign
+    // Update weekly brief on the campaign (enriched with topic deepening data)
+    const deepeningContext = topicDeepeningData
+      ? `\n\nEvidencia profunda: ${topicDeepeningData.specific_evidence.map(e => `${e.fact} (${e.source})`).join('; ')}\nSubproblemas: ${topicDeepeningData.subproblems.join('; ')}`
+      : ''
     const weeklyBrief = {
       tema,
       enemigo_silencioso: researchData.invisible_enemy ?? derivedFields.silent_enemy_name,
-      evidencia_clave: derivedFields.evidence,
+      evidencia_clave: (derivedFields.evidence ?? '') + deepeningContext,
       senales_mercado: derivedFields.signals_json ?? [],
       anti_mito: derivedFields.anti_myth,
       buyer_persona: buyerPersona,

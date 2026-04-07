@@ -11,6 +11,8 @@ import { reviewCopy } from '@/shared/lib/ai-reviewer'
 import { FUNNEL_STAGE_GUIDE } from '@/shared/lib/funnel-stage-guide'
 import { ensureParagraphBreaks } from '@/shared/lib/format-copy'
 import { getRecentHooks } from '@/features/posts/services/hook-history-service'
+import { getValidatorRulesSummary } from '@/features/posts/components/RecipeValidator'
+import { createClient } from '@/lib/supabase/server'
 import type { FunnelStage } from '@/shared/types/content-ops'
 
 // Zod schema for the AI output (MUST parse AI responses with Zod — never use `as MyType`)
@@ -207,12 +209,29 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 4. Fetch active brand profile for tone injection + top patterns for retrieval
+  // 4. Fetch active brand profile, top patterns, and golden templates
   const workspaceId = await getWorkspaceId()
-  const [brandResult, hookPatterns, ctaPatterns] = await Promise.all([
+  const supabase = await createClient()
+
+  // Map funnel stage to content_type for golden template lookup
+  const funnelToContentType: Record<string, string> = {
+    tofu_problem: 'alcance', mofu_problem: 'alcance',
+    tofu_solution: 'nutricion', mofu_solution: 'nutricion',
+    bofu_conversion: 'conversion',
+  }
+  const contentTypeForStage = funnelToContentType[parsed.data.funnel_stage] ?? 'alcance'
+
+  const [brandResult, hookPatterns, ctaPatterns, goldenResult] = await Promise.all([
     getActiveBrandProfile(workspaceId),
     getTopPatterns(workspaceId, 'hook', parsed.data.funnel_stage, 5),
     getTopPatterns(workspaceId, 'cta', undefined, 5),
+    supabase
+      .from('golden_templates')
+      .select('template_content, content_type')
+      .eq('workspace_id', workspaceId)
+      .eq('content_type', contentTypeForStage)
+      .eq('is_active', true)
+      .limit(2),
   ])
   const brandTone = brandResult.data?.tone ?? 'profesional, tecnico pero accesible, confiable'
 
@@ -232,6 +251,15 @@ export async function POST(request: Request): Promise<Response> {
       patternContext.push(`- "${p.content}"${rate}`)
     }
   }
+  // Build golden template examples section
+  const goldenTemplates = goldenResult.data ?? []
+  const goldenSection = goldenTemplates.length > 0
+    ? `\n\n## EJEMPLOS DE POSTS GANADORES (few-shot)\nEstos posts tuvieron alto rendimiento real. Usa como referencia de estilo y estructura:\n\n${goldenTemplates.map((t, i) => `### Ejemplo ${i + 1} (${t.content_type}):\n${(t.template_content as string).slice(0, 1500)}`).join('\n\n')}`
+    : ''
+
+  // Build validator rules section (PRP-010: validator-aware generation)
+  const validatorRulesSection = `\n\n${getValidatorRulesSummary()}`
+
   const patternSection =
     patternContext.length > 0
       ? `\n${patternContext.join('\n')}\n\nUsa estos patrones como inspiracion para generar hooks y CTAs mas efectivos.`
@@ -415,7 +443,8 @@ Las 3 variantes DEBEN ser FUNCIONALMENTE distintas:
 - Cada variante debe activar triggers emocionales diferentes
 - Si una usa pregunta retorica, otra usa escena de terreno, otra usa lista/framework
 
-IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`
+IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.
+${validatorRulesSection}${goldenSection}`
 
     const userPrompt = `Genera 3 variantes de un post de LinkedIn con estos parámetros:
 
@@ -547,9 +576,14 @@ Responde con este JSON exacto:
       )
     }
 
-    // 5b. Post-process: ensure paragraph breaks (Gemini often ignores formatting instructions)
+    // 5b. Post-process: ensure paragraph breaks + strip hashtags (safety net)
     for (const variant of validated.data.variants) {
-      variant.content = ensureParagraphBreaks(variant.content)
+      variant.content = ensureParagraphBreaks(variant.content).replace(/#\w+/g, '').trim()
+      if (variant.hook) variant.hook = variant.hook.replace(/#\w+/g, '').trim()
+      if (variant.cta) variant.cta = variant.cta.replace(/#\w+/g, '').trim()
+      if (variant.structured_content?.hashtags) {
+        variant.structured_content.hashtags = []
+      }
     }
 
     // 6. ChatGPT review (optional — runs on first variant, non-blocking on failure)
