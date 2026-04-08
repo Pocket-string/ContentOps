@@ -12,7 +12,7 @@ export function getValidatorRulesSummary(): string {
 6. Longitud optima: 1500-2200 caracteres (range ideal)
 7. Legibilidad movil: ningun parrafo > 280 caracteres
 8. Emojis moderados: maximo 2 emojis (exceso = patron bot)
-9. Guardabilidad: incluir framework, lista o regla practica (optimiza saves)
+9. Guardabilidad: incluir framework, lista con vinetas (•, ▪, ▸) o numeracion (1. 2. 3.) (optimiza saves)
 10. Estructura D/G/P/I: minimo 4 bloques (Hook + Contexto + Provocacion + CTA)
 11. CTA alineado al funnel: el tipo de CTA debe corresponder a la etapa
 12. Hook contradictorio: paradoja "estado ideal vs problema oculto" (patron Ingeniero Poeta)
@@ -21,6 +21,6 @@ export function getValidatorRulesSummary(): string {
 15. Dato con fuente: cifra respaldada por fuente especifica (no "estudios dicen")
 16. Pregunta especifica: cierre con pregunta de experiencia real (no "que piensas?")
 17. Escalado numerico: min 2 datos con unidades (%, MW, kWh, US$) micro→macro
-18. Triple leccion: lista de 3+ items guardable con vinetas
+18. Triple leccion: lista de 3+ items guardable con vinetas (•, ▪) o numeracion (1. 2. 3.)
 19. SIN HASHTAGS: NO incluir hashtags (#) bajo ninguna circunstancia`
 }

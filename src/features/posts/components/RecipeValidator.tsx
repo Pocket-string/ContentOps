@@ -174,7 +174,7 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
 
   // 10. Guardabilidad — Tiene framework, lista, o estructura accionable
   const hasFramework = /\d+\s*(pasos?|señales?|senales?|errores?|claves?|reglas?|puntos?|formas?|razones?|tips?)/i.test(trimmed)
-  const bulletCount = (trimmed.match(/^\s*[-•✅❌→▸\d]+[.):\s]/gm) ?? []).length
+  const bulletCount = (trimmed.match(/^\s*(?:[-•▪▸►●○✅❌→]|\d+[.)]\s)/gm) ?? []).length
   const hasListStructure = bulletCount >= 3
   const guardable = hasFramework || hasListStructure
   checks.push({
@@ -313,7 +313,7 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
   })
 
   // 19. Triple leccion — lista de 3+ items guardable
-  const triplePattern = /▪|•|→|✅|❌|1\.|2\.|3\./g
+  const triplePattern = /▪|•|●|○|▸|►|→|✅|❌|\d+\.\s/g
   const tripleMatches = (trimmed.match(triplePattern) ?? []).length
   const hasTriple = tripleMatches >= 3 || hasListStructure
   checks.push({
