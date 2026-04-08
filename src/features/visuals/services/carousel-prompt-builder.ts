@@ -89,21 +89,18 @@ function buildFromCarouselPlan(
     parts.push(`Body text: "${slide.body_text}".`)
   }
 
-  // Ensure logo is always included
-  if (!promptLower.includes('logo') || !promptLower.includes('brand')) {
-    parts.push(`MANDATORY LOGO: ${logoDesc} Place at bottom-left on white band, max 20% width.`)
-  }
-
-  // Ensure signature is always included
-  const sigLower = sigText.toLowerCase().slice(0, 15)
-  if (!promptLower.includes(sigLower)) {
-    parts.push(`Author signature: "${sigText}" small muted near logo.`)
-  }
+  // Logo and signature are composited post-generation by sharp (PRP-011 fix).
+  // Do NOT instruct the AI to draw them — it produces inaccurate logos.
+  // Instead, reserve the bottom 12% as a clean white band for compositing.
+  parts.push('IMPORTANT: Leave the bottom 12% of the image completely clean (solid white or very light background). Do NOT draw any logo, brand mark, or signature text in the image. The real logo will be added automatically after generation.')
 
   // Format
   if (!promptLower.includes('1080x1350') && !promptLower.includes('4:5')) {
     parts.push('Format: 4:5 vertical (1080x1350) for LinkedIn carousel.')
   }
+
+  // Carousel consistency — critical for harmony across slides
+  parts.push('CAROUSEL CONSISTENCY (CRITICAL): This slide is part of a carousel set. ALL slides MUST share: identical background style/texture, same color palette (primary #1E3A5F, accent #F97316, green #10B981), same typography weight and hierarchy, same layout grid. The carousel must look like a cohesive presentation, not unrelated images.')
 
   // Negative prompts
   const negatives = Array.isArray(p.negative_prompts) && p.negative_prompts.length > 0
@@ -182,17 +179,16 @@ function buildFromLegacyFields(
     parts.push(`Body text: "${slide.body_text}".`)
   }
 
-  // Brand consistency + logo
+  // Brand consistency (logo/signature composited post-generation — do NOT draw them)
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
   parts.push(`Colors: primary ${BRAND_STYLE.colors.primary}, accent ${BRAND_STYLE.colors.secondary}.`)
-  parts.push(`Logo: ${logoDesc} Place at bottom-left on white band, max 20% width.`)
-  parts.push(`Author signature: "${sigText}" small muted near logo.`)
+  parts.push('IMPORTANT: Leave the bottom 12% of the image completely clean (solid white or very light background). Do NOT draw any logo, brand mark, or signature text. The real logo will be added automatically after generation.')
 
   // Format
   parts.push('Format: 4:5 vertical (1080x1350) for LinkedIn carousel.')
 
-  // Visual consistency
-  parts.push('Maintain consistent color palette, typography style, and visual language across all slides.')
+  // Visual consistency — critical for carousel harmony
+  parts.push('CAROUSEL CONSISTENCY (CRITICAL): This slide is part of a carousel set. ALL slides MUST share: (1) identical background style/texture, (2) same color palette (primary #1E3A5F, accent #F97316, green #10B981), (3) same typography weight and hierarchy, (4) same layout grid system, (5) same visual treatment for icons/graphics. The carousel must look like a cohesive presentation, not a collection of unrelated images.')
 
   // Bottom-right empty
   parts.push('Keep the bottom-right corner completely empty (no text, icons, or shapes).')

@@ -67,6 +67,15 @@ ROLES DISPONIBLES:
 - method: solucion, framework, paso a paso
 - cta_close: cierre con CTA, recurso, siguiente paso
 
+REGLAS DE CONSISTENCIA VISUAL:
+- Todos los slides deben usar el MISMO estilo de fondo (textura, color, patron)
+- Todos los slides deben usar la MISMA paleta de colores: navy #1E3A5F, naranja #F97316, verde #10B981, blanco
+- Todos los slides deben usar el MISMO tipo de tipografia y jerarquia
+- El visual_direction de CADA slide debe especificar explicitamente el estilo compartido
+- NO mezclar estilos: si slide 1 es "editorial periodico", TODOS deben ser "editorial periodico"
+- El bottom 12% de cada slide debe quedar limpio (blanco) para el logo real que se agrega despues
+- NO incluir logo ni firma en el visual_direction — se agregan automaticamente post-generacion
+
 Responde UNICAMENTE con JSON valido (sin markdown, sin backticks):
 {
   "carousel_message": "mensaje general del carrusel en 1 oracion",
