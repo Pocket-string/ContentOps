@@ -653,7 +653,7 @@ export function VisualEditor({
                 leftIcon={<SparklesIcon />}
                 className="w-full"
               >
-                Generar Visual Completo
+                {isCarousel ? 'Generar Carrusel con Storyboard' : 'Generar Visual Completo'}
               </Button>
               {/* Feedback for regeneration */}
               <div className="space-y-2">

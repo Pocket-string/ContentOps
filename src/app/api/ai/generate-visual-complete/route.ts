@@ -22,6 +22,7 @@ import {
 } from '@/features/visuals/constants/brand-rules'
 import { getPresetPromptFragment } from '@/features/visuals/constants/aesthetic-presets'
 import { buildStoryboard } from '@/features/visuals/services/storyboard-builder-service'
+import { getInfographicQARules } from '@/features/visuals/services/infographic-qa-optimizer'
 
 export const maxDuration = 120
 
@@ -214,7 +215,9 @@ export async function POST(request: Request): Promise<Response> {
     const dims = FORMAT_DIMENSIONS[format as VisualFormat] ?? FORMAT_DIMENSIONS['1:1']
     const dimensionsStr = `${dims.width}x${dims.height}`
     const feedbackRules = feedback ? buildFeedbackSystemSection(feedback) : ''
-    const systemPrompt = buildSystemPromptWithPreset(brandConfig, !!minimal_text, parsed.data.aesthetic_preset) + feedbackRules
+    // PRP-011 Phase 6: Inject QA pre-check rules for infographics (not carousels)
+    const qaRules = parsed.data.is_carousel ? '' : '\n\n' + getInfographicQARules()
+    const systemPrompt = buildSystemPromptWithPreset(brandConfig, !!minimal_text, parsed.data.aesthetic_preset) + qaRules + feedbackRules
 
     const feedbackSection = feedback
       ? `\n\n**FEEDBACK DEL USUARIO (PRIORIDAD MAXIMA)**: ${feedback}\nAjusta el visual segun este feedback manteniendo la identidad de marca.`

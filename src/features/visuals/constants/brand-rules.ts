@@ -169,3 +169,57 @@ export const CAROUSEL_QA_CHECKLIST: QACheckItem[] = [
   { id: 'carousel_cover', label: 'Cover slide atractivo y claro', category: 'texto' },
   { id: 'carousel_cta', label: 'Ultimo slide con CTA efectivo', category: 'texto' },
 ]
+
+// PRP-011 Phase 9: Per-role brand rules for carousel slides
+export interface CarouselSlideRuleset {
+  logoPlacement: 'center-bottom' | 'bottom-right-small' | 'none'
+  signatureVisible: boolean
+  accentColorProminent: boolean
+  maxTextDensity: 'low' | 'medium' | 'high'
+  promptSuffix: string
+}
+
+export const CAROUSEL_BRAND_RULES: Record<string, CarouselSlideRuleset> = {
+  cover: {
+    logoPlacement: 'center-bottom',
+    signatureVisible: true,
+    accentColorProminent: true,
+    maxTextDensity: 'low',
+    promptSuffix: 'Cover slide: bold headline, high visual impact, logo prominent at bottom center, signature visible. Accent color (#F97316) used for emphasis.',
+  },
+  context: {
+    logoPlacement: 'bottom-right-small',
+    signatureVisible: false,
+    accentColorProminent: false,
+    maxTextDensity: 'medium',
+    promptSuffix: 'Context slide: data overview, clean layout, small logo bottom-right. Primary color (#1E3A5F) dominant.',
+  },
+  deep_dive: {
+    logoPlacement: 'bottom-right-small',
+    signatureVisible: false,
+    accentColorProminent: false,
+    maxTextDensity: 'high',
+    promptSuffix: 'Deep dive slide: detailed technical content, charts or diagrams allowed, small logo bottom-right.',
+  },
+  evidence: {
+    logoPlacement: 'bottom-right-small',
+    signatureVisible: false,
+    accentColorProminent: false,
+    maxTextDensity: 'medium',
+    promptSuffix: 'Evidence slide: key statistic or data point prominent, source citation visible, small logo bottom-right.',
+  },
+  method: {
+    logoPlacement: 'bottom-right-small',
+    signatureVisible: false,
+    accentColorProminent: false,
+    maxTextDensity: 'medium',
+    promptSuffix: 'Method slide: framework or step-by-step layout, numbered items, clean structure, small logo bottom-right.',
+  },
+  cta_close: {
+    logoPlacement: 'center-bottom',
+    signatureVisible: true,
+    accentColorProminent: true,
+    maxTextDensity: 'low',
+    promptSuffix: 'CTA closing slide: clear call-to-action, logo prominent at bottom center, signature visible. Accent color (#F97316) for CTA button/text.',
+  },
+}

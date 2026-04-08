@@ -1,4 +1,4 @@
-import { BRAND_STYLE, NEGATIVE_PROMPTS, BRAND_LOGO_DESCRIPTION, BRAND_SIGNATURE } from '../constants/brand-rules'
+import { BRAND_STYLE, NEGATIVE_PROMPTS, BRAND_LOGO_DESCRIPTION, BRAND_SIGNATURE, CAROUSEL_BRAND_RULES } from '../constants/brand-rules'
 import type { CarouselPlanJson } from '../schemas/visual-prompt-schema'
 
 interface SlideInput {
@@ -208,11 +208,22 @@ function buildFromLegacyFields(
  * Returns the narrative role of a slide based on its position.
  */
 function getSlideRole(index: number, total: number): string {
-  if (index === 0) return 'cover/hook — grab attention with a bold statement or question'
-  if (index === total - 1) return 'closing CTA — call to action with clear next step'
-  if (index === 1) return 'problem setup — establish the challenge or pain point'
-  if (index === total - 2) return 'solution summary — key takeaway before the CTA'
-  return 'supporting content — evidence, data, or elaboration'
+  const roleKey = index === 0 ? 'cover'
+    : index === total - 1 ? 'cta_close'
+    : index === 1 ? 'context'
+    : index === total - 2 ? 'method'
+    : 'deep_dive'
+
+  const brandRule = CAROUSEL_BRAND_RULES[roleKey]
+  const brandSuffix = brandRule ? `\n\nBRAND RULES FOR THIS SLIDE: ${brandRule.promptSuffix}` : ''
+
+  const roleDescription = index === 0 ? 'cover/hook — grab attention with a bold statement or question'
+    : index === total - 1 ? 'closing CTA — call to action with clear next step'
+    : index === 1 ? 'problem setup — establish the challenge or pain point'
+    : index === total - 2 ? 'solution summary — key takeaway before the CTA'
+    : 'supporting content — evidence, data, or elaboration'
+
+  return roleDescription + brandSuffix
 }
 
 /**
