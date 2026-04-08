@@ -221,12 +221,11 @@ export function VisualEditor({
   const [format, setFormat] = useState<VisualFormat>(DEFAULT_FORMAT)
   const [visualType, setVisualType] = useState<VisualType>('single')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isIterating, setIsIterating] = useState(false)
+  // isIterating removed — "Iterar con IA" section eliminated (redundant with VisualCritic "Corregir con IA")
   const [isSaving, setIsSaving] = useState(false)
   const [additionalInstructions, setAdditionalInstructions] = useState('')
-  const [feedback, setFeedback] = useState('')
-  const [iterationChanges, setIterationChanges] = useState<string[]>([])
-  const [iteratedJson, setIteratedJson] = useState('')
+  // feedback state removed — was only used by eliminated "Iterar con IA" section
+  // iterationChanges, iteratedJson removed — "Iterar con IA" section eliminated
   const [imageUrl, setImageUrl] = useState('')
   const [qaChecks, setQaChecks] = useState<Record<string, boolean>>({})
   const [isSavingImage, setIsSavingImage] = useState(false)
@@ -299,7 +298,7 @@ export function VisualEditor({
     setJsonError('')
     setImageUrl(selectedVisual.image_url ?? '')
     setQaChecks(parseQaJson(selectedVisual.qa_json))
-    setIteratedJson(''); setIterationChanges([]); setFeedback('')
+    // iteration state cleanup removed — "Iterar con IA" section eliminated
     // Load NB fields
     const reason = selectedVisual.iteration_reason ?? ''
     const isPreset = NB_ITERATION_REASONS.slice(0, -1).includes(reason as (typeof NB_ITERATION_REASONS)[number])
@@ -437,41 +436,6 @@ export function VisualEditor({
     } catch { setError('Error de red al generar el prompt visual') }
     finally { setIsGenerating(false) }
   }, [postContent, funnelStage, format, topicTitle, keyword, additionalInstructions, isCarousel, selectedVisualId, carouselSlideCount])
-
-  const handleIterate = useCallback(async () => {
-    if (!feedback.trim() || !jsonText) return
-    let currentPrompt: unknown
-    try { currentPrompt = JSON.parse(jsonText) }
-    catch { setError('El JSON actual es invalido. Corrigelo antes de iterar.'); return }
-    setIsIterating(true); setError('')
-    try {
-      const res = await fetch('/api/ai/iterate-visual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          current_prompt_json: currentPrompt,
-          feedback,
-          concept_type: isCarousel ? 'carousel_4x5' : 'single',
-        }),
-      })
-      const json: unknown = await res.json()
-      if (!res.ok) { setError((json as { error?: string }).error ?? 'Error al iterar'); return }
-      const { prompt, changes_made } = (json as { data: { prompt: Record<string, unknown>; changes_made: string[] } }).data
-      setIteratedJson(JSON.stringify(prompt, null, 2)); setIterationChanges(changes_made)
-    } catch { setError('Error de red al iterar el prompt visual') }
-    finally { setIsIterating(false) }
-  }, [feedback, jsonText, isCarousel])
-
-  const handleApplyIteration = useCallback(async () => {
-    if (!selectedVisualId || !iteratedJson) return
-    setIsSaving(true); setError('')
-    try {
-      const res = await onUpdatePrompt(selectedVisualId, iteratedJson)
-      if (res.error) { setError(res.error); return }
-      setJsonText(iteratedJson); setJsonError(''); setIteratedJson(''); setIterationChanges([]); setFeedback('')
-      showSuccess('Prompt actualizado con los cambios de IA')
-    } finally { setIsSaving(false) }
-  }, [selectedVisualId, iteratedJson, onUpdatePrompt])
 
   const handleCreateVisual = useCallback(async () => {
     if (!jsonText || jsonError) return
@@ -851,41 +815,7 @@ export function VisualEditor({
               </div>
             </details>
 
-            {/* 4. AI Iteration */}
-            <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">Iterar con IA</h2>
-              <div>
-                <label htmlFor="iteration-feedback" className="block text-sm font-medium text-foreground mb-1.5">Feedback para iterar</label>
-                <textarea
-                  id="iteration-feedback"
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  rows={3}
-                  placeholder="Ej: Cambia el mood a mas dinamico, usa mas naranja, ajusta el headline..."
-                  className={`${TEXTAREA_BASE} border-border hover:border-border-dark resize-y`}
-                />
-              </div>
-              <Button variant="outline" size="sm" onClick={handleIterate} isLoading={isIterating} disabled={!feedback.trim() || !jsonText} leftIcon={<SparklesIcon />}>Iterar Prompt</Button>
-
-              {iteratedJson && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3" role="region" aria-label="Resultado de iteracion">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Cambios realizados</p>
-                    <button onClick={() => { setIteratedJson(''); setIterationChanges([]) }} className="text-blue-400 hover:text-blue-600 transition-colors" aria-label="Descartar iteracion">
-                      <XIcon />
-                    </button>
-                  </div>
-                  {iterationChanges.length > 0 && (
-                    <ul className="flex flex-wrap gap-1.5" aria-label="Lista de cambios">
-                      {iterationChanges.map((change, i) => <li key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{change}</li>)}
-                    </ul>
-                  )}
-                  <Button variant="primary" size="sm" onClick={handleApplyIteration} isLoading={isSaving} disabled={!selectedVisualId} leftIcon={<SaveIcon />}>Aplicar Cambios</Button>
-                </div>
-              )}
-            </div>
-
-            {/* 5. Nano Banana Pro */}
+            {/* 4. Nano Banana Pro */}
             <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-foreground">Historial Nano Banana Pro</h2>
