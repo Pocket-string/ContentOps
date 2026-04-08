@@ -571,12 +571,10 @@ Responde con este JSON exacto:
       try {
         parsed_ai = JSON.parse(repaired)
         console.warn('[generate-copy] JSON was truncated but repaired successfully')
-      } catch (repairErr) {
-        console.error('[generate-copy] Failed to parse AI JSON (even after repair):', jsonText.slice(0, 1000))
-        console.error('[generate-copy] Repair error:', repairErr)
-        console.error('[generate-copy] Raw text length:', result.text.length, 'First 200:', result.text.slice(0, 200))
+      } catch {
+        console.error('[generate-copy] Failed to parse AI JSON (even after repair). Length:', result.text.length, 'Preview:', jsonText.slice(0, 500))
         return Response.json(
-          { error: 'Error al parsear la respuesta de la IA. Intenta de nuevo.', debug_preview: jsonText.slice(0, 300), raw_length: result.text.length },
+          { error: 'Error al parsear la respuesta de la IA. Intenta de nuevo.' },
           { status: 500 }
         )
       }
