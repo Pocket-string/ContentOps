@@ -24,7 +24,7 @@ import { buildVisualJsonPrompt } from '@/features/prompts/templates/visual-json-
 import { parseVisualJson } from '@/features/import/parsers/visual-parser'
 import { AIReviewBadge } from '@/shared/components/ai-review-badge'
 import type { VisualReview } from '@/shared/types/ai-review'
-import { updateNanoBananaAction } from '../actions/visual-actions'
+import { AESTHETIC_PRESETS } from '../constants/aesthetic-presets'
 import { initCarouselSlidesAction, initCarouselFromPlanAction, saveCarouselSlidesAction } from '../actions/carousel-actions'
 import { ImageGenerator } from './ImageGenerator'
 import { CarouselEditor } from './CarouselEditor'
@@ -234,12 +234,8 @@ export function VisualEditor({
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [visualReview, setVisualReview] = useState<VisualReview | null>(null)
-  // Nano Banana Pro state
-  const [nbRunId, setNbRunId] = useState('')
-  const [nbIterationReason, setNbIterationReason] = useState('')
-  const [nbQaNotes, setNbQaNotes] = useState('')
-  const [nbCustomReason, setNbCustomReason] = useState('')
-  const [isSavingNB, setIsSavingNB] = useState(false)
+  // NB Pro state removed (PRP-011) — aesthetic preset state
+  const [aestheticPreset, setAestheticPreset] = useState('notebook_editorial')
   // Import bridge state
   const [importJsonText, setImportJsonText] = useState('')
   const [importError, setImportError] = useState('')
@@ -291,7 +287,7 @@ export function VisualEditor({
   useEffect(() => {
     if (!selectedVisual) {
       setJsonText(''); setJsonError(''); setImageUrl(''); setQaChecks({})
-      setNbRunId(''); setNbIterationReason(''); setNbQaNotes(''); setNbCustomReason('')
+      // NB Pro state cleanup removed (PRP-011)
       return
     }
     setJsonText(JSON.stringify(selectedVisual.prompt_json, null, 2))
@@ -299,13 +295,7 @@ export function VisualEditor({
     setImageUrl(selectedVisual.image_url ?? '')
     setQaChecks(parseQaJson(selectedVisual.qa_json))
     // iteration state cleanup removed — "Iterar con IA" section eliminated
-    // Load NB fields
-    const reason = selectedVisual.iteration_reason ?? ''
-    const isPreset = NB_ITERATION_REASONS.slice(0, -1).includes(reason as (typeof NB_ITERATION_REASONS)[number])
-    setNbRunId(selectedVisual.nanobanana_run_id ?? '')
-    setNbQaNotes(selectedVisual.qa_notes ?? '')
-    setNbIterationReason(reason === '' ? '' : isPreset ? reason : 'Otro')
-    setNbCustomReason(isPreset ? '' : reason)
+    // NB Pro field loading removed (PRP-011)
     // Load carousel slides from map, syncing rich data from prompt_json if available
     if (selectedVisual && carouselSlidesMap?.[selectedVisual.id]) {
       const dbSlides = carouselSlidesMap[selectedVisual.id]
@@ -469,16 +459,7 @@ export function VisualEditor({
     } finally { setIsSavingQA(false) }
   }, [selectedVisualId, qaChecks, onUpdateQA, onUpdateStatus])
 
-  const handleSaveNanoBanana = useCallback(async () => {
-    if (!selectedVisualId) return
-    const resolvedReason = nbIterationReason === 'Otro' ? nbCustomReason.trim() : nbIterationReason
-    setIsSavingNB(true); setError('')
-    const payload = JSON.stringify({ nanobanana_run_id: nbRunId.trim() || undefined, qa_notes: nbQaNotes.trim() || undefined, iteration_reason: resolvedReason || undefined })
-    try {
-      const res = await updateNanoBananaAction(selectedVisualId, payload)
-      if ('error' in res) { setError(res.error) } else { showSuccess('Metadata Nano Banana guardada') }
-    } finally { setIsSavingNB(false) }
-  }, [selectedVisualId, nbRunId, nbIterationReason, nbCustomReason, nbQaNotes])
+  // handleSaveNanoBanana removed (PRP-011) — NB Pro section eliminated
 
   // ============================================
   // Simplified visual generation (complete pipeline)
@@ -503,6 +484,8 @@ export function VisualEditor({
           keyword: keyword || null,
           logo_url: logoUrl || null,
           minimal_text: minimalText || undefined,
+          aesthetic_preset: aestheticPreset || undefined,
+          is_carousel: isCarousel || undefined,
         }),
       })
       setCompleteGenStep('image')
@@ -596,6 +579,15 @@ export function VisualEditor({
                 </div>
                 <div className="max-w-xs flex-1 min-w-[160px]">
                   <Select label="Formato" options={FORMAT_OPTIONS} value={format} onChange={(e) => setFormat(e.target.value as VisualFormat)} aria-label="Formato del visual" disabled={visualType === 'carousel'} />
+                </div>
+                <div className="max-w-xs flex-1 min-w-[160px]">
+                  <Select
+                    label="Estetica"
+                    options={AESTHETIC_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
+                    value={aestheticPreset}
+                    onChange={(e) => setAestheticPreset(e.target.value)}
+                    aria-label="Estetica visual"
+                  />
                 </div>
               </div>
 
@@ -815,42 +807,7 @@ export function VisualEditor({
               </div>
             </details>
 
-            {/* 4. Nano Banana Pro */}
-            <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-foreground">Historial Nano Banana Pro</h2>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">NB Pro</span>
-              </div>
-              <Input id="nb-run-id" value={nbRunId} onChange={(e) => setNbRunId(e.target.value)} label="Run ID" placeholder="Pega el Run ID de Nano Banana Pro aqui" hint="Copia el ID del run desde la herramienta NB Pro" />
-              <div>
-                <Select label="Razon de iteracion" value={nbIterationReason} onChange={(e) => { setNbIterationReason(e.target.value); if (e.target.value !== 'Otro') setNbCustomReason('') }} options={[{ value: '', label: 'Selecciona una razon...' }, ...NB_ITERATION_REASONS.map((r) => ({ value: r, label: r }))]} aria-label="Razon de iteracion Nano Banana" />
-                {nbIterationReason === 'Otro' && (
-                  <input id="nb-custom-reason" type="text" value={nbCustomReason} onChange={(e) => setNbCustomReason(e.target.value)} placeholder="Describe la razon de la iteracion..." className="mt-2 w-full px-3 py-2 bg-background text-foreground border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent" aria-label="Razon personalizada" />
-                )}
-              </div>
-              <div>
-                <label htmlFor="nb-qa-notes" className="block text-sm font-medium text-foreground mb-1.5">Notas de QA <span className="text-xs font-normal text-foreground-muted">(opcional)</span></label>
-                <textarea id="nb-qa-notes" value={nbQaNotes} onChange={(e) => setNbQaNotes(e.target.value)} rows={3} placeholder="Observaciones sobre la calidad, problemas encontrados, ajustes solicitados..." className={`${TEXTAREA_BASE} border-border hover:border-border-dark resize-none`} />
-              </div>
-              <Button variant="primary" size="sm" onClick={handleSaveNanoBanana} isLoading={isSavingNB} disabled={!selectedVisualId} leftIcon={<SaveIcon />} className="w-full">Guardar Metadata NB</Button>
-              {visuals.some((v) => v.nanobanana_run_id || v.iteration_reason || v.qa_notes) && (
-                <div className="pt-2 border-t border-border space-y-2" role="region" aria-label="Historial de iteraciones Nano Banana">
-                  <p className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">Iteraciones registradas</p>
-                  <ol className="space-y-2">
-                    {sortedVisuals.filter((v) => v.nanobanana_run_id || v.iteration_reason || v.qa_notes).map((v) => (
-                      <li key={v.id} className={`rounded-xl border p-3 text-xs space-y-1 ${v.id === selectedVisualId ? 'border-orange-300 bg-orange-50' : 'border-border bg-background'}`}>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <ClockIcon /><span className="font-bold text-foreground">v{v.version}</span>
-                          {v.iteration_reason && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">{v.iteration_reason}</span>}
-                        </div>
-                        {v.nanobanana_run_id && <p className="text-foreground-muted font-mono truncate">Run: {v.nanobanana_run_id}</p>}
-                        {v.qa_notes && <p className="text-foreground leading-snug">{v.qa_notes}</p>}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </div>
+            {/* NB Pro section removed (PRP-011) — replaced by native version history */}
           </div>
 
           {/* ========== RIGHT COLUMN (1/3, sticky) ========== */}

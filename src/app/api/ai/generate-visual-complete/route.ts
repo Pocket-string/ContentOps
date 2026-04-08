@@ -20,6 +20,8 @@ import {
   FORMAT_DIMENSIONS,
   type VisualFormat,
 } from '@/features/visuals/constants/brand-rules'
+import { getPresetPromptFragment } from '@/features/visuals/constants/aesthetic-presets'
+import { buildStoryboard } from '@/features/visuals/services/storyboard-builder-service'
 
 export const maxDuration = 120
 
@@ -34,6 +36,8 @@ const inputSchema = z.object({
   keyword: z.string().nullable().optional(),
   logo_url: z.string().url().nullable().optional(),
   minimal_text: z.boolean().optional(),
+  aesthetic_preset: z.string().optional(),
+  is_carousel: z.boolean().optional(),
 })
 
 function buildSystemPrompt(brandOverrides: {
@@ -99,7 +103,14 @@ Mood: ${mood} | Tono: ${tone}
 ${negativePrompts.map((p) => `- ${p}`).join('\n')}
 
 ## ESTETICA
-NotebookLM educational + newspaper. Full color. Legible en movil. Sin fotos stock.`
+${minimalMode ? 'Minimal editorial. Max 15 palabras.' : ''} Full color. Legible en movil. Sin fotos stock.`
+}
+
+function buildSystemPromptWithPreset(brandOverrides: Parameters<typeof buildSystemPrompt>[0], minimalMode?: boolean, aestheticPresetId?: string): string {
+  const base = buildSystemPrompt(brandOverrides, minimalMode)
+  if (!aestheticPresetId) return base
+  const presetFragment = getPresetPromptFragment(aestheticPresetId)
+  return base.replace(/## ESTETICA\n.*$/, `## ESTETICA\n${presetFragment}. Full color. Legible en movil.`)
 }
 
 function buildFeedbackSystemSection(feedback: string): string {
@@ -203,7 +214,7 @@ export async function POST(request: Request): Promise<Response> {
     const dims = FORMAT_DIMENSIONS[format as VisualFormat] ?? FORMAT_DIMENSIONS['1:1']
     const dimensionsStr = `${dims.width}x${dims.height}`
     const feedbackRules = feedback ? buildFeedbackSystemSection(feedback) : ''
-    const systemPrompt = buildSystemPrompt(brandConfig, !!minimal_text) + feedbackRules
+    const systemPrompt = buildSystemPromptWithPreset(brandConfig, !!minimal_text, parsed.data.aesthetic_preset) + feedbackRules
 
     const feedbackSection = feedback
       ? `\n\n**FEEDBACK DEL USUARIO (PRIORIDAD MAXIMA)**: ${feedback}\nAjusta el visual segun este feedback manteniendo la identidad de marca.`
@@ -266,10 +277,65 @@ RECUERDA: prompt_overall debe ser EXHAUSTIVO. Incluye logo Bitalize con banda bl
     // Step 3c: Save JSON to DB (user never sees it)
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
+
+    // PRP-011: Save aesthetic_preset and visual_type
+    const visualUpdatePayload: Record<string, unknown> = { prompt_json: promptJson }
+    if (parsed.data.aesthetic_preset) visualUpdatePayload.aesthetic_preset = parsed.data.aesthetic_preset
+    if (parsed.data.is_carousel) {
+      visualUpdatePayload.visual_type = 'carousel'
+      visualUpdatePayload.generation_mode = 'storyboard_slides'
+    } else {
+      visualUpdatePayload.visual_type = 'infographic'
+      visualUpdatePayload.generation_mode = 'single_image'
+    }
     await supabase
       .from('visual_versions')
-      .update({ prompt_json: promptJson })
+      .update(visualUpdatePayload)
       .eq('id', visual_version_id)
+
+    // PRP-011: For carousels, build storyboard and populate slides
+    if (parsed.data.is_carousel) {
+      try {
+        const storyboard = await buildStoryboard({
+          workspaceId,
+          postContent: post_content,
+          topicTitle: topic ?? '',
+          funnelStage: funnel_stage,
+          keyword: keyword ?? undefined,
+          slideCount: 5,
+          aestheticPreset: parsed.data.aesthetic_preset ?? 'notebook_editorial',
+        })
+
+        if (storyboard) {
+          // Delete existing slides for this version and create new ones from storyboard
+          await supabase.from('carousel_slides').delete().eq('visual_version_id', visual_version_id)
+
+          for (const slide of storyboard.slides) {
+            await supabase.from('carousel_slides').insert({
+              visual_version_id,
+              slide_index: slide.slide_index,
+              headline: slide.headline,
+              subtitle: slide.subtitle,
+              body_text: slide.body_text,
+              slide_role: slide.slide_role,
+              prompt_json: {
+                visual_direction: slide.visual_direction,
+                slide_role: slide.slide_role,
+                aesthetic_preset: parsed.data.aesthetic_preset ?? 'notebook_editorial',
+              },
+            })
+          }
+
+          // Update slide_count on the visual version
+          await supabase
+            .from('visual_versions')
+            .update({ slide_count: storyboard.slides.length })
+            .eq('id', visual_version_id)
+        }
+      } catch (storyboardErr) {
+        console.error('[generate-visual-complete] Storyboard generation failed (continuing):', storyboardErr)
+      }
+    }
 
     // Step 4: Generate image from JSON
     const textPrompt = buildImagePrompt(promptJson, format as VisualFormat)
