@@ -98,11 +98,11 @@ export type UpdateBriefInput = z.infer<typeof updateBriefSchema>
 
 // Phase 4: Structured Content
 export const structuredContentSchema = z.object({
-  hook: z.string().optional(),
-  context: z.string().optional(),
-  signals: z.string().optional(),
-  provocation: z.string().optional(),
-  cta: z.string().optional(),
+  hook: z.string().nullable().optional(),
+  context: z.string().nullable().optional(),
+  signals: z.string().nullable().optional(),
+  provocation: z.string().nullable().optional(),
+  cta: z.string().nullable().optional(),
   hashtags: z.array(z.string()).default([]),
 })
 

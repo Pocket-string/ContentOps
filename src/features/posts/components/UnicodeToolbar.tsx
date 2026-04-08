@@ -24,6 +24,8 @@ const FORMAT_BUTTONS: Array<{
   { action: 'monospace', label: 'M', title: 'Monospace unicode', className: 'font-mono' },
   { action: 'strikethrough', label: 'S', title: 'Tachado unicode', className: 'line-through' },
   { action: 'clear', label: 'Aa', title: 'Limpiar formato unicode' },
+  { action: 'bullets', label: '•', title: 'Lista con vinetas' },
+  { action: 'numbered', label: '1.', title: 'Lista numerada', className: 'font-mono' },
 ]
 
 export function UnicodeToolbar({ textareaRef, onTextChange, value }: UnicodeToolbarProps) {

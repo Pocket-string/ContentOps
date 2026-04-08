@@ -141,8 +141,26 @@ export function clearUnicodeFormatting(text: string): string {
   return result
 }
 
+/** Convert selected text lines to bullet list with • prefix */
+export function toBulletList(text: string): string {
+  return text.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => `• ${line.replace(/^[•▪▸►●○\-]\s*/, '')}`)
+    .join('\n')
+}
+
+/** Convert selected text lines to numbered list */
+export function toNumberedList(text: string): string {
+  return text.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map((line, i) => `${i + 1}. ${line.replace(/^\d+\.\s*/, '')}`)
+    .join('\n')
+}
+
 /** All available formatting actions */
-export type UnicodeFormatAction = 'bold' | 'italic' | 'bold-italic' | 'monospace' | 'strikethrough' | 'clear'
+export type UnicodeFormatAction = 'bold' | 'italic' | 'bold-italic' | 'monospace' | 'strikethrough' | 'clear' | 'bullets' | 'numbered'
 
 /** Apply a formatting action to text */
 export function applyUnicodeFormat(text: string, action: UnicodeFormatAction): string {
@@ -153,5 +171,7 @@ export function applyUnicodeFormat(text: string, action: UnicodeFormatAction): s
     case 'monospace': return toUnicodeMonospace(text)
     case 'strikethrough': return toStrikethrough(text)
     case 'clear': return clearUnicodeFormatting(text)
+    case 'bullets': return toBulletList(text)
+    case 'numbered': return toNumberedList(text)
   }
 }
