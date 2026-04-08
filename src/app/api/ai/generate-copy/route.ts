@@ -563,11 +563,21 @@ Responde con este JSON exacto:
     try {
       parsed_ai = JSON.parse(jsonText)
     } catch {
-      console.error('[generate-copy] Failed to parse AI JSON:', jsonText.slice(0, 500))
-      return Response.json(
-        { error: 'Error al parsear la respuesta de la IA. Intenta de nuevo.' },
-        { status: 500 }
-      )
+      // Attempt to repair truncated JSON from Gemini (close open brackets/braces)
+      let repaired = jsonText.replace(/,\s*"[^"]*":\s*"[^"]*$/, '').replace(/,\s*"[^"]*$/, '')
+      const openBrackets = (repaired.match(/\[/g) ?? []).length - (repaired.match(/\]/g) ?? []).length
+      const openBraces = (repaired.match(/\{/g) ?? []).length - (repaired.match(/\}/g) ?? []).length
+      repaired += ']'.repeat(Math.max(0, openBrackets)) + '}'.repeat(Math.max(0, openBraces))
+      try {
+        parsed_ai = JSON.parse(repaired)
+        console.warn('[generate-copy] JSON was truncated but repaired successfully')
+      } catch {
+        console.error('[generate-copy] Failed to parse AI JSON (even after repair):', jsonText.slice(0, 500))
+        return Response.json(
+          { error: 'Error al parsear la respuesta de la IA. Intenta de nuevo.' },
+          { status: 500 }
+        )
+      }
     }
 
     const validated = generatedCopySchema.safeParse(parsed_ai)
