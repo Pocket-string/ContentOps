@@ -59,6 +59,8 @@ settings.local.json
 
 # Playwright MCP logs
 .playwright-mcp/
+e2e/screenshots/
+*.playwright-snapshot.md
 
 # Windows artifacts
 nul

@@ -8,6 +8,7 @@ import { buildCarouselSlidePrompt } from '@/features/visuals/services/carousel-p
 import { uploadImageToStorage } from '@/features/visuals/services/image-storage-service'
 import { updateSlideImageUrl } from '@/features/visuals/services/carousel-service'
 import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
+import { compositeLogoOnImage } from '@/features/visuals/services/logo-compositor'
 import { BRAND_LOGO_DESCRIPTION, BRAND_SIGNATURE } from '@/features/visuals/constants/brand-rules'
 
 const slideSchema = z.object({
@@ -97,13 +98,27 @@ export async function POST(request: Request): Promise<Response> {
       },
     })
 
+    // 5b. Composite real logo (same as infographics — PRP-011 fix)
+    let finalBase64 = result.image.base64
+    let finalMediaType: string = result.image.mediaType
+    const brandLogoUrl = brand?.logo_urls?.[0]?.url
+    if (brandLogoUrl) {
+      try {
+        const composited = await compositeLogoOnImage(finalBase64, finalMediaType, brandLogoUrl)
+        finalBase64 = composited.buffer.toString('base64')
+        finalMediaType = composited.mediaType
+      } catch (logoErr) {
+        console.error('[generate-carousel] Logo compositing failed (using original):', logoErr)
+      }
+    }
+
     // 6. Upload with slide-specific path
     const storagePath = `${visual_version_id}/slide-${slide.slide_index}`
     const uploadResult = await uploadImageToStorage(
       workspaceId,
       storagePath,
-      result.image.base64,
-      result.image.mediaType
+      finalBase64,
+      finalMediaType
     )
 
     if (uploadResult.error) {
