@@ -33,10 +33,16 @@ export function UnicodeToolbar({ textareaRef, onTextChange, value }: UnicodeTool
     const textarea = textareaRef.current
     if (!textarea) return
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
+    let start = textarea.selectionStart
+    let end = textarea.selectionEnd
 
     if (start === end) return // No selection
+
+    // For list actions, expand selection to full lines to avoid partial-line corruption
+    if (action === 'bullets' || action === 'numbered') {
+      while (start > 0 && value[start - 1] !== '\n') start--
+      while (end < value.length && value[end] !== '\n') end++
+    }
 
     const selectedText = value.slice(start, end)
     const formattedText = applyUnicodeFormat(selectedText, action)

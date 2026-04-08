@@ -363,7 +363,8 @@ export function PostEditor({
     // 1. User switched to a different variant tab, OR
     // 2. First load (editor not yet initialized)
     if (variantChanged || !hasInitializedRef.current) {
-      setEditContent(newContent)
+      // Normalize \r\n → \n so charCount matches what the textarea actually shows
+      setEditContent(newContent.replace(/\r\n/g, '\n'))
       hasInitializedRef.current = true
     }
 
@@ -925,6 +926,11 @@ export function PostEditor({
                   >
                     Guardar Version
                   </Button>
+                  {isOverLimit && (
+                    <p className="text-xs text-red-500 w-full order-last">
+                      Reduce {(charCount - MAX_CHARS).toLocaleString()} caracteres para guardar
+                    </p>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
