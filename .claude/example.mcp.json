@@ -31,6 +31,17 @@
         "SUPABASE_ACCESS_TOKEN": "YOUR_SUPABASE_ACCESS_TOKEN"
       }
     },
+    "dokploy": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "dokploy-mcp@latest"
+      ],
+      "env": {
+        "DOKPLOY_API_URL": "YOUR_DOKPLOY_URL/api",
+        "DOKPLOY_API_TOKEN": "YOUR_DOKPLOY_API_KEY"
+      }
+    },
     "brave-search": {
       "command": "npx",
       "args": [

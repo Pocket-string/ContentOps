@@ -52,13 +52,19 @@ Usuario dice algo
     |       → Ejecutar skill AI con el template apropiado
     |
     ├── "Revisa que funcione / testea / hay un bug"
-    |       → Ejecutar skill PLAYWRIGHT-CLI (testing automatizado)
+    |       → Ejecutar skill PLAYWRIGHT-CLI (testing puntual)
+    |
+    ├── "Testea todo / QA completo / revisa regresiones"
+    |       → Ejecutar skill E2E-TESTER (Karpathy loop: test → fix → retest)
     |
     ├── "Necesito algo de la base de datos" / "tabla" / "query" / "metricas"
     |       → Ejecutar skill SUPABASE (estructura + datos + metricas)
     |
-    ├── "Quiero hacer deploy / publicar"
-    |       → Deploy directo con Vercel CLI o git push
+    ├── "Quiero hacer deploy / publicar / subir a produccion / Docker / Dokploy"
+    |       → Ejecutar skill DOCKER-DEPLOY (Docker multi-stage + Dokploy + VPS)
+    |
+    ├── "Seguridad / hardening / proteger / CSP / rate limit"
+    |       → Ejecutar skill HARDEN (6 capas de seguridad automatizadas)
     |
     ├── "Quiero remover SaaS Factory"
     |       → Ejecutar skill EJECT-SF (DESTRUCTIVO, confirmar antes)
@@ -78,7 +84,7 @@ Usuario dice algo
 
 ---
 
-## Skills: 15 Herramientas Especializadas
+## Skills: 20 Herramientas Especializadas
 
 | # | Skill | Cuando usarlo |
 |---|-------|---------------|
@@ -86,20 +92,22 @@ Usuario dice algo
 | 2 | `add-login` | Auth completa: Email/Password + Google OAuth + profiles + RLS |
 | 3 | `add-payments` | Pagos con Polar (MoR): checkout, webhooks, suscripciones, acceso |
 | 4 | `add-emails` | Emails transaccionales: Resend + React Email + batch + unsubscribe |
-| 5 | `add-mobile` | PWA instalable + notificaciones push (iOS compatible, 14 commits de gotchas) |
+| 5 | `add-mobile` | PWA instalable + notificaciones push (iOS compatible) |
 | 6 | `website-3d` | Landing cinematica Apple-style: scroll-driven video + copy AIDA/PAS |
-| 4 | `prp` | Plan de feature compleja antes de implementar. Siempre antes de bucle-agentico |
-| 5 | `bucle-agentico` | Features complejas: multiples fases coordinadas (DB + API + UI) |
-| 6 | `ai` | Capacidades de IA: chat, RAG, vision, tools, web search |
-| 7 | `supabase` | Todo BD: crear tablas, RLS, migraciones, queries, metricas, CRUD |
-| 8 | `playwright-cli` | Testing automatizado con browser real |
-| 9 | `primer` | Cargar contexto completo del proyecto al inicio de sesion |
-| 10 | `update-sf` | Actualizar SaaS Factory a la ultima version |
-| 11 | `eject-sf` | Remover SaaS Factory del proyecto. DESTRUCTIVO. Confirmar siempre |
-| 12 | `memory-manager` | Memoria persistente POR PROYECTO en `.claude/memory/` (git-versioned) |
-| 13 | `image-generation` | Generar y editar imagenes con OpenRouter + Gemini |
-| 14 | `autoresearch` | Auto-optimizar skills con loop autonomo (patron Karpathy) |
-| 15 | `skill-creator` | Crear nuevos skills para extender la fabrica |
+| 7 | `prp` | Plan de feature compleja antes de implementar. Siempre antes de bucle-agentico |
+| 8 | `bucle-agentico` | Features complejas: multiples fases coordinadas (DB + API + UI) |
+| 9 | `ai` | Capacidades de IA: chat, RAG, vision, tools, web search |
+| 10 | `supabase` | Todo BD: crear tablas, RLS, migraciones, queries, metricas, CRUD |
+| 11 | `playwright-cli` | Testing automatizado con browser real |
+| 12 | `docker-deploy` | Deploy con Docker multi-stage + Dokploy en VPS |
+| 13 | `harden` | Security hardening: CSP, rate limiting, env validation, sanitizacion |
+| 14 | `e2e-tester` | Testing autonomo con Karpathy Loop (binary evals, max 5 fixes/ciclo) |
+| 15 | `session-lifecycle` | Disciplina de sesion: gate checks al inicio y cierre |
+| 16 | `primer` | Cargar contexto completo del proyecto al inicio de sesion |
+| 17 | `update-sf` | Actualizar SaaS Factory a la ultima version |
+| 18 | `eject-sf` | Remover SaaS Factory del proyecto. DESTRUCTIVO. Confirmar siempre |
+| 19 | `memory-manager` | Memoria persistente POR PROYECTO en `.claude/memory/` (git-versioned) |
+| 20 | `image-generation` | Generar y editar imagenes con OpenRouter + Gemini |
 
 ---
 
@@ -272,22 +280,30 @@ pnpm run lint         # ESLint
 │   ├── project/              # Decisiones y estado de iniciativas
 │   └── reference/            # Patrones, soluciones, donde encontrar cosas
 │
-├── skills/                    # 15 skills especializados
+├── skills/                    # 20+ skills especializados
 │   ├── new-app/              # Entrevista de negocio
 │   ├── add-login/            # Auth completo
+│   ├── add-payments/         # Pagos con Polar
+│   ├── add-emails/           # Emails con Resend
+│   ├── add-mobile/           # PWA + push notifications
 │   ├── website-3d/           # Landing pages cinematicas
 │   ├── prp/                  # Generar PRPs
 │   ├── bucle-agentico/       # Bucle Agentico BLUEPRINT
 │   ├── ai/                   # AI Templates hub
-│   ├── supabase/             # BD completa: estructura + datos + metricas
+│   ├── supabase/             # BD completa
 │   ├── playwright-cli/       # Testing automatizado
+│   ├── docker-deploy/        # Deploy Docker + Dokploy
+│   ├── harden/               # Security hardening
+│   ├── e2e-tester/           # Testing Karpathy Loop
+│   ├── session-lifecycle/    # Disciplina de sesion
+│   ├── server-action/        # Patron Server Actions
 │   ├── primer/               # Context initialization
+│   ├── memory-manager/       # Memoria persistente
+│   ├── image-generation/     # Generacion de imagenes
+│   ├── autoresearch/         # Auto-optimizacion
+│   ├── skill-creator/        # Crear nuevos skills
 │   ├── update-sf/            # Actualizar SF
-│   ├── eject-sf/             # Remover SF
-│   ├── memory-manager/       # Memoria persistente por proyecto
-│   ├── image-generation/     # Generacion de imagenes (OpenRouter + Gemini)
-│   ├── autoresearch/         # Auto-optimizacion de skills
-│   └── skill-creator/        # Crear nuevos skills
+│   └── eject-sf/             # Remover SF
 │
 ├── PRPs/                      # Product Requirements Proposals
 │   └── prp-base.md           # Template base
@@ -304,16 +320,73 @@ pnpm run lint         # ESLint
 
 ## Aprendizajes (Auto-Blindaje Activo)
 
-### 2025-01-09: Usar pnpm run dev, no next dev
-- **Error**: Puerto hardcodeado causa conflictos
-- **Fix**: Siempre usar `pnpm run dev` (auto-detecta puerto)
-- **Aplicar en**: Todos los proyectos
+> Consolidados de 5 proyectos en produccion. Cada error ocurrio en campo y fue documentado para que NUNCA se repita.
+
+### Supabase / Base de Datos
+
+- **RLS en la MISMA migracion** — Habilitar RLS al crear la tabla, no despues. Crear tabla + politicas en una sola migracion.
+- **UNIQUE CONSTRAINT, no INDEX** — UNIQUE INDEX no es DEFERRABLE. Para operaciones de swap/reorder, usar `UNIQUE CONSTRAINT ... DEFERRABLE INITIALLY IMMEDIATE` + `SET CONSTRAINTS ... DEFERRED`.
+- **SECURITY DEFINER** — Functions que cruzan boundaries de RLS necesitan `SECURITY DEFINER` o usar `supabaseServiceRole`.
+- **PostgREST trunca a 1000** — PostgREST trunca silenciosamente a 1000 filas. Paginar explicitamente con `limit` + `offset`.
+- **Batch upsert: 200 filas** — Optimo para Supabase free tier. Mas de 200 causa timeouts.
+- **Trigger `update_updated_at()`** — Crear una vez, reutilizar en todas las tablas mutables.
+- **GENERATED ALWAYS** — NUNCA incluir columnas GENERATED ALWAYS en INSERT/UPDATE. Documentar con `// GENERATED`.
+- **Migraciones ANTES de deploy** — Orden: `apply_migration` → deploy. Nunca al reves.
+- **Helper `get_user_org_ids()`** — Para multi-tenant: evita repetir checks de org en cada politica RLS.
+
+### AI / LLMs
+
+- **`generateText` > `generateObject`** — `generateObject` falla con Gemini en prompts >5000 chars. Usar `generateText` con system prompt pidiendo JSON + `JSON.parse()` + `Zod.parse()`. Nunca `generateObject` para prompts largos.
+- **Model tiering** — Opus para razonamiento complejo, Sonnet para balance, Haiku para tareas mecanicas/cron. Reduce costos dramaticamente.
+- **Zod `.nullable().optional()`** — Clientes envian `null`, no `undefined`. Usar `.nullable().optional()` en schemas de API.
+- **Provider routing** — Google > OpenRouter > OpenAI con fallback automatico.
+
+### React / Next.js
+
+- **`useRef` post-revalidatePath** — Despues de guardar, `revalidatePath` causa re-render que sobreescribe estado del editor. Solucion: `justSavedRef.current = true`, saltar useEffect si true.
+- **Tailwind color scales necesitan DEFAULT** — Si defines `primary` como escala (50-950) sin DEFAULT, `bg-primary` es transparente. Siempre agregar `DEFAULT: '#value'`.
+- **Usar `pnpm run dev`, no `next dev`** — Auto-detecta puertos 3000-3006. Evita conflictos.
+- **Security headers desde dia 1** — En `next.config.ts`: CSP, X-Frame-Options DENY, X-Content-Type-Options nosniff, Permissions-Policy (camera/mic/geo disabled).
+
+### Seguridad
+
+- **Validar env vars al arrancar** — Con Zod en `src/lib/env.ts`. Si falta una variable, la app no arranca (en vez de crashear horas despues).
+- **NUNCA `as Type`** — Para data externa (APIs, DB, forms, AI), siempre `Zod.parse()`. `as Type` esconde errores que explotan en runtime.
+- **Rate limiting** — En TODOS los endpoints publicos y AI: 10 req/min por usuario minimo.
+- **Sanitizar filenames** — `name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')`.
+- **NUNCA commitear `.env`** — Verificar `.gitignore` ANTES del primer commit. Secrets en git history son irrecuperables.
+- **`.env.example` como contrato** — Mantener actualizado con todas las keys (sin valores reales).
+- **No hardcodear credenciales** — En scripts, usar `process.env.VARIABLE` + validacion con `process.exit(1)` si falta.
+
+### Deploy / Git
+
+- **pnpm SIEMPRE** — npm vulnerable a supply chain attacks (typosquatting, phantom deps). pnpm usa symlinks + global store.
+- **Commits atomicos** — Una idea = un commit. Conventional Commits con scope: `feat(posts): add scoring`.
+- **NUNCA force push a main** — Usar `git revert` para rollbacks. Force push solo en ramas personales.
+- **Docker cache prune** — Build cache acumula GBs en VPS. Cron diario: `docker builder prune`. Log rotation: `max-size: 10m, max-file: 3`.
+- **Dokploy: `x-api-key`** — Dokploy usa header `x-api-key`, NO `Authorization: Bearer`. Error comun.
+- **SSH: key dedicada por VPS** — `~/.ssh/config` con alias desde dia 0.
+- **Cron secret** — Endpoints programados: validar con header `x-cron-secret`.
+
+### Optimizacion de Tokens
+
+- **Max 3 agentes concurrentes** — Previene explosion de sesiones (incidente real: 144 sesiones).
+- **Max 2 ciclos Karpathy/sesion** — Hard stop sin excepciones.
+- **Max 5 fixes por ciclo** — Forzar triage, no cambios masivos.
+- **Silent by default en cron** — Solo enviar mensajes cuando hay un problema real.
+- **Reads justificados** — Cada Read debe justificarse. No leer archivos "por si acaso".
+- **Claim-before-execute** — En schedulers: avanzar `next_run` ANTES de ejecutar (previene duplicados en crash).
+
+### Patrones de Codigo
+
+- **Server Action estandarizado** — 4 pasos: 1) Auth → 2) Validate (Zod) → 3) Execute (Supabase) → 4) Side effects (revalidate, track).
+- **TypeScript errors NO son warnings** — `pnpm exec tsc --noEmit` debe pasar 0 errores antes de cualquier commit.
 
 ---
 
-## 🔒 Seguridad (8 capas — aprendizaje Soiling Calculator)
+## Seguridad (8 capas)
 
-### Capa 1: Validación de Entorno
+### Capa 1: Validacion de Entorno
 - Validar TODAS las env vars con Zod en `src/lib/env.ts` al arrancar la app (no al usar)
 - Mantener `.env.example` actualizado como contrato del equipo
 
@@ -321,211 +394,61 @@ pnpm run lint         # ESLint
 - `next.config.ts` incluye: CSP, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy
 - `poweredByHeader: false`
 
-### Capa 3: Validación de Inputs
+### Capa 3: Validacion de Inputs
 - Validar TODAS las entradas de usuario con Zod
 - Nunca usar `as MyType` para castear datos externos — parsear con Zod
 - Validar en Server Actions Y en API Routes
 
 ### Capa 4: RLS (Row Level Security)
 - SIEMPRE habilitar RLS en tablas Supabase
-- RLS en la MISMA migración que crea la tabla (nunca separado)
-- Patrón: `workspace_members` filtra todo por workspace_id
+- RLS en la MISMA migracion que crea la tabla (nunca separado)
+- Patron: `workspace_members` filtra todo por workspace_id
 
 ### Capa 5: Rate Limiting
 - `src/lib/rate-limit.ts` — `createRateLimiter()` compartido
-- Aplicar en: endpoints AI, export, y cualquier endpoint público
+- Aplicar en: endpoints AI, export, y cualquier endpoint publico
 
 ### Capa 6: Auth Middleware
-- `src/middleware.ts` — rutas públicas configurables
+- `src/middleware.ts` — rutas publicas configurables
 - Auth helpers centralizados: `requireAuth()`, `getProfile()`, `requireAdmin()`
 
 ### Capa 7: Secrets
-- NUNCA exponer secrets en código
+- NUNCA exponer secrets en codigo
 - NUNCA hardcodear credenciales en scripts (usar `process.env`)
 - `.gitignore` blindado: `.env*`, `.mcp.json`, `settings.local.json`
 
-### Capa 8: Sanitización
+### Capa 8: Sanitizacion
 - Sanitizar filenames en Content-Disposition (exports/descargas)
 - `name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')`
-- HTTPS en producción
+- HTTPS en produccion
 
 ---
 
-## ❌ No Hacer (Critical)
+## No Hacer (Critical)
 
-### Código
-- ❌ Usar `any` en TypeScript (usar `unknown`)
-- ❌ Usar `as MyType` para datos externos (usar Zod parse)
-- ❌ Ignorar errores de typecheck ("funciona en dev" no es excusa)
-- ❌ Commits gigantes — una idea = un commit (Conventional Commits)
-- ❌ Omitir manejo de errores
-- ❌ Hardcodear configuraciones o credenciales
-- ❌ Usar `npm` (usar `pnpm`)
+### Codigo
+- No usar `any` en TypeScript (usar `unknown`)
+- No usar `as MyType` para datos externos (usar Zod parse)
+- No ignorar errores de typecheck ("funciona en dev" no es excusa)
+- No hacer commits gigantes — una idea = un commit (Conventional Commits)
+- No omitir manejo de errores
+- No hardcodear configuraciones o credenciales
+- No usar `npm` (usar `pnpm`)
 
 ### Seguridad
-- ❌ Exponer secrets (verificar `.gitignore` ANTES del primer commit)
-- ❌ Loggear información sensible
-- ❌ Saltarse validación de entrada
-- ❌ Crear tablas sin RLS en la misma migración
-- ❌ Incluir columnas GENERATED ALWAYS en INSERT/UPDATE
-- ❌ Deploy sin aplicar migraciones primero
+- No exponer secrets (verificar `.gitignore` ANTES del primer commit)
+- No loggear informacion sensible
+- No saltarse validacion de entrada
+- No crear tablas sin RLS en la misma migracion
+- No incluir columnas GENERATED ALWAYS en INSERT/UPDATE
+- No deploy sin aplicar migraciones primero
 
 ### Arquitectura
-- ❌ Crear dependencias circulares
-- ❌ Mezclar responsabilidades
-- ❌ Estado global innecesario
-- ❌ Force push a main/master
+- No crear dependencias circulares
+- No mezclar responsabilidades
+- No estado global innecesario
+- No force push a main/master
 
 ---
 
-## 🔥 Aprendizajes Adicionales (Auto-Blindaje — ContentOps)
-
-> 27 aprendizajes activos del proyecto.
-
-### ⚙️ Configuración y Entorno
-
-### 2025-02-21: Usar pnpm en lugar de npm
-- **Error**: npm es vulnerable a supply chain attacks (typosquatting, dependency confusion, phantom dependencies)
-- **Fix**: Siempre usar `pnpm install` / `pnpm add`. pnpm usa symlinks y un store global que previene instalaciones fantasma
-- **Aplicar en**: Todos los proyectos nuevos
-
-### 2025-02-21: Nunca commitear archivos .env
-- **Error**: Secrets expuestos en historial de Git son irrecuperables
-- **Fix**: Verificar que `.env`, `.env.local`, `.mcp.json` y `settings.local.json` están en `.gitignore` ANTES del primer commit
-- **Aplicar en**: Setup inicial de todo proyecto
-
-### 2025-02-21: Usar .env.example como contrato del equipo
-- **Error**: Nuevos devs no saben qué variables configurar
-- **Fix**: Mantener `.env.example` actualizado con todas las keys (sin valores reales)
-- **Aplicar en**: Cada vez que se añade una nueva variable de entorno
-
-### 2025-02-21: Validar variables de entorno al arrancar, no al usar
-- **Error**: App arranca bien pero falla horas después cuando toca variable no configurada
-- **Fix**: Validar todas las env vars con Zod en `src/lib/env.ts` que se importa en el inicio
-- **Aplicar en**: Todo proyecto antes del primer deploy
-
-### 2025-02-21: Nunca hardcodear credenciales en scripts auxiliares
-- **Error**: Tokens quedaron hardcodeados en scripts de migración
-- **Fix**: Siempre usar `process.env.VARIABLE` + validación con `process.exit(1)` si falta
-- **Aplicar en**: Todo script en `/scripts`, seeds, migraciones manuales
-
-### 🗃️ Base de Datos (Supabase)
-
-### 2025-02-21: Habilitar RLS desde el día 0, no después
-- **Error**: Habilitar RLS en tabla con datos existentes puede romper queries en producción
-- **Fix**: Crear tabla + policies de RLS en la misma migración inicial
-- **Aplicar en**: Cualquier `apply_migration` que cree una tabla nueva
-
-### 2025-02-21: No incluir columnas GENERATED ALWAYS en INSERT/UPDATE
-- **Error**: Supabase rechaza INSERT/UPDATE si incluyes columnas generadas
-- **Fix**: Excluir columnas generadas del payload. Documentar en tipos con `// GENERATED`
-- **Aplicar en**: Toda tabla con columnas calculadas
-
-### 2025-02-21: Siempre correr migraciones antes de desplegar
-- **Error**: Deploy sin migración aplicada → runtime crash en producción
-- **Fix**: El orden es: `apply_migration` → deploy. Nunca al revés
-- **Aplicar en**: Todo flujo de CI/CD
-
-### 2025-02-21: Trigger updated_at automático
-- **Fix**: Crear función `update_updated_at()` una vez y reusar trigger en cada tabla mutable
-- **Aplicar en**: Toda tabla con columna `updated_at`
-
-### 🧩 TypeScript y Código
-
-### 2025-02-21: Nunca usar `as` para castear tipos desconocidos
-- **Error**: `data as MyType` oculta errores reales que explotan en runtime
-- **Fix**: Usar Zod para validar y parsear datos externos (API, DB, formularios, respuestas AI)
-- **Aplicar en**: Cualquier dato que venga de fuera del sistema
-
-### 2025-02-21: Los errores de tipo no son warnings, son bugs
-- **Error**: Ignorar errores de typecheck porque "funciona en dev"
-- **Fix**: `pnpm exec tsc --noEmit` debe pasar en 0 errores antes de cualquier commit
-- **Aplicar en**: Todos los proyectos
-
-### 2025-02-21: Patrón Server Action estandarizado (4 pasos)
-- **Fix**: Toda Server Action sigue: 1) Auth → 2) Validar (Zod) → 3) Ejecutar (Supabase) → 4) Side effects (track, revalidate)
-- **Aplicar en**: Toda action de CRUD en este proyecto
-
-### 🔄 Git y Versionado
-
-### 2025-02-21: Nunca hacer force push a main/master
-- **Error**: Reescribir historial de rama compartida rompe el trabajo de otros
-- **Fix**: Si necesitas revertir, usar `git revert`. Force push solo en ramas personales
-- **Aplicar en**: Todo proyecto
-
-### 2025-02-21: Commits atómicos — una idea, un commit
-- **Error**: Commits gigantes imposibilitan `git bisect` o revertir cambios puntuales
-- **Fix**: Usar Conventional Commits con scope: `feat(posts): add D/G/P/I scoring`
-- **Aplicar en**: Todos los proyectos
-
-### 🚀 Deploy y Producción
-
-### 2025-02-21: Security headers desde el día 1
-- **Error**: App desplegada sin CSP, X-Frame-Options, ni X-Content-Type-Options
-- **Fix**: Incluir security headers en `next.config.ts` desde el setup inicial
-- **Aplicar en**: Todo proyecto nuevo
-
-### 2025-02-21: Rate limiting en endpoints públicos y AI
-- **Error**: Endpoints sin rate limit permiten DoS
-- **Fix**: Usar `createRateLimiter()` compartido en todo endpoint público y AI
-- **Aplicar en**: Endpoints AI (generación copy/JSON), export, formularios públicos
-
-### 2025-02-21: Sanitizar filenames en Content-Disposition
-- **Error**: Nombres con caracteres especiales pueden inyectar headers HTTP
-- **Fix**: `name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')`
-- **Aplicar en**: Todo endpoint que genere archivos descargables (Export Pack)
-
-### 🗃️ Base de Datos (Supabase) — ContentOps
-
-### 2026-02-25: UNIQUE INDEX vs UNIQUE CONSTRAINT para operaciones swap
-- **Error**: `swap_post_days` fallaba con "duplicate key violates unique constraint" incluso con CASE WHEN en un solo UPDATE
-- **Causa raíz**: Un `UNIQUE INDEX` NO es deferrable — PostgreSQL verifica per-row, no al final de la transacción
-- **Fix**: Convertir INDEX a CONSTRAINT con `DEFERRABLE INITIALLY IMMEDIATE` + usar `SET CONSTRAINTS ... DEFERRED`
-- **Aplicar en**: Cualquier tabla que necesite swap/reordenar filas con restricción única
-
-### 2026-02-25: SECURITY DEFINER para funciones que cruzan RLS
-- **Error**: `critic_reviews` insert fallaba con "new row violates RLS policy"
-- **Fix**: Funciones que necesitan operar sin filtro RLS deben ser `SECURITY DEFINER` o usar `supabaseServiceRole`
-- **Aplicar en**: Toda función SQL o server action que cruza boundaries de RLS
-
-### 🤖 AI y Modelos — ContentOps
-
-### 2026-02-25: generateObject SIEMPRE falla con inputs largos en Gemini 2.5 Flash
-- **Error**: `generateObject` de Vercel AI SDK falla silenciosamente o retorna JSON malformado cuando el prompt supera ~5000 caracteres
-- **Fix**: Usar `generateText` con system prompt que pida JSON + `JSON.parse()` manual + Zod validate. Nunca `generateObject` para prompts largos con Gemini
-- **Aplicar en**: Todo endpoint AI que reciba copy completo, weekly_brief, o context largo
-
-### 2026-02-25: Zod `.nullable().optional()` para inputs de API
-- **Error**: Client envía `null` para campos opcionales, pero Zod `.optional()` solo acepta `undefined`
-- **Fix**: Usar `.nullable().optional()` en schemas de input de API
-- **Aplicar en**: Todo schema Zod en API routes que recibe datos de formularios/fetch del client
-
-### ⚛️ React / Next.js — ContentOps
-
-### 2026-02-25: useRef flag para evitar useEffect después de revalidatePath
-- **Error**: Después de guardar un post, `revalidatePath` causa re-render → useEffect sobreescribe estado del editor
-- **Fix**: `justSavedRef.current = true` al guardar, skip en useEffect si true
-- **Aplicar en**: Todo editor con estado local + server revalidation
-
-### 🚀 Deploy y Producción — ContentOps
-
-### 2026-02-26: Docker build cache se acumula con deploys frecuentes
-- **Error**: 30 deploys acumularon 42.9GB de build cache en el VPS
-- **Fix**: Cron job diario con `docker builder prune`, Docker daemon con log rotation (`max-size: 10m`, `max-file: 3`)
-- **Aplicar en**: Todo proyecto con Docker + Dokploy en VPS
-
-### 2026-02-26: Configurar SSH con alias + key dedicada desde el día 0
-- **Error**: Pérdida de acceso SSH al VPS al cambiar de máquina
-- **Fix**: Crear `~/.ssh/id_ed25519_<proyecto>` + `~/.ssh/config` con alias + sudoers passwordless
-- **Aplicar en**: Todo VPS nuevo
-
-### 🎨 Tailwind CSS — ContentOps
-
-### 2026-03-04: Color scales en Tailwind DEBEN tener DEFAULT
-- **Error**: `bg-primary` era invisible porque `primary` se definió como scale (50-950) sin valor `DEFAULT`
-- **Fix**: Agregar `DEFAULT: '#0A66C2'` al color primary en `tailwind.config.ts`. Toda color scale custom DEBE incluir `DEFAULT`
-- **Aplicar en**: Todo proyecto con Tailwind que defina color scales custom
-
----
-
-*V4: Todo es un Skill. Agent-First. El usuario habla, tu construyes. (27 aprendizajes activos)*
+*V4.1: Todo es un Skill. Agent-First. El usuario habla, tu construyes. (~40 aprendizajes consolidados)*

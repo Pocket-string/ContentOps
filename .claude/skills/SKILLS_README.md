@@ -4,7 +4,7 @@
 
 ---
 
-## Inventario de Skills (25 total)
+## Inventario de Skills (30 total)
 
 ### Invocables por el Usuario (/)
 
@@ -17,6 +17,10 @@
 | `add-payments` | `/add-payments` | Pagos con Polar (MoR): checkout, webhooks, suscripciones, acceso |
 | `add-emails` | `/add-emails` | Emails transaccionales: Resend + React Email + batch + unsubscribe |
 | `add-mobile` | `/add-mobile` | PWA instalable + push notifications (iOS compatible) |
+| `docker-deploy` | `/docker-deploy` | Deploy con Docker multi-stage + Dokploy en VPS |
+| `harden` | `/harden` | Security hardening: CSP, rate limiting, env validation, sanitizacion |
+| `e2e-tester` | `/e2e-tester` | Testing autonomo con Karpathy Loop (binary evals, max 5 fixes/ciclo) |
+| `session-lifecycle` | `/session-lifecycle` | Disciplina de sesion: gate checks al inicio y cierre |
 | `eject-sf` | `/eject-sf` | Remover SaaS Factory del proyecto (DESTRUCTIVO) |
 | `update-sf` | `/update-sf` | Actualizar a ultima version |
 | `bucle-agentico` | `/bucle-agentico` | Bucle Agentico para sistemas complejos (por fases) |
@@ -33,6 +37,7 @@
 
 | Skill | Se activa cuando... |
 |-------|---------------------|
+| `server-action` | Crear/modificar Server Actions, CRUD, formularios |
 | `backend` | Tareas de Server Actions, APIs, logica de negocio, validaciones |
 | `frontend` | UI/UX, componentes React, Tailwind, animaciones |
 | `supabase-admin` | Migraciones, RLS, queries SQL, auth config |
