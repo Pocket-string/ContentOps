@@ -47,7 +47,7 @@ const researchOutputSchema = z.object({
     title: z.string(),
     angle: z.string(),
     hook_idea: z.string(),
-    fit_score: z.number().min(0).max(100),
+    fit_score: z.number().min(0).max(100).default(70),
     ai_recommendation: z.string().optional(),
   })).default([]),
 })
