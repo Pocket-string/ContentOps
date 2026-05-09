@@ -295,6 +295,7 @@ export function CarouselEditor({
           >
             {slide.image_url ? (
               <img
+                key={slide.image_url}
                 src={slide.image_url}
                 alt={`Slide ${i + 1}`}
                 className="w-full h-full object-cover"
@@ -345,6 +346,7 @@ export function CarouselEditor({
           <div className="rounded-xl overflow-hidden border border-border bg-gray-50 aspect-[4/5]">
             {currentSlide.image_url ? (
               <img
+                key={currentSlide.image_url}
                 src={currentSlide.image_url}
                 alt={`Slide ${activeSlide + 1}`}
                 className="w-full h-full object-contain"

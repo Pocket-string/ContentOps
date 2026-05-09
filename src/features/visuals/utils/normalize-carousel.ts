@@ -71,8 +71,8 @@ export function normalizeCarouselPlan(raw: Record<string, unknown>, requestedSli
     return {
       slide_index: typeof slide.slide_index === 'number' ? Math.min(Math.max(slide.slide_index, 0), 9) : i,
       role: coerceRole(slide.role, i, actualCount),
-      headline: typeof slide.headline === 'string' ? slide.headline : `Slide ${i + 1}`,
-      body_text: typeof slide.body_text === 'string' ? slide.body_text : '',
+      headline: typeof slide.headline === 'string' ? slide.headline.replace(/\\n/g, ' ').replace(/\n/g, ' ').trim() : `Slide ${i + 1}`,
+      body_text: typeof slide.body_text === 'string' ? slide.body_text.replace(/\\n/g, ' ').replace(/\n/g, ' ').trim() : '',
       visual_type: coerceVisualType(slide.visual_type),
       visual_description: typeof slide.visual_description === 'string' ? slide.visual_description : '',
       key_elements: clampArray(slide.key_elements, 2, 6, 'Visual element'),

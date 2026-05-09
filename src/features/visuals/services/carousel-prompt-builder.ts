@@ -47,6 +47,16 @@ export function buildCarouselSlidePrompt(
 }
 
 // ============================================
+// Sanitization
+// ============================================
+
+/** Strip literal \n and real newlines that AI models render as visible backslashes */
+function cleanText(s: string | undefined): string {
+  if (!s) return ''
+  return s.replace(/\\n/g, ' ').replace(/\n/g, ' ').trim()
+}
+
+// ============================================
 // Detection helpers
 // ============================================
 
@@ -80,13 +90,15 @@ function buildFromCarouselPlan(
   }
 
   // Ensure headline is rendered if user edited it after AI generation
-  if (slide.headline && !promptLower.includes(slide.headline.toLowerCase().slice(0, 20))) {
-    parts.push(`The image must contain the text "${slide.headline}" prominently displayed.`)
+  const headline = cleanText(slide.headline)
+  if (headline && !promptLower.includes(headline.toLowerCase().slice(0, 20))) {
+    parts.push(`The image must contain the text "${headline}" prominently displayed.`)
   }
 
   // Ensure body text is rendered if user edited it
-  if (slide.body_text && !promptLower.includes(slide.body_text.toLowerCase().slice(0, 20))) {
-    parts.push(`Body text: "${slide.body_text}".`)
+  const bodyText = cleanText(slide.body_text)
+  if (bodyText && !promptLower.includes(bodyText.toLowerCase().slice(0, 20))) {
+    parts.push(`Body text: "${bodyText}".`)
   }
 
   // Logo and signature are composited post-generation by sharp (PRP-011 fix).
@@ -172,11 +184,13 @@ function buildFromLegacyFields(
   }
 
   // Text overlay
-  if (slide.headline) {
-    parts.push(`The image contains the text "${slide.headline}" prominently displayed at the top.`)
+  const legacyHeadline = cleanText(slide.headline)
+  if (legacyHeadline) {
+    parts.push(`The image contains the text "${legacyHeadline}" prominently displayed at the top.`)
   }
-  if (slide.body_text) {
-    parts.push(`Body text: "${slide.body_text}".`)
+  const legacyBody = cleanText(slide.body_text)
+  if (legacyBody) {
+    parts.push(`Body text: "${legacyBody}".`)
   }
 
   // Brand consistency (logo/signature composited post-generation — do NOT draw them)
@@ -214,7 +228,7 @@ function getSlideRole(index: number, total: number): string {
   const brandSuffix = brandRule ? `\n\nBRAND RULES FOR THIS SLIDE: ${brandRule.promptSuffix}` : ''
 
   const roleDescription = index === 0 ? 'cover/hook — grab attention with a bold statement or question'
-    : index === total - 1 ? 'closing CTA — call to action with clear next step'
+    : index === total - 1 ? 'closing slide — conversational question or reflection that invites comments. NEVER offer a resource, download, free evaluation, or lead magnet'
     : index === 1 ? 'problem setup — establish the challenge or pain point'
     : index === total - 2 ? 'solution summary — key takeaway before the CTA'
     : 'supporting content — evidence, data, or elaboration'

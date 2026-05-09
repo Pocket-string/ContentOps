@@ -43,7 +43,7 @@ export async function uploadImageToStorage(
       .from(BUCKET_NAME)
       .getPublicUrl(filePath)
 
-    return { data: { publicUrl: urlData.publicUrl } }
+    return { data: { publicUrl: `${urlData.publicUrl}?t=${Date.now()}` } }
   } catch (err) {
     console.error('[image-storage] Unexpected error:', err)
     return { error: 'Error inesperado al subir la imagen' }
