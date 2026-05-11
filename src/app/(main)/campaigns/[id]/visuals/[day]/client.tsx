@@ -40,7 +40,7 @@ export function VisualEditorClient({
     if ('error' in result) {
       return { error: result.error }
     }
-    return { success: true as const }
+    return { success: true as const, visualVersionId: result.visualVersionId }
   }
 
   async function handleUpdatePrompt(visualId: string, promptJson: string) {

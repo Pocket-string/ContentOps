@@ -320,6 +320,8 @@ export const visualVersionSchema = z.object({
   slide_count: z.number().min(2).max(10).nullable().optional(),
   // PRP-008: Pipeline rejection feedback
   rejection_feedback: z.string().nullable().optional(),
+  // PRP-013: Visual archetype (9 types) — Patch #6 persists this on create
+  archetype: z.string().nullable().optional(),
 })
 
 // ============================================

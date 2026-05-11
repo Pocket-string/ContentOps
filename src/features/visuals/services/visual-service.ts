@@ -3,6 +3,7 @@ import {
   visualVersionSchema,
   type VisualVersion,
 } from '@/shared/types/content-ops'
+import { ARCHETYPE_SLUGS } from '@/features/visuals/types/archetype'
 import { z } from 'zod'
 
 // ============================================
@@ -18,6 +19,8 @@ const createVisualInputSchema = z.object({
   post_id: z.string().uuid(),
   format: z.string().min(1),
   prompt_json: z.record(z.unknown()),
+  // PRP-013 Patch #6: persist archetype on create (optional — legacy flows omit it)
+  archetype: z.enum(ARCHETYPE_SLUGS).nullable().optional(),
 })
 
 export type CreateVisualInput = z.infer<typeof createVisualInputSchema>
@@ -112,6 +115,7 @@ export async function createVisualVersion(
         image_url: null,
         status: 'draft',
         created_by: userId,
+        archetype: validated.data.archetype ?? null,
       })
       .select()
       .single()

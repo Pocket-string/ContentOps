@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { VISUAL_STATUSES } from '@/shared/types/content-ops'
+import { ARCHETYPE_SLUGS } from '@/features/visuals/types/archetype'
 import { requireAuth } from '@/lib/auth'
 import { track } from '@/lib/tracking'
 import {
@@ -28,6 +29,15 @@ interface ActionError {
 
 type ActionResult = ActionSuccess | ActionError
 
+// PRP-013 Patch #7: createVisualVersionAction needs to return the new ID so the
+// editor can auto-select the freshly created visual without waiting for a refresh.
+interface CreateVisualActionSuccess {
+  success: true
+  visualVersionId: string
+}
+
+type CreateVisualActionResult = CreateVisualActionSuccess | ActionError
+
 // ============================================
 // Server Actions
 // ============================================
@@ -40,7 +50,7 @@ type ActionResult = ActionSuccess | ActionError
  * Step 3 — Execute:  createVisualVersion() inserts the row via Supabase.
  * Step 4 — Side fx:  track() fires event, revalidatePath() refreshes campaigns.
  */
-export async function createVisualVersionAction(formData: FormData): Promise<ActionResult> {
+export async function createVisualVersionAction(formData: FormData): Promise<CreateVisualActionResult> {
   // Step 1: Auth
   const user = await requireAuth()
 
@@ -49,6 +59,8 @@ export async function createVisualVersionAction(formData: FormData): Promise<Act
     post_id: z.string().min(1, 'post_id requerido'),
     format: z.string().min(1, 'formato requerido'),
     prompt_json: z.record(z.unknown()),
+    // PRP-013 Patch #6: archetype optional — only required for archetype-aware flows
+    archetype: z.enum(ARCHETYPE_SLUGS).nullable().optional(),
   })
 
   const promptJsonRaw = formData.get('prompt_json')
@@ -60,10 +72,14 @@ export async function createVisualVersionAction(formData: FormData): Promise<Act
     return { error: 'JSON invalido' }
   }
 
+  const archetypeRaw = formData.get('archetype')
+  const archetypeValue = typeof archetypeRaw === 'string' && archetypeRaw.length > 0 ? archetypeRaw : null
+
   const raw = {
     post_id: formData.get('post_id'),
     format: formData.get('format'),
     prompt_json: promptJsonParsed,
+    archetype: archetypeValue,
   }
 
   const parsed = createVisualSchema.safeParse(raw)
@@ -75,21 +91,21 @@ export async function createVisualVersionAction(formData: FormData): Promise<Act
   // Step 3: Execute
   const result = await createVisualVersion(user.id, parsed.data)
 
-  if (result.error) {
-    return { error: result.error }
+  if (result.error || !result.data) {
+    return { error: result.error ?? 'No se pudo crear el visual' }
   }
 
   // Step 4: Side effects
   track('visual_version.created', {
     user_id: user.id,
-    visual_version_id: result.data?.id,
+    visual_version_id: result.data.id,
     post_id: parsed.data.post_id,
     format: parsed.data.format,
   })
 
   revalidatePath('/campaigns')
 
-  return { success: true }
+  return { success: true, visualVersionId: result.data.id }
 }
 
 /**

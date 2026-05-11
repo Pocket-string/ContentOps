@@ -50,7 +50,7 @@ interface VisualEditorProps {
   keyword?: string
   visuals: VisualVersion[]
   carouselSlidesMap?: Record<string, CarouselSlide[]>
-  onCreateVisual: (formData: FormData) => Promise<{ success?: true; error?: string }>
+  onCreateVisual: (formData: FormData) => Promise<{ success?: true; visualVersionId?: string; error?: string }>
   onUpdatePrompt: (visualId: string, promptJson: string) => Promise<{ success?: true; error?: string }>
   onUpdateStatus: (visualId: string, status: string) => Promise<{ success?: true; error?: string }>
   onUpdateQA: (visualId: string, qaJson: string) => Promise<{ success?: true; error?: string }>
@@ -284,18 +284,25 @@ export function VisualEditor({
     try {
       const fd = new FormData()
       fd.set('post_id', postId); fd.set('format', format); fd.set('prompt_json', jsonText)
+      // PRP-013 Patch #6: persist archetype on create so audit + iter flows know the archetype
+      if (archetype) fd.set('archetype', archetype)
       if (visualType === 'carousel') {
         fd.set('concept_type', 'carousel_4x5')
         fd.set('slide_count', String(carouselSlideCount))
       }
       const res = await onCreateVisual(fd)
       if (res.error) { setError(res.error); return null }
-      // The new version should appear in visuals after revalidation.
-      // For now, return success signal — the parent will revalidate and pass new visuals.
+      // PRP-013 Patch #7: select the new version immediately so downstream flows (ImageGenerator,
+      // auditor, carousel init) operate on the freshly-created ID instead of waiting for refresh.
+      if (res.visualVersionId) {
+        setSelectedVisualId(res.visualVersionId)
+        showSuccess('Version visual creada')
+        return res.visualVersionId
+      }
       showSuccess('Version visual creada')
-      return 'pending-revalidation'
+      return null
     } finally { setIsCreating(false) }
-  }, [postId, format, jsonText, jsonError, visualType, carouselSlideCount, onCreateVisual])
+  }, [postId, format, jsonText, jsonError, visualType, carouselSlideCount, onCreateVisual, archetype])
 
   // Load selected visual into editor
   useEffect(() => {
