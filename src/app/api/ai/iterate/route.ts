@@ -106,6 +106,16 @@ ${variant === 'contrarian' ? '- Revelacion Tecnica: desafia creencia instalada c
 - MAXIMO ABSOLUTO: 2800 caracteres total. Max 2 emojis. Sin links externos. NO hashtags (#).
 - Sin ⏎⏎ entre bloques = post ILEGIBLE en movil. Esto es critico.
 
+## BULLETS DE SAVEABILITY (PRESERVAR)
+- Si el post actual tiene 2-4 bullets cerca del final, PRESERVALOS como bullets. NO los conviertas en narrativa.
+- Si no tiene bullets, AGREGA un bloque de 3 bullets accionables antes del CTA (regla, framework, o insights guardables).
+- Saves > likes en algoritmo Feed-SR — los bullets son lo que el lector screenshot-ea.
+
+## NUNCA FABRICAR ESPECIFICOS (CRITICO — AUTENTICIDAD FOUNDER-LED)
+- NO inventes fechas especificas, MW exacto de plantas, dialogos literales de personas reales, ni nombres propios si no estan en el post actual o en el feedback del usuario.
+- Si necesitas reforzar la escena, usa anclajes GENERICOS verificables: "una planta del norte chileno", "un Asset Manager con el que conversé", "en una visita a campo", "hablando con un equipo de O&M de un fondo en LATAM".
+- Publicar ficcion presentandola como experiencia destruye el moat de autenticidad founder-led.
+
 IMPORTANTE: Responde UNICAMENTE con un JSON valido, sin markdown, sin backticks, sin texto adicional.`,
       prompt: `**Post actual (variante: ${variant})**:
 ${current_content}

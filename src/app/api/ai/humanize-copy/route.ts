@@ -109,6 +109,21 @@ Reescribe el post para que suene humano, técnico-conversacional, propio de un f
 - NO hashtags (#).
 - NO links externos en el cuerpo.
 
+## BULLETS DE SAVEABILITY (CRÍTICO — PRESERVAR)
+- Si el borrador tiene un bloque de bullets (▪, •, *, -, o numerados) cerca del final, PRESÉRVALO como bullets. NO conviertas bullets en párrafo narrativo.
+- Sweet spot: 3 bullets antes del CTA. Aceptable: 2-4. Más de 4 = exagerado, baja legibilidad mobile.
+- Si el borrador NO tiene bullets, AGREGA un bloque de 3 bullets accionables (regla, framework, o insights guardables) ANTES del CTA. Los bullets son lo que el lector screenshot-ea y guarda — saves pondera más que likes en el algoritmo Feed-SR de LinkedIn.
+- Mantén el carácter de bullet del original (▪, •, *) si existe.
+
+## NUNCA FABRICAR ESPECÍFICOS (CRÍTICO — AUTENTICIDAD FOUNDER-LED)
+- NO inventes fechas específicas ("Octubre de 2023", "Marzo pasado") que no estén en el borrador original.
+- NO inventes plantas con MW exacto ("50 MW en Atacama") si no estaban en el original.
+- NO inventes diálogos literales atribuidos al autor o a personas reales ("El operador me dijo: 'Jonathan, mira...'").
+- NO inventes nombres propios de personas que no aparecen en el borrador.
+- Si necesitas reforzar la escena, usa anclajes GENÉRICOS verificables: "una planta del norte chileno, hace un par de años", "un Asset Manager con el que conversé", "en una visita a campo, el operador apuntó algo que no encajaba", "hablando con un equipo de O&M de un fondo en LATAM".
+- REGLA: si el borrador tiene escena genérica, mejórala SIN agregar específicos fabricados. Si tiene específicos verificables (de Jonathan), preserva tal cual.
+- Publicar ficción presentándola como experiencia destruye el moat de autenticidad founder-led.
+
 ## COMILLAS (CRÍTICO — REGLA DE ESPAÑOL)
 - En español SOLO se usan comillas DOBLES ("texto") para citar, enfatizar o resaltar.
 - NUNCA uses comillas simples ('texto') como signos de citación o énfasis. Es un error en español formal.
