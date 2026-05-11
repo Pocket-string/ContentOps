@@ -10,10 +10,8 @@
 
 import sharp from 'sharp'
 
-import {
-  BRAND_COLORS_SEMANTIC,
-  BRAND_LOGO_DESCRIPTION,
-} from '@/features/visuals/constants/brand-rules'
+import { BRAND_COLORS_SEMANTIC } from '@/features/visuals/constants/brand-rules'
+import { buildBrandPillComposites } from './logo-compositor'
 
 export type AnnotationStyle = 'callout' | 'highlight' | 'headline' | 'arrow'
 export type AnnotationColor = 'neutral' | 'loss' | 'accent' | 'success' | 'warning'
@@ -42,13 +40,20 @@ export interface OverlayInput {
   baseImage: Buffer
   /** Annotations to draw on top of the base. */
   annotations: Annotation[]
-  /** Whether to add the 12% white band + logo at bottom-left. */
+  /** Whether to overlay the Bitalize glass-pill in the bottom-right corner. */
   addBrandStrip?: boolean
-  /** Optional logo PNG buffer for compositing. If absent and addBrandStrip=true, only white band is drawn (no actual logo). */
+  /** Logo PNG buffer for the glass-pill. If addBrandStrip=true and this is absent, the pill is skipped. */
   logoBuffer?: Buffer
   /** Optional target output dimensions. If not provided, uses base image dims. */
   targetWidth?: number
   targetHeight?: number
+  /**
+   * PRP-013 Patch #3: white-out regions painted on top of the base before annotations.
+   * Used to mask source-product branding (e.g. the lucvia logo in the top-left of
+   * captured screenshots) so the visual reads as Bitalize.
+   * Coordinates are in pixels relative to the final canvas.
+   */
+  whiteOutRegions?: Array<{ x: number; y: number; width: number; height: number }>
 }
 
 /** Hex color per annotation role. */
@@ -132,7 +137,15 @@ function buildOverlaySvg(width: number, height: number, annotations: Annotation[
  * Returns a Buffer (PNG by default).
  */
 export async function composeOverlay(input: OverlayInput): Promise<Buffer> {
-  const { baseImage, annotations, addBrandStrip = true, logoBuffer, targetWidth, targetHeight } = input
+  const {
+    baseImage,
+    annotations,
+    addBrandStrip = true,
+    logoBuffer,
+    targetWidth,
+    targetHeight,
+    whiteOutRegions,
+  } = input
 
   // Load base + extract metadata
   let pipeline = sharp(baseImage)
@@ -148,7 +161,20 @@ export async function composeOverlay(input: OverlayInput): Promise<Buffer> {
   // Compose overlays
   const composites: sharp.OverlayOptions[] = []
 
-  // 1. Annotations layer
+  // 0. PRP-013 Patch #3: white-out regions (mask source-product branding before annotations)
+  if (whiteOutRegions && whiteOutRegions.length > 0) {
+    const rects = whiteOutRegions
+      .map((r) => `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" fill="#FFFFFF"/>`)
+      .join('')
+    const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${rects}</svg>`
+    composites.push({
+      input: Buffer.from(maskSvg),
+      top: 0,
+      left: 0,
+    })
+  }
+
+  // 1. Annotations layer (full canvas)
   if (annotations.length > 0) {
     const overlaySvg = buildOverlaySvg(width, height, annotations)
     composites.push({
@@ -158,33 +184,10 @@ export async function composeOverlay(input: OverlayInput): Promise<Buffer> {
     })
   }
 
-  // 2. White brand strip + logo (12% bottom band)
-  if (addBrandStrip) {
-    const bandHeight = Math.round(height * BRAND_LOGO_DESCRIPTION.default_band.band_height_ratio)
-    const bandSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${bandHeight}">
-      <rect x="0" y="0" width="${width}" height="${bandHeight}" fill="#FFFFFF"/>
-    </svg>`
-    composites.push({
-      input: Buffer.from(bandSvg),
-      top: height - bandHeight,
-      left: 0,
-    })
-
-    // Logo on the band (bottom-left)
-    if (logoBuffer) {
-      const logoTargetWidth = Math.round(width * BRAND_LOGO_DESCRIPTION.default_scale)
-      const resizedLogo = await sharp(logoBuffer)
-        .resize(logoTargetWidth, undefined, { fit: 'inside' })
-        .png()
-        .toBuffer()
-      const logoMeta = await sharp(resizedLogo).metadata()
-      const logoH = logoMeta.height ?? Math.round(bandHeight * 0.6)
-      composites.push({
-        input: resizedLogo,
-        top: height - bandHeight + Math.round((bandHeight - logoH) / 2),
-        left: Math.round(width * 0.04),
-      })
-    }
+  // 2. Bitalize glass-pill (bottom-right, semi-transparent, preserves base composition)
+  if (addBrandStrip && logoBuffer) {
+    const pillComposites = await buildBrandPillComposites(width, height, logoBuffer)
+    composites.push(...pillComposites)
   }
 
   return pipeline.composite(composites).png().toBuffer()

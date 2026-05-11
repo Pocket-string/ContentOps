@@ -1,16 +1,20 @@
 /**
  * Composites the brand logo onto a generated image using sharp.
  *
- * Strategy: add a white band at the bottom of the image (12% height),
- * then overlay the logo at the bottom-left of that band.
- * This guarantees pixel-perfect logo placement regardless of what the
- * AI model generated in that area.
+ * Strategy (PRP-013 Patch #2): glass-morphism pill in the bottom-right corner.
+ * A small rounded rectangle with semi-transparent white fill + drop shadow,
+ * with the logo PNG centered inside. Preserves the underlying composition
+ * (no 12% band that amputates content).
  */
 import sharp from 'sharp'
 
-const BAND_HEIGHT_RATIO = 0.12   // white band = 12% of total image height
-const LOGO_MAX_WIDTH_RATIO = 0.22 // logo max width = 22% of image width
-const LOGO_PADDING = 16           // px padding from left/bottom edges
+const PILL_HEIGHT_RATIO = 0.055    // pill height = 5.5% of image height
+const PILL_HEIGHT_MIN_PX = 48      // floor for small canvases
+const PILL_MARGIN_RATIO = 0.035    // distance from right/bottom edges
+const PILL_MARGIN_MIN_PX = 24
+const PILL_INNER_PADDING_Y_RATIO = 0.18 // vertical padding inside pill (fraction of pillH)
+const PILL_INNER_PADDING_X_RATIO = 0.34 // horizontal padding inside pill (fraction of pillH)
+const PILL_FILL_OPACITY = 0.92
 
 export interface CompositeResult {
   buffer: Buffer
@@ -28,71 +32,82 @@ async function fetchLogoBuffer(logoUrl: string): Promise<Buffer> {
 }
 
 /**
- * Composites the logo onto the generated image.
+ * Builds the sharp composite operations to draw a glass-morphism brand pill
+ * (semi-transparent white rounded rect + drop-shadow + logo) in the bottom-right
+ * corner of a canvas of the given dimensions.
  *
- * @param imageBase64  Base64-encoded image from Imagen 3
- * @param mediaType    MIME type of the generated image
- * @param logoUrl      Public URL of the brand logo (PNG recommended)
+ * Caller is responsible for invoking `.composite([...])` on a sharp pipeline
+ * already sized to `width × height`.
+ */
+export async function buildBrandPillComposites(
+  width: number,
+  height: number,
+  logoBuffer: Buffer
+): Promise<sharp.OverlayOptions[]> {
+  const pillH = Math.max(PILL_HEIGHT_MIN_PX, Math.round(height * PILL_HEIGHT_RATIO))
+  const innerPaddingY = Math.round(pillH * PILL_INNER_PADDING_Y_RATIO)
+  const innerPaddingX = Math.round(pillH * PILL_INNER_PADDING_X_RATIO)
+  const logoTargetH = Math.max(16, pillH - 2 * innerPaddingY)
+
+  const resizedLogo = await sharp(logoBuffer)
+    .resize(undefined, logoTargetH, { fit: 'inside', withoutEnlargement: false })
+    .png()
+    .toBuffer()
+  const logoMeta = await sharp(resizedLogo).metadata()
+  const logoW = logoMeta.width ?? Math.round(logoTargetH * 3)
+  const logoH = logoMeta.height ?? logoTargetH
+
+  const pillW = logoW + 2 * innerPaddingX
+  const margin = Math.max(PILL_MARGIN_MIN_PX, Math.round(height * PILL_MARGIN_RATIO))
+  const pillX = width - pillW - margin
+  const pillY = height - pillH - margin
+
+  const pillSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <defs>
+    <filter id="pill-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="black" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" ry="${pillH / 2}" fill="white" fill-opacity="${PILL_FILL_OPACITY}" filter="url(#pill-shadow)"/>
+</svg>`
+
+  return [
+    {
+      input: Buffer.from(pillSvg),
+      top: 0,
+      left: 0,
+    },
+    {
+      input: resizedLogo,
+      top: pillY + Math.round((pillH - logoH) / 2),
+      left: pillX + innerPaddingX,
+    },
+  ]
+}
+
+/**
+ * Composites the logo onto the generated image as a glass-morphism pill.
+ *
+ * @param imageBase64  Base64-encoded image from the AI image model
+ * @param mediaType    MIME type of the generated image (preserved on output as PNG)
+ * @param logoUrl      Public URL of the brand logo (PNG recommended, transparent bg)
  * @returns            Composited image as Buffer + mediaType
  */
 export async function compositeLogoOnImage(
   imageBase64: string,
-  mediaType: string,
+  _mediaType: string,
   logoUrl: string
 ): Promise<CompositeResult> {
   const imageBuffer = Buffer.from(imageBase64, 'base64')
   const logoBuffer = await fetchLogoBuffer(logoUrl)
 
-  // Get generated image dimensions
-  const imageSharp = sharp(imageBuffer)
-  const { width: imgWidth = 1080, height: imgHeight = 1080 } = await imageSharp.metadata()
-
-  const bandHeight = Math.round(imgHeight * BAND_HEIGHT_RATIO)
-  const logoMaxWidth = Math.round(imgWidth * LOGO_MAX_WIDTH_RATIO)
-
-  // Resize logo to fit within the band, preserving aspect ratio
-  const resizedLogo = await sharp(logoBuffer)
-    .resize({
-      width: logoMaxWidth,
-      height: bandHeight - LOGO_PADDING * 2,
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
-    .png()
-    .toBuffer()
-
-  const { width: logoW = logoMaxWidth } = await sharp(resizedLogo).metadata()
-
-  // Position: bottom-left, with padding
-  const left = LOGO_PADDING
-  const top = imgHeight - bandHeight + Math.round((bandHeight - (await sharp(resizedLogo).metadata()).height!) / 2)
-
-  // Build white band rectangle as SVG overlay
-  const whiteBand = Buffer.from(
-    `<svg width="${imgWidth}" height="${bandHeight}">
-      <rect width="${imgWidth}" height="${bandHeight}" fill="white"/>
-    </svg>`
-  )
-
-  const outputMediaType = 'image/png'
+  const { width = 1080, height = 1080 } = await sharp(imageBuffer).metadata()
+  const composites = await buildBrandPillComposites(width, height, logoBuffer)
 
   const composited = await sharp(imageBuffer)
-    // 1. Overlay white band at the bottom
-    .composite([
-      {
-        input: whiteBand,
-        top: imgHeight - bandHeight,
-        left: 0,
-      },
-      // 2. Overlay logo on top of the white band
-      {
-        input: resizedLogo,
-        top,
-        left,
-      },
-    ])
+    .composite(composites)
     .png()
     .toBuffer()
 
-  return { buffer: composited, mediaType: outputMediaType }
+  return { buffer: composited, mediaType: 'image/png' }
 }

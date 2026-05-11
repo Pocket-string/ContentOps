@@ -405,8 +405,8 @@ function buildPromptOverall(
 
   const sharedSuffix = [
     `Output format: ${format} (${dims}) for LinkedIn.`,
-    'Reserve solid white band at the bottom (12% of image height) for logo placement — keep it completely white and clear, DO NOT draw any logo or text in this area (the real Bitalize logo is composited in post-processing).',
-    'Bottom-right corner MUST be empty (LinkedIn UI element overlays there).',
+    'DO NOT draw any logo, brand mark, or text signature anywhere — the real Bitalize logo is composited automatically in post-processing as a small glass-morphism pill in the bottom-right corner.',
+    'Keep the bottom-right corner (roughly the last 22% width × 10% height) relatively quiet — no critical content, no dense text, no key chart elements there.',
     `Brand colors: primary ${BRAND_COLORS_SEMANTIC.primary} navy, accent ${BRAND_COLORS_SEMANTIC.secondary} orange. Use ${BRAND_COLORS_SEMANTIC.accent_danger} red ONLY for losses/critical metrics.`,
     'Bitalize aesthetic: editorial sober, technical, no startup-futurism, no AI-template look.',
   ].join(' ')

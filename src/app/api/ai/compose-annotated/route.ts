@@ -19,7 +19,8 @@ import { getWorkspaceId } from '@/lib/workspace'
 import { getModel } from '@/shared/lib/ai-router'
 import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
 import { ARCHETYPE_SLUGS } from '@/features/visuals/types/archetype'
-import { ARCHETYPE_REGISTRY } from '@/features/visuals/constants/archetypes'
+import { ARCHETYPE_REGISTRY, isCaptureOverlayArchetype } from '@/features/visuals/constants/archetypes'
+import { getActiveBrandProfile } from '@/features/brand/services/brand-service'
 import {
   composeOverlay,
   type Annotation,
@@ -100,7 +101,8 @@ CRITICAL:
 - Cada anotación: text corto (max 8 palabras), x/y enteros, opcional arrow (dirección hacia el elemento UI relevante), style ("callout" | "highlight" | "headline" | "arrow"), color ("neutral" | "loss" | "accent").
 - UNA anotación debe ser el "headline insight" — texto más grande (style="headline"), color "loss" o "accent".
 - Otras anotaciones son explicativas (style="callout"), color "neutral".
-- Reserva la franja inferior 12% (${Math.round(dims.height * 0.88)}-${dims.height} en Y) — ahí va el logo, no pongas anotaciones.
+- Reserva la esquina inferior-derecha (x > ${Math.round(dims.width * 0.72)} AND y > ${Math.round(dims.height * 0.88)}) — ahí va el pill con el logo Bitalize, no pongas anotaciones en esa esquina.
+- ${isCaptureOverlayArchetype(archetype) ? `IMPORTANTE: la esquina superior-izquierda (x < ${Math.round(dims.width * 0.22)} AND y < ${Math.round(dims.height * 0.07)}) se cubrirá con blanco para ocultar el logo del producto fuente (lucvia/mantenimiento) — el visual debe leerse como Bitalize. No pongas anotaciones ahí ni hagas referencias al logo del producto fuente.` : ''}
 
 Responde SOLO con JSON válido:
 {
@@ -172,16 +174,54 @@ Responde SOLO con JSON válido:
   }
 
   // ============================================
-  // 3. Compose overlay via sharp
+  // 3. Fetch Bitalize logo from active brand profile (PRP-013 Patch #1)
   // ============================================
+  let logoBuffer: Buffer | undefined
+  try {
+    const brandResult = await getActiveBrandProfile(workspaceId)
+    const logoUrl = brandResult.data?.logo_urls?.[0]?.url
+    if (logoUrl) {
+      const r = await fetch(logoUrl)
+      if (r.ok) {
+        logoBuffer = Buffer.from(await r.arrayBuffer())
+      } else {
+        console.warn('[compose-annotated] logo fetch non-ok:', r.status)
+      }
+    } else {
+      console.warn('[compose-annotated] no brand logo configured — band will render without logo')
+    }
+  } catch (e) {
+    console.warn('[compose-annotated] logo fetch error (non-fatal):', e instanceof Error ? e.message : e)
+  }
+
+  // ============================================
+  // 4. Compose overlay via sharp
+  // ============================================
+  // PRP-013 Patch #3: for capture-overlay archetypes the base is a real screenshot
+  // of lucvia.com or mantenimiento.jonadata.cloud whose top-left holds the source
+  // product logo. We white-out that region so the visual reads as Bitalize (only
+  // the bottom-right glass-pill remains as branding).
+  const whiteOutRegions = isCaptureOverlayArchetype(archetype)
+    ? [
+        {
+          x: 0,
+          y: 0,
+          width: Math.round(dims.width * 0.22),
+          height: Math.round(dims.height * 0.07),
+        },
+      ]
+    : undefined
+
   let finalBuffer: Buffer
   try {
     finalBuffer = await composeOverlay({
       baseImage: baseBuffer,
       annotations,
       addBrandStrip: true,
+      logoBuffer,
       targetWidth: dims.width,
       targetHeight: dims.height,
+      whiteOutRegions,
     })
   } catch (e) {
     console.error('[compose-annotated] sharp compose error', e)
@@ -192,7 +232,7 @@ Responde SOLO con JSON válido:
   }
 
   // ============================================
-  // 4. Upload final to visual-assets bucket
+  // 5. Upload final to visual-assets bucket
   // ============================================
   const supabase = await createSupabaseServerClient()
   const path = `${workspaceId}/${post_id ?? 'misc'}/${Date.now()}-composed.png`

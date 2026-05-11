@@ -93,10 +93,9 @@ function buildFromPromptOverall(json: Record<string, unknown>, format: VisualFor
     }
   }
 
-  // ALWAYS inject logo if not already described in prompt_overall
-  if (!promptLower.includes('logo') || !promptLower.includes('brand')) {
-    parts.push(`MANDATORY LOGO: ${logoDesc} Place the logo at the bottom-left corner on a solid white band (12% of image height). Logo scale: max 20% of image width.`)
-  }
+  // Logo handling: real Bitalize logo is composited in post-processing as a small
+  // glass-morphism pill in the bottom-right corner. AI must NOT draw a logo.
+  parts.push(`DO NOT draw any logo, brand mark, or text signature — the real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% × 10% area relatively quiet (no critical content there). Brand reference (for color/tone context only, not to render): ${logoDesc}`)
 
   // ALWAYS inject author signature if not mentioned
   const sigLower = sigText.toLowerCase().slice(0, 15)
@@ -172,11 +171,8 @@ function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat, logoDesc
   // Typography
   parts.push(`Typography: titles in ${p.brand.typography.title_font} ${p.brand.typography.title_style}, body in ${p.brand.typography.body_font} ${p.brand.typography.body_style}.`)
 
-  // Logo — ALWAYS include (brand requirement)
-  parts.push(`MANDATORY LOGO: ${p.brand.logo.reference_description || logoDesc} Placement: ${p.brand.logo.placement}, width ${Math.round(p.brand.logo.scale_relative_width * 100)}% of image.`)
-  if (p.brand.logo.background_band.use_band) {
-    parts.push(`White band behind logo: ${p.brand.logo.background_band.band_color}, height ${Math.round(p.brand.logo.background_band.band_height_ratio * 100)}% of image.`)
-  }
+  // Logo: composited in post-processing as a glass-morphism pill (bottom-right). AI must NOT draw it.
+  parts.push(`DO NOT draw any logo, brand mark, or text signature — the real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% × 10% area relatively quiet (no critical content there). Brand reference (for tone/color context only): ${p.brand.logo.reference_description || logoDesc}`)
 
   // Signature
   if (p.content.signature?.use_signature) {
@@ -232,10 +228,9 @@ function buildFromFields(p: VisualPromptJsonV1, format: VisualFormat, logoDesc: 
     parts.push(`Subheadline text: "${p.text_overlay.subheadline}".`)
   }
 
-  // Brand — ALWAYS include logo
+  // Brand — logo composited in post-processing as glass-pill (bottom-right)
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
-  parts.push(`MANDATORY LOGO: ${logoDesc} Place the logo at the bottom-left on a solid white band (12% of image height).`)
-  if (p.brand?.logo_placement) parts.push(`Logo position: ${p.brand.logo_placement}.`)
+  parts.push(`DO NOT draw any logo, brand mark, or text signature — the real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% × 10% area relatively quiet (no critical content there). Brand reference (for tone/color context only): ${logoDesc}`)
 
   // Style anchors
   for (const anchor of DEFAULT_STYLE_ANCHORS) {
