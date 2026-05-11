@@ -96,6 +96,16 @@ function parseCampaignFormData(formData: FormData): Record<string, unknown> {
     } catch { /* ignore */ }
   }
 
+  // PRP-012: editorial layer
+  if (formData.has('editorial_pillar_id')) {
+    const v = formData.get('editorial_pillar_id')
+    result.editorial_pillar_id = typeof v === 'string' && v.trim().length > 0 ? v.trim() : null
+  }
+  if (formData.has('target_audience_id')) {
+    const v = formData.get('target_audience_id')
+    result.target_audience_id = typeof v === 'string' && v.trim().length > 0 ? v.trim() : null
+  }
+
   return result
 }
 

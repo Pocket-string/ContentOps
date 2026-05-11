@@ -32,6 +32,24 @@ export interface CampaignFilters {
 }
 
 /**
+ * Editorial pillar + audience joined into campaign (PRP-012).
+ */
+export type CampaignEditorialContext = {
+  editorial_pillar: {
+    id: string
+    slug: string
+    name: string
+    context_for_prompt: string
+  } | null
+  target_audience: {
+    id: string
+    slug: string
+    role: string
+    angle_for_prompt: string
+  } | null
+}
+
+/**
  * Campaign with its parent topic title attached via join.
  */
 export type CampaignWithTopic = Campaign & {
@@ -53,6 +71,8 @@ export type CampaignWithTopic = Campaign & {
     market_context?: string | null
     solution_framework?: { name: string; mechanism: string; benefits: string[]; implementation: string } | null
   } | null
+  editorial_pillars?: CampaignEditorialContext['editorial_pillar']
+  audience_profiles?: CampaignEditorialContext['target_audience']
 }
 
 /**
@@ -71,6 +91,20 @@ export type CampaignWithPosts = CampaignWithTopic & {
 // ============================================
 // Internal schemas for joined rows
 // ============================================
+
+const editorialPillarJoinSchema = z.object({
+  id: z.string().uuid(),
+  slug: z.string(),
+  name: z.string(),
+  context_for_prompt: z.string(),
+}).nullable().optional()
+
+const audienceJoinSchema = z.object({
+  id: z.string().uuid(),
+  slug: z.string(),
+  role: z.string(),
+  angle_for_prompt: z.string(),
+}).nullable().optional()
 
 const campaignWithTopicSchema = campaignSchema.extend({
   topics: z.object({
@@ -100,6 +134,8 @@ const campaignWithTopicSchema = campaignSchema.extend({
       implementation: z.string(),
     }).nullable().optional(),
   }).nullable(),
+  editorial_pillars: editorialPillarJoinSchema,
+  audience_profiles: audienceJoinSchema,
 })
 
 const postVersionSummarySchema = z.object({
@@ -137,7 +173,7 @@ export async function getCampaignList(
 
     let query = supabase
       .from('campaigns')
-      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact)')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact), editorial_pillars(id, slug, name, context_for_prompt), audience_profiles(id, slug, role, angle_for_prompt)')
       .eq('workspace_id', workspaceId)
       .order('week_start', { ascending: false })
 
@@ -176,7 +212,7 @@ export async function getCampaignById(
 
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact, pillar_id, source_context, content_angles, key_data_points, target_audience, market_context, solution_framework), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
+      .select('*, topics(title, hypothesis, evidence, anti_myth, signals_json, silent_enemy_name, minimal_proof, failure_modes, expected_business_impact, pillar_id, source_context, content_angles, key_data_points, target_audience, market_context, solution_framework), editorial_pillars(id, slug, name, context_for_prompt), audience_profiles(id, slug, role, angle_for_prompt), posts(*, post_versions(id, variant, version, score_json, is_current, content))')
       .eq('id', id)
       .single()
 
@@ -286,6 +322,40 @@ export async function createCampaignWithPosts(
       return { error: 'Error al parsear los posts generados' }
     }
 
+    // PRP-012 Fase 2: Distribute editorial structures across the newly-created posts
+    try {
+      const { listEditorialStructures } = await import('@/features/editorial/services/structures-service')
+      const { distributeStructures } = await import('@/features/editorial/services/structure-distributor')
+      const structuresRes = await listEditorialStructures()
+      if (structuresRes.data && structuresRes.data.length > 0) {
+        const assignments = distributeStructures(
+          parsedPosts.data.map((p) => ({
+            post_id: p.id,
+            day_of_week: p.day_of_week,
+            funnel_stage: p.funnel_stage,
+          })),
+          structuresRes.data
+        )
+        // Bulk update each post's slug
+        await Promise.all(
+          assignments.map((a) =>
+            supabase
+              .from('posts')
+              .update({ editorial_structure_slug: a.editorial_structure_slug })
+              .eq('id', a.post_id)
+          )
+        )
+        // Reflect in local parsedPosts data
+        for (const p of parsedPosts.data) {
+          const a = assignments.find((x) => x.post_id === p.id)
+          if (a) p.editorial_structure_slug = a.editorial_structure_slug
+        }
+      }
+    } catch (e) {
+      // Non-fatal: posts default to 'default' slug if distribution fails
+      console.error('[campaign-service] structure distribution failed', e)
+    }
+
     // Fetch topic fields if topic_id was provided
     let topicData: CampaignWithTopic['topics'] = null
 
@@ -351,6 +421,9 @@ export async function updateCampaign(
     if (validated.data.resource_json !== undefined) updatePayload.resource_json = validated.data.resource_json
     if (validated.data.audience_json !== undefined) updatePayload.audience_json = validated.data.audience_json
     if (validated.data.status !== undefined) updatePayload.status = validated.data.status
+    // PRP-012: editorial layer
+    if (validated.data.editorial_pillar_id !== undefined) updatePayload.editorial_pillar_id = validated.data.editorial_pillar_id
+    if (validated.data.target_audience_id !== undefined) updatePayload.target_audience_id = validated.data.target_audience_id
 
     const supabase = await createClient()
 

@@ -262,6 +262,9 @@ export const campaignSchema = z.object({
   pillar_id: z.string().uuid().nullable().optional(),
   // PRP-008: Pipeline Agentico
   pipeline_status: pipelineStatusSchema.nullable().optional(),
+  // PRP-012: Editorial layer
+  editorial_pillar_id: z.string().uuid().nullable().optional(),
+  target_audience_id: z.string().uuid().nullable().optional(),
 })
 
 export const postSchema = z.object({
@@ -274,6 +277,8 @@ export const postSchema = z.object({
   selected_variant: z.enum(POST_VARIANTS).nullable().optional(),
   // PRP-008: Pipeline rejection feedback
   rejection_feedback: z.string().nullable().optional(),
+  // PRP-012: Editorial structure assignment
+  editorial_structure_slug: z.string().default('default'),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -456,6 +461,9 @@ export const createCampaignSchema = z.object({
   post_frequency: z.number().refine((v) => [3, 5, 7].includes(v)).default(5),
   selected_days: z.array(z.number().min(1).max(7)).optional(),
   pillar_id: z.string().uuid().optional(),
+  // PRP-012: Editorial layer
+  editorial_pillar_id: z.string().uuid().nullable().optional(),
+  target_audience_id: z.string().uuid().nullable().optional(),
 })
 
 // ============================================

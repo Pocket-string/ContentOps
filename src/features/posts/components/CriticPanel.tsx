@@ -33,6 +33,32 @@ interface CriticResult {
   recommendation_reason: string
 }
 
+// PRP-012 Fase 4: Naturalidad audit result
+interface NaturalidadEvaluation {
+  variant_id: string
+  score_total: number
+  scores_per_criteria: {
+    especificidad_tecnica: number
+    humanidad_voz_natural: number
+    claridad_problema: number
+    escena_dato_decision: number
+    relevancia_audiencia: number
+    traduccion_tecnico_negocio: number
+    ausencia_cliches_ia: number
+    fuerza_hook: number
+    calidad_cta: number
+    probabilidad_comentarios: number
+  }
+  diagnostico: string
+  frases_genericas: string[]
+  frases_humanas: string[]
+  mejoras_prioritarias: string[]
+}
+
+interface NaturalidadResult {
+  evaluations: NaturalidadEvaluation[]
+}
+
 interface CriticPanelProps {
   versions: PostVersion[]
   funnelStage: string
@@ -42,6 +68,9 @@ interface CriticPanelProps {
   weeklyBrief?: WeeklyBrief
   previousHooks?: string[]
   pillarContext?: string
+  // PRP-012
+  audienceRole?: string | null
+  editorialPillarName?: string | null
   onApplyScore?: (variant: PostVariant, score: ScoreJson) => Promise<void>
 }
 
@@ -116,12 +145,18 @@ export function CriticPanel({
   weeklyBrief,
   previousHooks,
   pillarContext,
+  audienceRole,
+  editorialPillarName,
   onApplyScore,
 }: CriticPanelProps) {
+  const [activeTab, setActiveTab] = useState<'critic' | 'naturalidad'>('critic')
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<CriticResult | null>(null)
   const [error, setError] = useState('')
   const [appliedScores, setAppliedScores] = useState<Set<string>>(new Set())
+  // PRP-012 Fase 4: Naturalidad state
+  const [isAuditing, setIsAuditing] = useState(false)
+  const [naturalidadResult, setNaturalidadResult] = useState<NaturalidadResult | null>(null)
 
   // Get the latest version for each variant
   const getLatestVersions = useCallback(() => {
@@ -216,32 +251,207 @@ export function CriticPanel({
     }
   }
 
+  // PRP-012 Fase 4: Auditar naturalidad (Capa 2)
+  async function handleAuditNaturalidad() {
+    if (!hasContent) return
+    setIsAuditing(true)
+    setError('')
+    setNaturalidadResult(null)
+
+    try {
+      const variantsPayload = latestVersions.map(v => ({
+        id: v.variant,
+        label: VARIANT_LABELS[v.variant] ?? v.variant,
+        content: v.content,
+      }))
+
+      const response = await fetch('/api/ai/audit-naturalidad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variants: variantsPayload,
+          pillar_name: editorialPillarName ?? undefined,
+          audience_role: audienceRole ?? undefined,
+        }),
+      })
+
+      const json: unknown = await response.json()
+      if (!response.ok) {
+        const errJson = json as { error?: string }
+        setError(errJson.error ?? 'Error al auditar naturalidad')
+        return
+      }
+      const successJson = json as { data: NaturalidadResult }
+      setNaturalidadResult(successJson.data)
+    } catch {
+      setError('Error de red al auditar naturalidad')
+    } finally {
+      setIsAuditing(false)
+    }
+  }
+
   return (
     <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">CopyCritic AI</h2>
-          <p className="text-xs text-foreground-muted mt-0.5">
-            Evalua todas las variantes y recomienda la mejor
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleEvaluateAll}
-          isLoading={isLoading}
-          disabled={!hasContent}
-          leftIcon={<SparklesIcon className="w-4 h-4" />}
-        >
-          Evaluar {latestVersions.length > 1 ? `(${latestVersions.length})` : ''}
-        </Button>
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-foreground">CopyCritic AI</h2>
+        <p className="text-xs text-foreground-muted mt-0.5">
+          Evaluación D/G/P/I/R + Auditor Naturalidad (PRP-012)
+        </p>
       </div>
+
+      {/* PRP-012: Tab bar */}
+      <div role="tablist" className="flex border-b border-border mb-4">
+        <button
+          role="tab"
+          aria-selected={activeTab === 'critic'}
+          onClick={() => setActiveTab('critic')}
+          className={`px-3 py-2 text-xs font-medium transition-colors ${
+            activeTab === 'critic'
+              ? 'text-accent-600 border-b-2 border-accent-600'
+              : 'text-foreground-muted hover:text-foreground'
+          }`}
+        >
+          D/G/P/I/R
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'naturalidad'}
+          onClick={() => setActiveTab('naturalidad')}
+          className={`px-3 py-2 text-xs font-medium transition-colors ${
+            activeTab === 'naturalidad'
+              ? 'text-violet-600 border-b-2 border-violet-600'
+              : 'text-foreground-muted hover:text-foreground'
+          }`}
+        >
+          Naturalidad 0-50
+        </button>
+      </div>
+
+      {/* Tab actions */}
+      {activeTab === 'critic' && (
+        <div className="flex items-center justify-end mb-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleEvaluateAll}
+            isLoading={isLoading}
+            disabled={!hasContent}
+            leftIcon={<SparklesIcon className="w-4 h-4" />}
+          >
+            Evaluar {latestVersions.length > 1 ? `(${latestVersions.length})` : ''}
+          </Button>
+        </div>
+      )}
+      {activeTab === 'naturalidad' && (
+        <div className="flex items-center justify-end mb-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAuditNaturalidad}
+            isLoading={isAuditing}
+            disabled={!hasContent}
+          >
+            🪄 Auditar Naturalidad
+          </Button>
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-error-500 mb-3">{error}</p>
       )}
 
-      {result && (
+      {/* PRP-012: Naturalidad tab content */}
+      {activeTab === 'naturalidad' && naturalidadResult && (
+        <div className="space-y-4">
+          {naturalidadResult.evaluations.map((evalItem) => {
+            const score = evalItem.score_total
+            const colorClass =
+              score >= 45 ? 'bg-success-50 text-success-700 border-success-200' :
+              score >= 40 ? 'bg-warning-50 text-warning-700 border-warning-200' :
+              score >= 35 ? 'bg-orange-50 text-orange-700 border-orange-200' :
+              'bg-error-50 text-error-700 border-error-200'
+            const verdictText =
+              score >= 45 ? 'Publicable. Solo ajustes menores.' :
+              score >= 40 ? 'Publicable con edición humana breve.' :
+              score >= 35 ? 'Requiere reescritura parcial.' :
+              'No publicar. Rehacer desde input más real.'
+            return (
+              <div key={evalItem.variant_id} className={`border rounded-xl p-4 ${colorClass}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold">
+                    {VARIANT_LABELS[evalItem.variant_id] ?? evalItem.variant_id}
+                  </span>
+                  <span className="text-lg font-bold">{score}/50</span>
+                </div>
+                <p className="text-xs mb-3 italic">{verdictText}</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs mb-3">
+                  {Object.entries(evalItem.scores_per_criteria).map(([key, val]) => (
+                    <div key={key} className="flex items-center justify-between gap-2">
+                      <span className="capitalize text-foreground-secondary">{key.replace(/_/g, ' ')}</span>
+                      <div className="flex items-center gap-1">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <span
+                              key={n}
+                              className={`inline-block w-1.5 h-3 mr-0.5 rounded-sm ${
+                                n <= val ? 'bg-current opacity-70' : 'bg-current opacity-15'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-mono text-[10px] tabular-nums">{val}/5</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {evalItem.diagnostico && (
+                  <p className="text-xs text-foreground-secondary mb-2 italic">{evalItem.diagnostico}</p>
+                )}
+
+                {evalItem.frases_genericas.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-1">🚫 Frases problemáticas:</p>
+                    <ul className="space-y-0.5">
+                      {evalItem.frases_genericas.map((f, i) => (
+                        <li key={i} className="text-xs pl-2 border-l-2 border-current opacity-80">{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {evalItem.frases_humanas.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-1">✅ Frases que conviene mantener:</p>
+                    <ul className="space-y-0.5">
+                      {evalItem.frases_humanas.map((f, i) => (
+                        <li key={i} className="text-xs pl-2 border-l-2 border-current opacity-80">{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {evalItem.mejoras_prioritarias.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-1">⚡ Mejoras prioritarias:</p>
+                    <ol className="space-y-0.5 list-decimal list-inside">
+                      {evalItem.mejoras_prioritarias.map((m, i) => (
+                        <li key={i} className="text-xs">{m}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          <p className="text-[10px] text-foreground-muted italic text-center">
+            ℹ️ Score informativo — NO bloquea publicación
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'critic' && result && (
         <div className="space-y-4">
           {/* Recommendation banner */}
           <div className="bg-accent-50 border border-accent-200 rounded-xl p-3">

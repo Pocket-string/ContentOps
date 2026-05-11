@@ -22,9 +22,17 @@ interface Props {
   previousHooks?: string[]
   siblingPosts?: { day_of_week: string; funnel_stage: string; content_preview: string }[]
   pillarContext?: string
+  editorialPillarContext?: string | null
+  audienceAngle?: string | null
+  structureBlueprint?: string | null
+  structureName?: string | null
+  structureSlug?: string | null
 }
 
-export function PostEditorClient({ post, campaignId, topicTitle, keyword, weeklyBrief, topicContext, previousHooks, siblingPosts, pillarContext }: Props) {
+export function PostEditorClient({
+  post, campaignId, topicTitle, keyword, weeklyBrief, topicContext, previousHooks, siblingPosts, pillarContext,
+  editorialPillarContext, audienceAngle, structureBlueprint, structureName, structureSlug,
+}: Props) {
   async function handleSaveVersion(formData: FormData) {
     const result = await savePostVersionAction(formData)
     if ('error' in result) {
@@ -92,6 +100,11 @@ export function PostEditorClient({ post, campaignId, topicTitle, keyword, weekly
       previousHooks={previousHooks}
       siblingPosts={siblingPosts}
       pillarContext={pillarContext}
+      editorialPillarContext={editorialPillarContext}
+      audienceAngle={audienceAngle}
+      structureBlueprint={structureBlueprint}
+      structureName={structureName}
+      structureSlug={structureSlug}
       onSaveVersion={handleSaveVersion}
       onSetCurrent={handleSetCurrent}
       onScore={handleScore}

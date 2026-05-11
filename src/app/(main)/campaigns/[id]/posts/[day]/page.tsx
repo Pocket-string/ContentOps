@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { getCampaignById } from '@/features/campaigns/services/campaign-service'
 import { getPostByCampaignAndDay, getCampaignPostHooks, getCampaignPostSummaries } from '@/features/posts/services/post-service'
 import { getPillarById } from '@/features/pillars/services/pillar-service'
+import { getEditorialStructureBySlug } from '@/features/editorial/services/structures-service'
 import { PostEditorClient } from './client'
 import type { FunnelStage } from '@/shared/types/content-ops'
 
@@ -196,6 +197,22 @@ export default async function PostEditorPage({ params }: Props) {
     }
   }
 
+  // PRP-012: Resolve editorial layer context strings
+  const editorialPillarContext = campaign.editorial_pillars?.context_for_prompt ?? null
+  const audienceAngle = campaign.audience_profiles?.angle_for_prompt ?? null
+
+  // Fetch structure blueprint for this post
+  let structureBlueprint: string | null = null
+  let structureName: string | null = null
+  const structureSlug = postResult.data.editorial_structure_slug ?? 'default'
+  if (structureSlug && structureSlug !== 'default') {
+    const structureRes = await getEditorialStructureBySlug(structureSlug)
+    if (structureRes.data) {
+      structureBlueprint = structureRes.data.prompt_blueprint
+      structureName = structureRes.data.name
+    }
+  }
+
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
       <PostEditorClient
@@ -208,6 +225,11 @@ export default async function PostEditorPage({ params }: Props) {
         previousHooks={previousHooks}
         siblingPosts={siblingPosts}
         pillarContext={pillarContext}
+        editorialPillarContext={editorialPillarContext}
+        audienceAngle={audienceAngle}
+        structureBlueprint={structureBlueprint}
+        structureName={structureName}
+        structureSlug={structureSlug}
       />
     </div>
   )

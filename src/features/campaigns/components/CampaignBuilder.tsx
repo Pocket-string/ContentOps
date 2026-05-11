@@ -10,6 +10,9 @@ import type { Campaign, Post, CampaignStatus, FunnelStage, PostStatus, PostVaria
 import type { PostWithVersions, PostVersionSummary } from '@/features/campaigns/services/campaign-service'
 import { updatePostStatusAction } from '@/features/posts/actions/post-actions'
 import { WeeklyBriefForm } from './WeeklyBriefForm'
+import { EditorialContextPanel } from '@/features/editorial/components/EditorialContextPanel'
+import type { EditorialPillar } from '@/features/editorial/types/pillar'
+import type { AudienceProfile } from '@/features/editorial/types/audience'
 
 // ---- Types ----
 
@@ -30,6 +33,11 @@ interface CampaignBuilderProps {
   onStatusChange?: (status: string) => Promise<{ error?: string } | void>
   onBriefSave?: (brief: WeeklyBrief, plan?: PublishingPlan) => Promise<{ error?: string } | void>
   onKeywordChange?: (keyword: string) => Promise<{ error?: string } | void>
+  // PRP-012: Editorial layer
+  editorialPillars?: EditorialPillar[]
+  audienceProfiles?: AudienceProfile[]
+  onEditorialPillarChange?: (pillarId: string | null) => Promise<{ error?: string } | void>
+  onTargetAudienceChange?: (audienceId: string | null) => Promise<{ error?: string } | void>
 }
 
 // ---- Constants ----
@@ -67,6 +75,16 @@ const VARIANT_LABELS: Record<PostVariant, string> = {
   contrarian: 'Contrarian',
   story: 'Narrativa',
   data_driven: 'Dato de Shock',
+}
+
+// PRP-012: Editorial structure labels for DayColumn badge
+const EDITORIAL_STRUCTURE_LABELS: Record<string, string> = {
+  nicho_olvidado: 'Nicho olvidado',
+  aprendizaje_cliente: 'Aprendizaje cliente',
+  opinion_contraria_ia: 'IA no es magia',
+  demo_pequena: 'Demo pequeña',
+  feature_kill: 'Feature kill',
+  default: '',
 }
 
 /** Find the best-scored version and a copy preview from a post's versions. */
@@ -403,6 +421,13 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId, onPublishedTo
               )
             })()}
 
+            {/* PRP-012: Editorial structure badge */}
+            {post.editorial_structure_slug && post.editorial_structure_slug !== 'default' && (
+              <span className="self-start inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-50 text-violet-700 border border-violet-200">
+                📝 {EDITORIAL_STRUCTURE_LABELS[post.editorial_structure_slug] ?? post.editorial_structure_slug}
+              </span>
+            )}
+
             {/* Copy preview */}
             {(() => {
               const { previewText } = getVersionSummary(post.post_versions ?? [])
@@ -484,7 +509,17 @@ function DayColumn({ dayNumber, dayLabel, stage, post, campaignId, onPublishedTo
 
 // ---- Main component ----
 
-export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave, onKeywordChange }: CampaignBuilderProps) {
+export function CampaignBuilder({
+  campaign,
+  posts,
+  onStatusChange,
+  onBriefSave,
+  onKeywordChange,
+  editorialPillars,
+  audienceProfiles,
+  onEditorialPillarChange,
+  onTargetAudienceChange,
+}: CampaignBuilderProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'semana' | 'brief'>('semana')
   const [isChangingStatus, setIsChangingStatus] = useState(false)
@@ -675,6 +710,18 @@ export function CampaignBuilder({ campaign, posts, onStatusChange, onBriefSave, 
             </Link>
           </div>
         </div>
+
+        {/* PRP-012: Editorial Context Panel */}
+        {editorialPillars && audienceProfiles && (
+          <EditorialContextPanel
+            pillars={editorialPillars}
+            audiences={audienceProfiles}
+            currentPillarId={campaign.editorial_pillar_id ?? null}
+            currentAudienceId={campaign.target_audience_id ?? null}
+            onPillarChange={onEditorialPillarChange}
+            onAudienceChange={onTargetAudienceChange}
+          />
+        )}
       </div>
 
       {/* Tab bar */}

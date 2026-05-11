@@ -64,6 +64,11 @@ const inputSchema = z.object({
   sibling_summaries: z.array(siblingSchema).optional(),
   pillar_name: z.coerce.string().optional(),
   pillar_description: z.coerce.string().optional(),
+  // PRP-012: Editorial layer (resolved context strings, not IDs)
+  editorial_pillar_context: z.string().nullable().optional(),
+  audience_angle: z.string().nullable().optional(),
+  structure_blueprint: z.string().nullable().optional(),
+  structure_name: z.string().nullable().optional(),
 })
 
 // Stage-aware variant instructions injected into userPrompt
@@ -274,7 +279,12 @@ export async function POST(request: Request): Promise<Response> {
 
   // 5. Generate with AI (text-based JSON — generateObject fails with Gemini on long prompts)
   try {
-    const { topic, keyword, funnel_stage, day_of_week, objective, audience, context, weekly_brief, previous_hooks: campaignHooks, sibling_summaries, pillar_name, pillar_description } = parsed.data
+    const {
+      topic, keyword, funnel_stage, day_of_week, objective, audience, context, weekly_brief,
+      previous_hooks: campaignHooks, sibling_summaries, pillar_name, pillar_description,
+      // PRP-012
+      editorial_pillar_context, audience_angle, structure_blueprint, structure_name,
+    } = parsed.data
 
     // Fetch cross-campaign hooks for workspace-wide anti-repetition
     const crossCampaignHooks = await getRecentHooks(workspaceId, 50)
@@ -291,6 +301,30 @@ export async function POST(request: Request): Promise<Response> {
 ## PILAR TEMATICO
 Este post pertenece al pilar **"${pillar_name}"**${pillar_description ? `: ${pillar_description}` : ''}.
 El contenido debe alinearse tematicamente con este pilar. Mantén coherencia con la narrativa del pilar.` : ''
+
+    // PRP-012: Editorial pillar context (taxonomia fija Bitalize)
+    const editorialPillarSection = editorial_pillar_context ? `
+
+## PILAR EDITORIAL (Bitalize)
+${editorial_pillar_context}
+
+CRITICO: Toda la pieza debe servir al ARGUMENTO CENTRAL del pilar editorial. Si el contenido no apoya el pilar, NO lo incluyas.` : ''
+
+    // PRP-012: Audience angle (ICP-specific)
+    const audienceAngleSection = audience_angle ? `
+
+## ANGULO POR AUDIENCIA (ICP)
+${audience_angle}
+
+CRITICO: Habla EN EL LENGUAJE Y DOLOR de esta audiencia especifica. No mezcles con otros perfiles. Si un termino tecnico no resuena con esta audiencia, traducelo o no lo uses.` : ''
+
+    // PRP-012: Structure blueprint (post-archetype editorial)
+    const structureBlueprintSection = (structure_blueprint && structure_name && structure_name !== 'default') ? `
+
+## ESTRUCTURA EDITORIAL ASIGNADA: ${structure_name}
+${structure_blueprint}
+
+CRITICO: La pieza DEBE seguir el flujo de esta estructura editorial. Es el "molde" de este post, no opcional. Si no puedes producir un post con esta estructura por falta de input real (ej: feature_kill sin decision real), reporta el problema en \`review.warning\` en vez de inventar.` : ''
 
     // Funnel-stage-specific copywriting instructions
     const stageConfig = FUNNEL_STAGE_GUIDE[funnel_stage as FunnelStage]
@@ -441,6 +475,9 @@ EJEMPLO DE FORMATO CORRECTO (usa ⏎⏎ entre bloques):
 CRITICO: Sin ⏎⏎ entre bloques, el post es ILEGIBLE en movil y falla la validacion.
 ${funnelGuideSection}
 ${pillarSection}
+${editorialPillarSection}
+${audienceAngleSection}
+${structureBlueprintSection}
 
 ## DIVERSIFICACION OBLIGATORIA
 Las 3 variantes DEBEN ser FUNCIONALMENTE distintas:

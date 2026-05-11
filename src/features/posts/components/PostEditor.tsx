@@ -39,6 +39,12 @@ interface PostEditorProps {
   previousHooks?: string[]
   siblingPosts?: { day_of_week: string; funnel_stage: string; content_preview: string }[]
   pillarContext?: string
+  // PRP-012: Editorial layer (resolved context strings)
+  editorialPillarContext?: string | null
+  audienceAngle?: string | null
+  structureBlueprint?: string | null
+  structureName?: string | null
+  structureSlug?: string | null
   onSaveVersion: (formData: FormData) => Promise<{ success?: true; error?: string }>
   onSetCurrent: (versionId: string) => Promise<{ success?: true; error?: string }>
   onScore: (versionId: string, score: unknown) => Promise<{ success?: true; error?: string }>
@@ -51,6 +57,13 @@ interface PostEditorProps {
 interface IterationResult {
   content: string
   changes_made: string[]
+}
+
+// PRP-012 Fase 3: Humanizer result
+interface HumanizationResult {
+  humanized_content: string
+  changes_summary: string[]
+  risks: string[]
 }
 
 // ============================================
@@ -291,6 +304,11 @@ export function PostEditor({
   previousHooks,
   siblingPosts,
   pillarContext,
+  editorialPillarContext,
+  audienceAngle,
+  structureBlueprint,
+  structureName,
+  structureSlug,
   onSaveVersion,
   onSetCurrent,
   onScore,
@@ -308,6 +326,9 @@ export function PostEditor({
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [iterationResult, setIterationResult] = useState<IterationResult | null>(null)
+  // PRP-012 Fase 3: Humanizer state
+  const [isHumanizing, setIsHumanizing] = useState(false)
+  const [humanizationResult, setHumanizationResult] = useState<HumanizationResult | null>(null)
   const [error, setError] = useState('')
   const [importText, setImportText] = useState('')
   const [importPreview, setImportPreview] = useState<ReturnType<typeof parseCopyVariants> | null>(null)
@@ -494,6 +515,11 @@ export function PostEditor({
           sibling_summaries: siblingPosts?.length ? siblingPosts : undefined,
           pillar_name: pillarContext?.split(' — ')[0],
           pillar_description: pillarContext?.includes(' — ') ? pillarContext.split(' — ').slice(1).join(' — ') : undefined,
+          // PRP-012: editorial layer
+          editorial_pillar_context: editorialPillarContext ?? undefined,
+          audience_angle: audienceAngle ?? undefined,
+          structure_blueprint: structureBlueprint ?? undefined,
+          structure_name: structureName ?? undefined,
         }),
       })
       const json: unknown = await response.json()
@@ -585,6 +611,60 @@ export function PostEditor({
     }
   }, [iterationResult, activeVariant, post.id, onSaveVersion])
 
+  // PRP-012 Fase 3: Humanizer handlers
+  const handleHumanize = useCallback(async () => {
+    if (!editContent.trim()) return
+    setIsHumanizing(true)
+    setError('')
+    try {
+      const response = await fetch('/api/ai/humanize-copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draft_content: editContent,
+          variant: activeVariant,
+          audience_role: undefined,
+          pillar_name: undefined,
+          structure_name: structureName ?? undefined,
+        }),
+      })
+      const json: unknown = await response.json()
+      if (!response.ok) {
+        const errJson = json as { error?: string }
+        setError(errJson.error ?? 'Error al humanizar el contenido')
+        return
+      }
+      const successJson = json as { data: HumanizationResult }
+      setHumanizationResult(successJson.data)
+    } catch {
+      setError('Error de red al humanizar el contenido')
+    } finally {
+      setIsHumanizing(false)
+    }
+  }, [editContent, activeVariant, structureName])
+
+  const handleUseHumanizationResult = useCallback(async () => {
+    if (!humanizationResult) return
+    const formData = new FormData()
+    formData.set('post_id', post.id)
+    formData.set('variant', activeVariant)
+    formData.set('content', humanizationResult.humanized_content)
+    setIsSaving(true)
+    setError('')
+    try {
+      const result = await onSaveVersion(formData)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setEditContent(humanizationResult.humanized_content)
+        setHumanizationResult(null)
+        showSuccess('Versión humanizada guardada')
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }, [humanizationResult, activeVariant, post.id, onSaveVersion])
+
   // ============================================
   // Render
   // ============================================
@@ -668,6 +748,14 @@ export function PostEditor({
                   {keyword && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-50 text-accent-600 border border-accent-200">
                       #{keyword}
+                    </span>
+                  )}
+                  {structureName && structureSlug !== 'default' && (
+                    <span
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200"
+                      title="Estructura editorial asignada (PRP-012)"
+                    >
+                      📝 {structureName}
                     </span>
                   )}
                 </div>
@@ -1065,16 +1153,91 @@ export function PostEditor({
                       "
                     />
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleIterate}
-                    isLoading={isIterating}
-                    disabled={!editContent.trim() || !feedback.trim()}
-                    leftIcon={<SparklesIcon className="w-4 h-4" />}
-                  >
-                    Iterar con AI
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleIterate}
+                      isLoading={isIterating}
+                      disabled={!editContent.trim() || !feedback.trim()}
+                      leftIcon={<SparklesIcon className="w-4 h-4" />}
+                    >
+                      Iterar con AI
+                    </Button>
+                    {/* PRP-012 Fase 3: Humanizer button */}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleHumanize}
+                      isLoading={isHumanizing}
+                      disabled={!editContent.trim() || isIterating}
+                      title="Reescribe el draft con voz founder-técnico (PRP-012 Capa 1)"
+                    >
+                      🪄 Humanizar
+                    </Button>
+                  </div>
+
+                  {/* PRP-012 Fase 3: Humanizer diff panel */}
+                  {humanizationResult && (
+                    <div
+                      className="bg-violet-50 border border-violet-200 rounded-xl p-4 space-y-3"
+                      role="region"
+                      aria-label="Resultado del humanizer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
+                          🪄 Humanizer — versión humanizada
+                        </p>
+                        <button
+                          onClick={() => setHumanizationResult(null)}
+                          className="text-violet-400 hover:text-violet-600 transition-colors"
+                          aria-label="Descartar humanización"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {humanizationResult.changes_summary.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-violet-700 mb-1">Cambios aplicados:</p>
+                          <ul className="space-y-1">
+                            {humanizationResult.changes_summary.map((change, i) => (
+                              <li key={i} className="text-xs text-violet-800 pl-3 border-l-2 border-violet-300">
+                                {change}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {humanizationResult.risks.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-amber-700 mb-1">⚠️ Riesgos detectados:</p>
+                          <ul className="space-y-1">
+                            {humanizationResult.risks.map((risk, i) => (
+                              <li key={i} className="text-xs text-amber-800 pl-3 border-l-2 border-amber-300">
+                                {risk}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <pre className="text-sm text-foreground whitespace-pre-wrap leading-relaxed font-sans bg-white border border-violet-100 rounded-lg p-3 max-h-64 overflow-y-auto">
+                        {humanizationResult.humanized_content}
+                      </pre>
+
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleUseHumanizationResult}
+                        isLoading={isSaving}
+                        leftIcon={<SaveIcon className="w-4 h-4" />}
+                      >
+                        Usar versión humanizada
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Iteration preview */}
                   {iterationResult && (
@@ -1180,6 +1343,8 @@ export function PostEditor({
               weeklyBrief={weeklyBrief}
               previousHooks={previousHooks}
               pillarContext={pillarContext}
+              audienceRole={audienceAngle ? audienceAngle.split('.')[0].replace(/^Audiencia:\s*/, '') : null}
+              editorialPillarName={editorialPillarContext ? editorialPillarContext.split('.')[0].replace(/^Pilar:\s*/, '') : null}
               onApplyScore={async (variant, scorePayload) => {
                 const version = getCurrentVersionForVariant(post.versions, variant)
                 if (version) {

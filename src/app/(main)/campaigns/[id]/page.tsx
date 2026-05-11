@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getCampaignById } from '@/features/campaigns/services/campaign-service'
+import { listEditorialPillars } from '@/features/editorial/services/pillars-service'
+import { listAudienceProfiles } from '@/features/editorial/services/audiences-service'
 import { CampaignBuilderClient } from './client'
 
 export const metadata = { title: 'Campaign Builder | ContentOps' }
@@ -10,7 +12,11 @@ interface Props {
 
 export default async function CampaignDetailPage({ params }: Props) {
   const { id } = await params
-  const result = await getCampaignById(id)
+  const [result, pillarsRes, audiencesRes] = await Promise.all([
+    getCampaignById(id),
+    listEditorialPillars(),
+    listAudienceProfiles(),
+  ])
 
   if (!result.data) {
     notFound()
@@ -31,7 +37,12 @@ export default async function CampaignDetailPage({ params }: Props) {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <CampaignBuilderClient campaign={campaign} posts={result.data.posts} />
+      <CampaignBuilderClient
+        campaign={campaign}
+        posts={result.data.posts}
+        editorialPillars={pillarsRes.data ?? []}
+        audienceProfiles={audiencesRes.data ?? []}
+      />
     </div>
   )
 }

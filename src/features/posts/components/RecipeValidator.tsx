@@ -1,5 +1,7 @@
 'use client'
 
+import { detectBannedPhrases } from '@/features/editorial/lib/banned-phrases'
+
 interface RecipeValidatorProps {
   content: string
   keyword?: string
@@ -69,23 +71,19 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
         : 'Incluye una pregunta (?) o un dato numerico para detener el scroll',
   })
 
-  // 2. Hook anti-bot — No empieza con emoji ni usa frases genericas
-  const emojiRegex = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u
-  const startsWithEmoji = emojiRegex.test(firstLine)
-  const genericPhrases = ['en el mundo de', 'hoy quiero', 'hoy les comparto', 'quiero compartir', 'es bien sabido', 'como todos sabemos']
-  const firstLineLower = firstLine.toLowerCase()
-  const hasGenericPhrase = genericPhrases.some(p => firstLineLower.includes(p))
-  const hookAntiBot = !startsWithEmoji && !hasGenericPhrase
+  // 2. Hook sin frases banned — PRP-012: leading-emoji penalty DROPPED (research no lo soporta)
+  // Mantenemos solo detección de banned phrases en el hook (claim de calidad, no algorítmico)
+  const bannedInHook = detectBannedPhrases(firstLine)
+  const hasGenericPhrase = bannedInHook.length > 0
+  const hookAntiBot = !hasGenericPhrase
   checks.push({
     id: 'hook-antibot',
-    label: 'Hook anti-bot',
+    label: 'Hook sin frases genéricas',
     passed: hookAntiBot,
     severity: 'error',
-    detail: startsWithEmoji
-      ? 'No empezar con emoji (patron detectado como bot por LinkedIn)'
-      : hasGenericPhrase
-        ? 'Evitar frases genericas en el hook. Usa dato concreto, pregunta o escena'
-        : 'Hook no usa patrones de bot',
+    detail: hasGenericPhrase
+      ? `Frase genérica: "${bannedInHook[0].phrase.display}". ${bannedInHook[0].phrase.substitution ?? ''}`
+      : 'Hook sin frases templadas detectadas',
   })
 
   // 3. Sin links externos — No http/https in content
@@ -222,8 +220,9 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
   // === CHECKLIST NAVARRETE — "Ingeniero Poeta" Recipe Checks ===
 
   // 13. Hook contradice expectativa — paradoja: estado ideal vs problema oculto
+  const firstLineLowerForContradiction = firstLine.toLowerCase()
   const contradictionWords = ['pero', 'sin embargo', 'y aun asi', 'aun asi', 'aunque', 'a pesar de', 'y sin embargo']
-  const hookContradicts = contradictionWords.some(w => firstLineLower.includes(w)) ||
+  const hookContradicts = contradictionWords.some(w => firstLineLowerForContradiction.includes(w)) ||
     (/\.\s/.test(firstLine) && firstLine.split(/\.\s/).length >= 2)
   checks.push({
     id: 'recipe-hook-contradicts',
@@ -324,6 +323,45 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
     detail: hasTriple
       ? 'Contiene lista de 3+ items guardable (optimizado para Saves)'
       : 'Agrega 3 puntos de leccion con ▪ para que el lector quiera guardarlo',
+  })
+
+  // PRP-012 #20: Scene OR data OR decision (al menos UNO)
+  // Escena: verbo de acción + sustantivo físico/sensorial
+  const escenaPattern = /\b(vi|miro|miraba|temblo|temblaba|sudaba|sudo|caminaba|llego|llegue|sonó|sono|grito|escuche|escuch[ée]|tocaba|tocó|tomé|tome|estaba|estuvimos|entré|entre|saliendo)\b.{0,80}\b(cursor|tablet|pantalla|alarma|tablero|dashboard|sudor|frente|reloj|telefono|móvil|movil|cuello|mano|manos|terreno|planta|cuadrilla|sala)\b/i
+  // Dato numérico específico con unidad
+  const datoPattern = /\d+(?:[.,]\d+)?\s*(?:%|MW|kW|kWh|MWh|US\$|USD|EUR|€|días|dias|d[íi]a|tickets|alarmas|strings|paneles|m²|m2)/i
+  // Decisión explícita
+  const decisionPattern = /\b(decidimos|elegimos|descartamos|matamos|eliminamos|cambiamos|reemplazamos|dejamos de|empezamos a|paramos|paro\b|pivote|pivotamos|nos jugamos|optamos por|nos quedamos con)\b/i
+  const hasScene = escenaPattern.test(trimmed)
+  const hasData = datoPattern.test(trimmed)
+  const hasDecision = decisionPattern.test(trimmed)
+  const sceneDataDecisionPass = hasScene || hasData || hasDecision
+  const sceneDataDecisionBits: string[] = []
+  if (hasScene) sceneDataDecisionBits.push('escena')
+  if (hasData) sceneDataDecisionBits.push('dato')
+  if (hasDecision) sceneDataDecisionBits.push('decisión')
+  checks.push({
+    id: 'scene-data-decision',
+    label: 'Scene / Data / Decision',
+    passed: sceneDataDecisionPass,
+    severity: 'warning',
+    detail: sceneDataDecisionPass
+      ? `Contiene: ${sceneDataDecisionBits.join(' + ')} (criterio PRP-012)`
+      : 'Falta al menos UNO de: escena real, dato específico con unidad, o decisión explícita',
+  })
+
+  // PRP-012 #21: Banned phrases en cuerpo (sustantivo de calidad, no claim algorítmico)
+  const bannedInBody = detectBannedPhrases(trimmed)
+  const hasNoBannedInBody = bannedInBody.length === 0
+  const totalBannedCount = bannedInBody.reduce((acc, m) => acc + m.count, 0)
+  checks.push({
+    id: 'banned-phrases',
+    label: 'Sin frases corporativas/IA',
+    passed: hasNoBannedInBody,
+    severity: 'warning',
+    detail: hasNoBannedInBody
+      ? 'Cero frases banned (transformación digital, revolucionar, etc.)'
+      : `Detectadas ${totalBannedCount} frase(s) banned: ${bannedInBody.slice(0, 3).map(m => `"${m.phrase.display}"`).join(', ')}${bannedInBody.length > 3 ? ` y ${bannedInBody.length - 3} más` : ''}`,
   })
 
   return checks
