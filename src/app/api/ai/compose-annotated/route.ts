@@ -76,7 +76,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: parsed.error.issues[0]?.message ?? 'Datos invalidos' }, { status: 400 })
   }
 
-  const { base_image_url, post_id, archetype, post_content, format, skip_annotations } = parsed.data
+  const { base_image_url, post_id, visual_version_id, archetype, post_content, format, skip_annotations } = parsed.data
   const workspaceId = await getWorkspaceId()
   const def = ARCHETYPE_REGISTRY[archetype]
 
@@ -254,11 +254,36 @@ Responde SOLO con JSON válido:
     return Response.json({ error: 'Upload falló: ' + upErr.message }, { status: 500 })
   }
   const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path)
+  const finalImageUrl = pub.publicUrl
+
+  // ============================================
+  // 6. PRP-013 Patch #10: persist to visual_versions when visual_version_id provided
+  // ============================================
+  // Without this, callers that bypass the editor UI (Karpathy loop, automated
+  // pipelines) compose images that never surface in the editor. The image lives
+  // in Storage but the DB row still points at the previous version.
+  let persisted = false
+  if (visual_version_id) {
+    const { error: updErr } = await supabase
+      .from('visual_versions')
+      .update({
+        image_url: finalImageUrl,
+        annotations_json: annotations,
+        base_image_url,
+      })
+      .eq('id', visual_version_id)
+    if (updErr) {
+      console.error('[compose-annotated] visual_version update failed (non-fatal):', updErr)
+    } else {
+      persisted = true
+    }
+  }
 
   return Response.json({
     data: {
-      image_url: pub.publicUrl,
+      image_url: finalImageUrl,
       annotations,
+      persisted,
     },
   })
 }

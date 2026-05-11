@@ -14,6 +14,7 @@ import { getWorkspaceId } from '@/lib/workspace'
 import { getModel } from '@/shared/lib/ai-router'
 import { generateText } from 'ai'
 import { ARCHETYPE_SLUGS } from '@/features/visuals/types/archetype'
+import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
 
 // ============================================
 // Schemas
@@ -40,6 +41,9 @@ const inputSchema = z.object({
   post_content: z.string().min(1, 'Contenido del post requerido'),
   archetype: z.enum(ARCHETYPE_SLUGS).optional(),
   format: z.string().default('1:1'),
+  // PRP-013 Patch #10: when provided, persist results to the row so the
+  // editor reflects the audit without manual SQL or UI re-save.
+  visual_version_id: z.string().uuid().optional(),
 })
 
 // ============================================
@@ -90,7 +94,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const workspaceId = await getWorkspaceId()
-  const { image_url, post_content, archetype, format } = parsed.data
+  const { image_url, post_content, archetype, format, visual_version_id } = parsed.data
 
   // Build the audit prompt
   const checksList = CHECKS_SPEC.map((c, i) =>
@@ -213,7 +217,29 @@ Aplica los 10 checks contra la imagen. El score debe ser exactamente 5 × (núme
     else verdict = 'regenerate'
     validated.data.verdict = verdict
 
-    return Response.json({ data: validated.data })
+    // PRP-013 Patch #10: persist audit results to visual_versions when id provided
+    let persisted = false
+    if (visual_version_id) {
+      const supabase = await createSupabaseServerClient()
+      const { error: updErr } = await supabase
+        .from('visual_versions')
+        .update({
+          auditor_score: validated.data.score,
+          auditor_verdict: validated.data.verdict,
+          auditor_findings: validated.data.findings,
+          auditor_checks: validated.data.checks,
+          // Auto-promote to approved when publishable so the editor reflects readiness
+          ...(validated.data.verdict === 'publishable' ? { status: 'approved' } : {}),
+        })
+        .eq('id', visual_version_id)
+      if (updErr) {
+        console.error('[audit-visual] persist failed (non-fatal):', updErr)
+      } else {
+        persisted = true
+      }
+    }
+
+    return Response.json({ data: { ...validated.data, persisted } })
   } catch (error) {
     console.error('[audit-visual] error:', error)
     return Response.json(
