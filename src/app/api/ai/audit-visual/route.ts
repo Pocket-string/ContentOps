@@ -55,7 +55,7 @@ const CHECKS_SPEC = [
   { id: 'mobile_readable', label: 'Mobile readable at 25% size' },
   { id: 'anti_stock', label: 'Anti-stock (no generic AI/stock photos)' },
   { id: 'decision_oriented', label: 'Decision-oriented (not decorative)' },
-  { id: 'brand_compliant', label: 'Brand compliant (logo bottom-left, paleta, corners)' },
+  { id: 'brand_compliant', label: 'Brand compliant (Bitalize glass-pill bottom-right, paleta, top-left clean)' },
   { id: 'anti_ai_template', label: 'Anti-AI template (no 360Brew penalty look)' },
 ] as const
 
@@ -115,7 +115,11 @@ ${checksList}
 6. **mobile_readable**: ¿Texto legible al 25% del tamaño en mobile? Fail si tipografía muy pequeña o densa.
 7. **anti_stock**: ¿NO es stock photo, robot IA, render 3D genérico, manos+teclado, paneles+sunset? Fail si tiene look de stock.
 8. **decision_oriented**: ¿Conecta a una decisión operativa (qué mirar, qué priorizar, qué decidir)? Fail si es decorativo.
-9. **brand_compliant**: ¿Logo bottom-left presente sobre franja blanca? ¿Esquina inferior derecha libre? ¿Paleta azul marino + naranja/rojo solo en pérdidas/riesgo? Fail si rompe brand rules.
+9. **brand_compliant**: PASS si TODAS estas condiciones se cumplen:
+   (a) Logo Bitalize presente como pill semi-transparente bottom-right (NO franja blanca al pie, NO logo bottom-left).
+   (b) Esquina top-left NO muestra logo de producto fuente (ej. lucvia, mantenimiento.jonadata.cloud) — debe estar limpia o cubierta.
+   (c) Paleta azul marino + naranja, rojo SOLO en pérdidas/riesgo (no decorativo).
+   FAIL si NO hay logo Bitalize visible, o si aparece franja blanca al pie, o si se ve logo del producto fuente, o si la paleta rompe la regla de color.
 10. **anti_ai_template**: ¿NO parece template AI-generado (anti-360Brew penalty)? Fail si tiene look "startup futurista AI generic".
 
 ## Verdict
@@ -126,7 +130,7 @@ ${checksList}
 
 ## Findings
 
-Lista accionable (máximo 10 items) — texto que el usuario puede pegar en "Regenerar con feedback". Cada finding empieza con verbo imperativo. Ejemplos: "Aumenta el tamaño de la fuente principal a 60pt", "Agrega un número de pérdida en \$/año", "Quita la flecha del centro que distrae", "Reubica el logo a la esquina inferior izquierda".
+Lista accionable (máximo 10 items) — texto que el usuario puede pegar en "Regenerar con feedback". Cada finding empieza con verbo imperativo. Ejemplos: "Aumenta el tamaño de la fuente principal a 60pt", "Agrega un número de pérdida en \$/año", "Quita la flecha del centro que distrae", "Cubre el logo del producto fuente en la esquina superior izquierda".
 
 IMPORTANTE: responde SOLO con JSON válido, sin markdown, sin backticks, sin texto adicional. Estructura:
 {
