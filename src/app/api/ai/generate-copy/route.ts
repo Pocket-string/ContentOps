@@ -459,6 +459,20 @@ El contenido NO debe parecer generado por IA. Para lograrlo:
 - **Emotion**: Conecta con frustracion operativa real ("esto me pasa cada semana")
 - **Utility**: Contenido guardable y accionable ("necesito tener esto a mano")
 
+## CTA — REGLA CRITICA (preferencia de Jonathan, NO negociable)
+- PROHIBIDO ofrecer recursos/lead magnets en el CTA:
+  - NO "comenta X y te envio una guia"
+  - NO "DM y te mando un checklist"
+  - NO "te paso una guia rapida"
+  - NO "agenda una evaluacion gratuita"
+  - NO "te envio un template"
+  - NO "descarga el ebook"
+- PREFERIDOS: CTAs conversacionales (preguntas abiertas que invitan a compartir experiencia tecnica concreta)
+  - SI "En tu experiencia, ¿que indicador te alerto primero sobre [problema]?"
+  - SI "¿Como decides hoy entre [opcion A] y [opcion B] en tu operacion?"
+  - SI "¿Que patron de [X] has visto en plantas similares?"
+- En BOFU el CTA puede invitar a conversar (DM, mensaje), pero NUNCA prometer entregar un recurso/guia/checklist a cambio.
+
 ## FORMATO OPTIMIZADO PARA LINKEDIN (CRITICO — SEGUIR AL PIE DE LA LETRA)
 - USA el marcador ⏎⏎ para separar cada bloque narrativo. El sistema lo convierte a saltos de linea.
 - USA ⏎ (simple) para separar lineas dentro de un bloque (ej: items de lista)
