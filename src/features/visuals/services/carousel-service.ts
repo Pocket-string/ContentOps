@@ -101,6 +101,30 @@ export async function upsertCarouselSlides(
 }
 
 /**
+ * Delete all carousel_slides for a given visual_version_id. Used to clean up
+ * orphan slides when an archetype switches from carousel to a non-carousel
+ * archetype (e.g. screenshot_annotated) — without this, the editor keeps
+ * rendering stale slide previews from earlier exploration sessions.
+ */
+export async function deleteCarouselSlidesByVisualVersion(
+  visualVersionId: string
+): Promise<ServiceResult<{ deletedCount: number }>> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('carousel_slides')
+      .delete()
+      .eq('visual_version_id', visualVersionId)
+      .select('id')
+    if (error) return { error: error.message }
+    return { data: { deletedCount: data?.length ?? 0 } }
+  } catch (err) {
+    console.error('[carousel-service] deleteCarouselSlidesByVisualVersion unexpected error', err)
+    return { error: 'Error inesperado al borrar slides' }
+  }
+}
+
+/**
  * Update a single slide's image_url after generation.
  */
 export async function updateSlideImageUrl(
