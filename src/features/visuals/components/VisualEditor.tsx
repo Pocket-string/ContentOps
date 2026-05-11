@@ -28,6 +28,13 @@ import { AESTHETIC_PRESETS } from '../constants/aesthetic-presets'
 import { initCarouselSlidesAction, initCarouselFromPlanAction, saveCarouselSlidesAction } from '../actions/carousel-actions'
 import { ImageGenerator } from './ImageGenerator'
 import { CarouselEditor } from './CarouselEditor'
+// PRP-013: archetype-aware UI
+import { ArchetypeSelector } from './ArchetypeSelector'
+import { AuditorScorePanel } from './AuditorScorePanel'
+import { ScreenshotCaptureControl } from './ScreenshotCaptureControl'
+import { buildArchetypePromptJson } from '../services/archetype-prompt-builder'
+import { ARCHETYPE_REGISTRY, isCaptureOverlayArchetype } from '../constants/archetypes'
+import type { ArchetypeSlug, AuditorResult, BaseImageSource } from '../types/archetype'
 
 // ============================================
 // Types
@@ -248,6 +255,13 @@ export function VisualEditor({
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>([])
   const [isInitCarousel, setIsInitCarousel] = useState(false)
   const [carouselSlideCount, setCarouselSlideCount] = useState(5)
+  // PRP-013: archetype + auditor state
+  const [archetype, setArchetype] = useState<ArchetypeSlug | null>(null)
+  const [auditorResult, setAuditorResult] = useState<AuditorResult | null>(null)
+  const [isAuditing, setIsAuditing] = useState(false)
+  const [isApprovingAuditor, setIsApprovingAuditor] = useState(false)
+  const [baseImageUrl, setBaseImageUrl] = useState<string | null>(null)
+  const [baseImageSource, setBaseImageSource] = useState<BaseImageSource | null>(null)
 
   const selectedVisual = visuals.find((v) => v.id === selectedVisualId) ?? null
   const isCarousel = visualType === 'carousel' || selectedVisual?.concept_type === 'carousel_4x5' || (selectedVisual?.slide_count && selectedVisual.slide_count >= 2)
@@ -522,6 +536,95 @@ export function VisualEditor({
   const isJsonValid = jsonText !== '' && jsonError === ''
   const hasImage = !!(selectedVisual?.image_url || imageUrl.trim())
 
+  // PRP-013: archetype handlers
+  const handleArchetypeSelect = useCallback((slug: ArchetypeSlug) => {
+    setArchetype(slug)
+    const def = ARCHETYPE_REGISTRY[slug]
+    // Pre-set format from archetype default
+    setFormat(def.defaultFormat)
+    // For carousel archetype, switch visual type
+    if (slug === 'carousel_mini_report') {
+      setVisualType('carousel')
+      setCarouselSlideCount(7)
+    } else {
+      setVisualType('single')
+    }
+    // Build initial prompt_json from archetype defaults
+    try {
+      const promptJson = buildArchetypePromptJson({
+        archetype: slug,
+        post: { content: postContent, funnel_stage: funnelStage, topic: topicTitle, keyword },
+        format: def.defaultFormat,
+      })
+      setJsonText(JSON.stringify(promptJson, null, 2))
+      setJsonError('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al pre-cargar plantilla del archetype')
+    }
+    // Reset prior auditor + base image when archetype changes
+    setAuditorResult(null)
+    setBaseImageUrl(null)
+    setBaseImageSource(null)
+  }, [postContent, funnelStage, topicTitle, keyword])
+
+  const handleAuditCurrent = useCallback(async () => {
+    const imgUrl = selectedVisual?.image_url || imageUrl.trim()
+    if (!imgUrl) {
+      setError('No hay imagen para auditar — genera una primero')
+      return
+    }
+    setIsAuditing(true)
+    setError('')
+    try {
+      const res = await fetch('/api/ai/audit-visual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: imgUrl,
+          post_content: postContent,
+          archetype: archetype ?? undefined,
+          format,
+        }),
+      })
+      const json: { data?: AuditorResult; error?: string } = await res.json()
+      if (!res.ok || !json.data) {
+        setError(json.error ?? `Audit falló (HTTP ${res.status})`)
+        return
+      }
+      setAuditorResult(json.data)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error de red al auditar')
+    } finally {
+      setIsAuditing(false)
+    }
+  }, [selectedVisual?.image_url, imageUrl, postContent, archetype, format])
+
+  const handleAuditorRegenerate = useCallback((feedback: string) => {
+    setAdditionalInstructions(feedback)
+    showSuccess('Feedback cargado. Click en "Generar visual completo" para regenerar con este input.')
+  }, [])
+
+  const handleAuditorApprove = useCallback(async () => {
+    if (!selectedVisual || !auditorResult) return
+    setIsApprovingAuditor(true)
+    try {
+      const res = await onUpdateStatus(selectedVisual.id, 'approved')
+      if (res.error) setError(res.error)
+      else showSuccess('Visual aprobado para publicar (PRP-013).')
+    } finally {
+      setIsApprovingAuditor(false)
+    }
+  }, [selectedVisual, auditorResult, onUpdateStatus])
+
+  const handleBaseImageCaptured = useCallback(
+    (params: { base_image_url: string; base_image_source: BaseImageSource; captured_from_url?: string }) => {
+      setBaseImageUrl(params.base_image_url)
+      setBaseImageSource(params.base_image_source)
+      showSuccess(`Base capturada (${params.base_image_source}).`)
+    },
+    []
+  )
+
   return (
     <div className="min-h-screen bg-background">
       {/* Toast notifications */}
@@ -609,6 +712,27 @@ export function VisualEditor({
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* PRP-013: Archetype Selector */}
+            <div className="bg-surface border border-border rounded-2xl shadow-card p-5">
+              <ArchetypeSelector
+                value={archetype}
+                onSelect={handleArchetypeSelect}
+                recommendedForStructure={null}
+              />
+              {archetype && isCaptureOverlayArchetype(archetype) && (
+                <div className="mt-4">
+                  <ScreenshotCaptureControl
+                    archetype={archetype}
+                    visualVersionId={selectedVisual?.id}
+                    postId={postId}
+                    currentBaseImageUrl={baseImageUrl}
+                    currentBaseImageSource={baseImageSource}
+                    onCaptured={handleBaseImageCaptured}
+                  />
+                </div>
+              )}
             </div>
 
             {/* 2. SIMPLIFIED Visual Generation — ONE CLICK */}
@@ -930,8 +1054,34 @@ export function VisualEditor({
               </div>
             )}
 
-            {/* 4. VisualCritic AI — moved up, near image generation */}
-            {selectedVisualId && (
+            {/* 4. PRP-013: Auditor Visual 10-point (shown when archetype is selected + image exists) */}
+            {archetype && hasImage && (
+              <div className="bg-surface border border-border rounded-2xl shadow-card p-5 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold text-foreground">Auditor PRP-013</h2>
+                  <button
+                    type="button"
+                    onClick={handleAuditCurrent}
+                    disabled={isAuditing}
+                    className="text-xs font-semibold bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    data-testid="trigger-audit-btn"
+                  >
+                    {isAuditing ? 'Auditando...' : 'Auditar imagen'}
+                  </button>
+                </div>
+                <AuditorScorePanel
+                  result={auditorResult}
+                  isLoading={isAuditing}
+                  isApproving={isApprovingAuditor}
+                  onRegenerate={handleAuditorRegenerate}
+                  onApprove={handleAuditorApprove}
+                  onReaudit={handleAuditCurrent}
+                />
+              </div>
+            )}
+
+            {/* 4b. VisualCritic AI — legacy retrocompat (visible cuando no hay archetype) */}
+            {!archetype && selectedVisualId && (
               <VisualCriticPanel
                 visualVersionId={selectedVisualId}
                 promptJson={selectedVisual ? selectedVisual.prompt_json : null}
