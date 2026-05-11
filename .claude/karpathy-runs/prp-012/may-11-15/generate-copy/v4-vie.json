@@ -1,0 +1,5 @@
+{
+  "status": 500,
+  "error": "Error al parsear la respuesta de la IA. Intenta de nuevo.",
+  "variants": []
+}

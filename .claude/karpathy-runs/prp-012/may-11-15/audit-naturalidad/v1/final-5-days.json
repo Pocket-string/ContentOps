@@ -1,0 +1,126 @@
+{
+  "status": 200,
+  "evaluations": [
+    {
+      "variant": "lun-data",
+      "score_total": 50,
+      "scores": {
+        "especificidad_tecnica": 5,
+        "humanidad_voz_natural": 5,
+        "claridad_problema": 5,
+        "escena_dato_decision": 5,
+        "relevancia_audiencia": 5,
+        "traduccion_tecnico_negocio": 5,
+        "ausencia_cliches_ia": 5,
+        "fuerza_hook": 5,
+        "calidad_cta": 5,
+        "probabilidad_comentarios": 5
+      },
+      "diagnostico": "Este post es excepcional. Combina especificidad técnica, un gancho muy potente, una escena humana vívida y una traducción impecable a impacto de negocio, todo con una voz auténtica que genera alta pro",
+      "frases_genericas": [],
+      "frases_humanas": [
+        "Lo vi en Atacama. El operador, con la frente perlada de sudor, miraba la pantalla. El cursor temblaba mientras pasaba tracker tras tracker en verde. Y la caja, en rojo."
+      ],
+      "mejoras": []
+    },
+    {
+      "variant": "mar-data",
+      "score_total": 48,
+      "scores": {
+        "especificidad_tecnica": 5,
+        "humanidad_voz_natural": 4,
+        "claridad_problema": 5,
+        "escena_dato_decision": 4,
+        "relevancia_audiencia": 5,
+        "traduccion_tecnico_negocio": 5,
+        "ausencia_cliches_ia": 5,
+        "fuerza_hook": 5,
+        "calidad_cta": 5,
+        "probabilidad_comentarios": 5
+      },
+      "diagnostico": "Un post muy sólido con un gancho impactante y una excelente traducción del problema técnico al impacto económico. Podría mejorar la 'escena' para ser más vívida que una referencia a conversaciones.",
+      "frases_genericas": [],
+      "frases_humanas": [
+        "Tras conversar con 8 Asset Managers, el punto ciego era recurrente: la falsa seguridad de un tracker que responde al ping."
+      ],
+      "mejoras": [
+        "Considerar añadir una micro-escena o un ejemplo más específico de una interacción real para aumentar la humanidad de la voz.",
+        "Variar la estructura de las frases en los bullet points para evitar una cadencia demasiado uniforme."
+      ]
+    },
+    {
+      "variant": "mie-data",
+      "score_total": 46,
+      "scores": {
+        "especificidad_tecnica": 5,
+        "humanidad_voz_natural": 3,
+        "claridad_problema": 5,
+        "escena_dato_decision": 4,
+        "relevancia_audiencia": 5,
+        "traduccion_tecnico_negocio": 5,
+        "ausencia_cliches_ia": 5,
+        "fuerza_hook": 5,
+        "calidad_cta": 5,
+        "probabilidad_comentarios": 4
+      },
+      "diagnostico": "Este post es fuerte en datos y relevancia, con un buen gancho, pero su tono es más formal y carece de la chispa conversacional o la escena humana que haría la narrativa más atractiva y memorable.",
+      "frases_genericas": [],
+      "frases_humanas": [],
+      "mejoras": [
+        "Infundir una voz más personal y menos formal, evitando el estilo de informe.",
+        "Añadir un pequeño detalle o anécdota personal para mejorar la humanidad de la voz.",
+        "Variar la longitud de las frases para mejorar el ritmo conversacional y evitar que suene demasiado 'perfecto'."
+      ]
+    },
+    {
+      "variant": "jue-data",
+      "score_total": 47,
+      "scores": {
+        "especificidad_tecnica": 5,
+        "humanidad_voz_natural": 4,
+        "claridad_problema": 5,
+        "escena_dato_decision": 4,
+        "relevancia_audiencia": 5,
+        "traduccion_tecnico_negocio": 4,
+        "ausencia_cliches_ia": 5,
+        "fuerza_hook": 5,
+        "calidad_cta": 5,
+        "probabilidad_comentarios": 4
+      },
+      "diagnostico": "Un post muy específico técnicamente que aborda el problema de la paradoja de los datos. Presenta bien una solución, pero podría cuantificar el impacto de esa solución y añadir un toque más humano al i",
+      "frases_genericas": [],
+      "frases_humanas": [
+        "La paradoja: tienes los datos, pero no los cruzas."
+      ],
+      "mejoras": [
+        "Cuantificar el impacto económico potencial de las 'decisiones O&M focalizadas y cuantificables', más allá de la implicación.",
+        "Considerar añadir una breve anécdota personal o un ejemplo real de cómo se descubrió esta 'paradoja'.",
+        "Revisar el párrafo inicial para darle un ritmo más conversacional y menos de 'statement'."
+      ]
+    },
+    {
+      "variant": "vie-data",
+      "score_total": 50,
+      "scores": {
+        "especificidad_tecnica": 5,
+        "humanidad_voz_natural": 5,
+        "claridad_problema": 5,
+        "escena_dato_decision": 5,
+        "relevancia_audiencia": 5,
+        "traduccion_tecnico_negocio": 5,
+        "ausencia_cliches_ia": 5,
+        "fuerza_hook": 5,
+        "calidad_cta": 5,
+        "probabilidad_comentarios": 5
+      },
+      "diagnostico": "Este post es una joya. Su gancho es audaz y genera intriga, el problema se explica con una mezcla perfecta de datos creíbles y un toque humano, y el CTA es innovador y fomenta una interacción de alta ",
+      "frases_genericas": [],
+      "frases_humanas": [
+        "Decidimos descartar la métrica 'Fleet Availability' del dashboard. Una decisión incómoda. Te explico por qué.",
+        "99,2% promedio del fleet de trackers. Bonito para el directorio. Una verdad estadística que ocultaba operativamente lo importante.",
+        "488 sanos + 12 cojeando 30% = 99,2% promedio. Esos 12 = USD 200-400k/año perdidos en 100 MW."
+      ],
+      "mejoras": []
+    }
+  ]
+}

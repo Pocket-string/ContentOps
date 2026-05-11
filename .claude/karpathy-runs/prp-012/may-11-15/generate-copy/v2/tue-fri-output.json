@@ -1,0 +1,106 @@
+[
+  {
+    "day": 2,
+    "structure": "Aprendizaje de Cliente",
+    "status": 200,
+    "elapsed_s": "64.5",
+    "variants": [
+      {
+        "variant": "contrarian",
+        "chars": 1896,
+        "single": 0,
+        "double": 28,
+        "hook": "Hablamos con 8 Asset Managers de grandes plantas solares. Todos reportaban una \"disponibilidad perfe",
+        "content": "Hablamos con 8 Asset Managers de grandes plantas solares. Todos reportaban una \"disponibilidad perfecta\" de sus trackers en el SCADA.\n\nSu dolor inicial era otro: \"¿Cómo es que mi sistema me dice 99% de disponibilidad, pero la producción no escala como debería?\" Creían que era un fallo esporádico del monitoreo, algo evidente que no saltaba a la vista.\n\nEl giro fue profundo: no era un SCADA \"roto\", sino ciego a lo sutil. Los trackers, esos gigantes que persiguen el sol, dejaban de moverse correctamente. Pero lo hacían con una \"lentitud\" o \"estancamiento\" que no disparaba alertas críticas. La paradoja: estaban \"disponibles\", pero no \"operativos\".\n\nEPJ Photovoltaics 2026 midió la realidad: la disponibilidad real de trackers oscila entre 66-88% en 2 GW de plantas operativas. Esto está lejos del 99% que tu SCADA probablemente reporta. Es una pérdida de eficiencia que no grita, simplemente se acumula.\n\nEsto nos obligó a cambiar nuestra forma de ver la \"disponibilidad\" de un tracker. No basta con que no esté \"caído\". Debemos ver su performance frente a sus \"gemelos\" en condiciones idénticas. Es como buscar el pulso de cada unidad, no solo si respira o no. Un Asset Manager nos dijo: \"Mi SCADA lo muestra en verde, pero siento que estamos dejando dinero en la mesa\". Era exactamente eso.\n\nPor eso, comprendimos la importancia de la comparación granular, la que revela la verdadera operación.\n▪ Tu SCADA puede estar en \"verde\" mientras los trackers pierden hasta un 33% de su eficiencia óptima.\n▪ Las pérdidas por trackers desalineados o estancados son un \"nuevo factor de pérdida\", especialmente en terrenos ondulados (PV Magazine 16-abr-2026).\n▪ Para una planta de 100 MW, esto significa regalar US$ 200-400k/año sin que ninguna alarma se active.\n\nEn tu experiencia, ¿cuál fue la señal más sutil que te hizo sospechar de un problema \"invisible\" en tus trackers que el SCADA no mostraba?"
+      },
+      {
+        "variant": "story",
+        "chars": 1893,
+        "single": 0,
+        "double": 30,
+        "hook": "Recuerdo una de las 8 conversaciones con Asset Managers. Uno me comentó: \"Mi SCADA dice que todos lo",
+        "content": "Recuerdo una de las 8 conversaciones con Asset Managers. Uno me comentó: \"Mi SCADA dice que todos los trackers funcionan. Pero cada atardecer, hay algo que no me cuadra\".\n\nSu sospecha era vaga. Pensaba que quizás era un error en la calibración del sensor de irradiancia o un fallo puntual en la comunicación del SCADA, algo \"técnico\" y obvio. Esas fallas que saltan a la vista, o al menos, en las alarmas críticas.\n\nEl giro fue el \"silencio\" del problema. No había alarmas. Los trackers, como soldados dormidos, permanecían en una posición fija durante horas, mientras el sol se movía sobre el horizonte. Los veía en el monitor remoto, en el mapa de calor que marcaba la posición. Un \"bloque\" de 500 trackers, quieto, cuando el resto del campo giraba.\n\nEl Asset Manager, al ver los datos, sintió la misma \"parálisis por análisis\" que el operador frente a su pantalla. El cursor tembló. Los números, \"perfectos\" a nivel macro, escondían un agujero negro de eficiencia. Este \"muelle\" invisible frenaba la planta.\n\nEsa imagen —trackers estancados pero \"disponibles\" en el SCADA— cambió nuestra forma de entender la \"disponibilidad\". No es un simple ON/OFF. Requiere ver el \"movimiento\" activo esperado y compararlo, sin descanso, con el resto del campo solar. No es suficiente con que el equipo se comunique, debe hacer su trabajo.\n\nPor eso aprendimos que la verdadera disponibilidad es una \"danza constante\" con el sol, monitoreada al detalle.\n▪ La mediana de disponibilidad real de trackers es 66-88%, no el 99% ideal (EPJ Photovoltaics 2026).\n▪ Los trackers \"dormidos\" en la posición incorrecta generan pérdidas de US$ 200-400k/año en plantas de 100 MW.\n▪ Tu SCADA no reporta la inmovilidad como una falla si la \"disponibilidad\" se mide solo por la comunicación del dispositivo.\n\n¿Has detectado algún tracker \"dormido\" que tu sistema reportaba como \"activo\"? ¿Cómo lo descubriste en tu planta?"
+      },
+      {
+        "variant": "data_driven",
+        "chars": 2166,
+        "single": 0,
+        "double": 22,
+        "hook": "Cuando hablamos con 8 Heads de O&M, notamos un patrón: muchos creían que las grandes pérdidas venían",
+        "content": "Cuando hablamos con 8 Heads de O&M, notamos un patrón: muchos creían que las grandes pérdidas venían de clipping, degradación o fallas evidentes de inversor.\n\nTodos asumían que, si sus trackers no disparaban alarmas, estaban operando al 99% de su disponibilidad. Su SCADA les daba esa \"tranquilidad\" engañosa, validada por los informes mensuales globales que no profundizaban. Uno nos dijo: \"Si no hay alarmas en mis trackers, doy por hecho el 99%. ¿Hay algo más que deba revisar?\"\n\nEl giro fue entender que la ineficiencia de los trackers es una \"falla silenciosa\" distinta a lo habitual. A diferencia de un inversor caído que dispara una alarma clara, un tracker que se \"estanca\" en una posición incorrecta durante horas o días no grita. Solo reduce la curva de producción de forma sutil, camuflándose en las fluctuaciones diarias.\n\nEPJ Photovoltaics 2026 reveló una mediana de disponibilidad real entre 66-88% en 2 GW de plantas, muy lejos del 99% que reportan los fabricantes. Esta brecha es un \"nuevo factor de pérdida\" que se agrava en terrenos levemente ondulados, no tan llanos como se presuponía (PV Magazine 16-abr-2026).\n\nEsto nos enseñó a no comparar la \"disponibilidad\" de trackers solo con la del inversor o un string. Son problemas con mecánicas y señales muy distintas. Un inversor avisa con estruendo. El tracker \"se arrastra\" o se inmoviliza en silencio, y el impacto es constante, no un evento puntual. Se requiere un nivel de detalle que el SCADA tradicional no está preparado para ofrecer.\n\nPor eso, ahora sabemos que este problema exige un monitoreo diferenciado y granular, que no se confunda con otras pérdidas.\n▪ Un tracker \"activo\" en el SCADA no significa que esté \"siguiendo\" al sol; solo que está comunicando.\n▪ La pérdida por esta inmovilidad silenciosa es sustancial: US$ 200-400k/año para una planta de 100 MW, que se van sin dejar rastro visible en los informes básicos.\n▪ Es una pérdida \"invisible\" porque no hay un \"evento\" de alarma, solo una suboptimización constante que drena la rentabilidad día a día.\n\nSi tu SCADA mostrara la disponibilidad real de tus trackers (entre 66-88%), ¿cómo afectaría tu estrategia de O&M hoy mismo?"
+      }
+    ]
+  },
+  {
+    "day": 3,
+    "structure": "Nicho Olvidado",
+    "status": 500,
+    "elapsed_s": "30.3",
+    "error": "Error al parsear la respuesta de la IA. Intenta de nuevo.",
+    "variants": []
+  },
+  {
+    "day": 4,
+    "structure": "Demo pequeña",
+    "status": 200,
+    "elapsed_s": "65.6",
+    "variants": [
+      {
+        "variant": "contrarian",
+        "chars": 1755,
+        "single": 0,
+        "double": 14,
+        "hook": "Tu SCADA reporta \"99% de disponibilidad\" en tus trackers. Pero esa cifra es, a menudo, una verdad a ",
+        "content": "Tu SCADA reporta \"99% de disponibilidad\" en tus trackers. Pero esa cifra es, a menudo, una verdad a medias.\n\nEl tracker, pieza clave de tu planta, tiene una misión simple: seguir al sol. Cuando lo logra, su aporte es máximo. Cuando no, su silencio es costoso.\n\nLo he visto. El Asset Manager revisa el informe mensual. Todo \"en verde\" a nivel planta. Pero la sensación de un rendimiento que no termina de despegar le persigue.\n\nLa pérdida no es por una \"falla\" que dispare una alarma, sino por una \"desalineación\" persistente. El encoder dice que el tracker está en su sitio. La irradiancia real sobre el panel cuenta otra historia.\n\n¿Cómo lo detectamos? Con una vista que cruza la posición del encoder contra la irradiancia medida en campo. Y lo más importante: comparando cada tracker con sus \"gemelos\" más cercanos.\n\nEsta vista revela la deriva sutil y el backtracking subóptimo que tu SCADA ignora. Un tracker en terreno levemente ondulado puede estar perdiendo una fracción de grado cada día, sumando pérdidas no reportadas.\n\nEn nuestra experiencia, la mediana de disponibilidad REAL de trackers oscila entre el 66-88%, muy lejos del 99% prometido por los vendors (EPJ Photovoltaics 2026).\n\nPara una planta de 100 MW, esto significa USD 200-400k/año que se esfuman sin que nadie active una alarma. Es dinero \"regalado\" a la ineficiencia. (PV Magazine 16-abr-2026).\n\nEsta granularidad te habilita a:\n▪ Identificar trackers con deriva crítica.\n▪ Optimizar algoritmos de backtracking en zonas problemáticas.\n▪ Cuantificar el impacto exacto en $/día de cada desalineación.\n\nSi quieres ver cómo se traduce esta visión en MWh recuperados y un P&L más saludable para tu portafolio, envíame un DM con \"TRACKER\" y te muestro un caso real con tus propios datos."
+      },
+      {
+        "variant": "story",
+        "chars": 1629,
+        "single": 0,
+        "double": 20,
+        "hook": "La alarma de un tracker NUNCA sonó. Pero un 15% de su energía se perdía cada día, por meses.",
+        "content": "La alarma de un tracker NUNCA sonó. Pero un 15% de su energía se perdía cada día, por meses.\n\nEl Asset Manager en Copiapó frunció el ceño. Sus reportes mostraban la flota de trackers funcionando al 99%. Pero el PR de un bloque de 20MW, en particular, bailaba por debajo de lo esperado. Un baile que no era divertido para el P&L.\n\nUn solo \"tracker\" desalineado. Uno entre miles. Demasiado pequeño para mover la aguja del rendimiento global, pero lo suficientemente grande como para generar una fuga de dinero constante. Un dolor de cabeza que se multiplica por cada caso similar.\n\n¿Dónde estaba el error? Ni el SCADA, ni las termografías rutinarias. La clave estuvo en una vista que superpone la posición que el \"encoder\" del tracker reporta, contra la irradiación real que debería recibir. Y el factor \"gemelo\": comparar su comportamiento con trackers idénticos a su lado.\n\nAhí lo vimos. Un grupo de trackers en la mitad del bloque tenía un \"offset\" permanente. No era una falla mecánica, sino una deriva gradual. Una desviación de 3-5 grados que el sistema asumía como \"normal\".\n\nLa mediana de disponibilidad REAL de trackers, por evidencia de campo, es del 66-88%, lejos del 99% teórico (EPJ Photovoltaics 2026). En este caso, la corrección de esa \"deriva\" recuperó un 1.8% de energía anual para el bloque afectado.\n\n▪ El SCADA no ve la \"deriva\" en la posición del tracker.\n▪ Comparar \"trackers gemelos\" revela anomalías sutiles.\n▪ La posición del \"encoder\" vs. la irradiancia real es el verdadero indicador.\n\nEn tu experiencia como Asset Manager, ¿cuál ha sido el \"problema invisible\" de trackers más difícil de desenmascarar?"
+      },
+      {
+        "variant": "data_driven",
+        "chars": 1852,
+        "single": 0,
+        "double": 24,
+        "hook": "La promesa del 99% de tus trackers se disuelve ante un nuevo factor: la realidad del terreno.",
+        "content": "La promesa del 99% de tus trackers se disuelve ante un nuevo factor: la realidad del terreno.\n\nTus \"trackers\" parecen operar sin fallos, el SCADA no emite alertas. Pero bajo la superficie, una discrepancia sutil entre la posición reportada y la posición óptima está devorando tu rendimiento.\n\nNo es un problema de \"hardware\" roto. Es una desviación constante, un \"drift\" o un \"backtracking\" subóptimo en zonas complejas. Estos pequeños errores se suman. En un portafolio de 100 MW, la pérdida puede oscilar entre USD 200-400k al año. Dinero que no ves, no mides y no recuperas.\n\nLa literatura técnica ya lo identifica. EPJ Photovoltaics 2026 en su estudio de 2 GW reales revela que la mediana de disponibilidad real de trackers es 66-88%, frente al 99% que los vendors prometen. PV Magazine (16-abr-2026) reporta cómo el \"terreno levemente ondulado\" introduce un nuevo factor de pérdida no cuantificado antes.\n\nPara desenmascarar estas pérdidas invisibles, te propongo este framework basado en nuestra experiencia:\n1. **Vista Comparativa Encoder/Irradiance**: Superponemos la posición que el \"encoder\" del tracker reporta con la irradiancia real que debería recibir.\n2. **Análisis de \"Trackers Gemelos\"**: Comparamos el rendimiento de un tracker sospechoso contra el de sus pares en idénticas condiciones.\n3. **Detección de \"Drift y Backtracking Subóptimo\"**: Identificamos desviaciones sutiles y patrones de movimiento ineficientes.\n\nEste método permite cuantificar el impacto económico diario de cada \"tracker\" desalineado. No se trata de fallas catastróficas, sino de una optimización fina que se traduce directamente en MWh recuperados.\n\n¿Quieres aplicar este framework para descubrir las pérdidas \"ocultas\" en los \"trackers\" de tu portafolio? Comenta \"TRACKER\" y te envío una guía rápida para empezar a identificar estos problemas en tu operación."
+      }
+    ]
+  },
+  {
+    "day": 5,
+    "structure": "Hoy matamos una feature",
+    "status": 200,
+    "elapsed_s": "60.5",
+    "variants": [
+      {
+        "variant": "contrarian",
+        "chars": 1025,
+        "single": 0,
+        "double": 12,
+        "hook": "Matamos una funcionalidad clave de nuestro dashboard.",
+        "content": "Matamos una funcionalidad clave de nuestro dashboard.\n\nEra el porcentaje de \"disponibilidad agregada\" del fleet de trackers. Esa métrica que siempre lucía en verde.\n\nPero ocultaba la verdad: la mediana real de disponibilidad operativa de los trackers es del 66-88%. No el 99% que los vendors prometen. (Fuente: EPJ Photovoltaics 2026).\n\nEsa brecha no es un detalle. Es un agujero.\n\nPara un portafolio de 100 MW, la diferencia puede ser de 200.000 a 400.000 USD anuales. Dinero que se escurre sin disparar una sola alarma en el SCADA. (Fuente: PV Magazine 16-abr-2026).\n\nAprendimos una lección dura: el \"todo bien\" en una métrica global suele esconder un grave \"algo anda mal\" a nivel micro. Tu dinero se esfuma en silencio.\n\nPor eso, ahora nuestro foco no es el promedio. Es el \"tracker cojeando\". El outlier que opera con el \"freno de mano\" puesto, comparado con sus \"gemelos\" sanos.\n\nComenta TRACKER y te envío el checklist de 5 puntos para detectar estas pérdidas invisibles en tu operación. Es hora de detener la sangría."
+      },
+      {
+        "variant": "story",
+        "chars": 1060,
+        "single": 1,
+        "double": 8,
+        "hook": "Tu SCADA muestra \"todo en orden\" en la disponibilidad de trackers. Pero el reloj no para.",
+        "content": "Tu SCADA muestra \"todo en orden\" en la disponibilidad de trackers. Pero el reloj no para.\n\nUn portafolio de 100 MW con trackers desalineados o \"cojeando\" puede estar perdiendo entre 200.000 y 400.000 USD cada año. Sin alarmas. (Fuente: PV Magazine 16-abr-2026).\n\nEsta es la razón por la que eliminamos de nuestros dashboards la métrica de \"disponibilidad agregada\" de trackers. Era una verdad a medias.\n\nCreíamos que un porcentaje global ayudaba. Pero sólo ocultaba el problema real: trackers individuales con una disponibilidad del 66-88% (vs el 99% prometido). (Fuente: EPJ Photovoltaics 2026).\n\nEl costo de no actuar no es teórico. Se acumula día tras día, MW tras MW. Es un drenaje constante en tu P&L.\n\nAprendimos que el verdadero valor está en identificar los outliers, no en promediar la mediocridad. Mirar cada tracker contra sus \"gemelos\" para detectar pérdidas específicas.\n\nNo más sorpresas anuales. Escríbeme por DM: 'TRACKER DIAGNOSIS'. Te responderé en 24h para agendar una revisión inicial de tu portafolio y poner fin a esta sangría silenciosa."
+      },
+      {
+        "variant": "data_driven",
+        "chars": 1125,
+        "single": 0,
+        "double": 10,
+        "hook": "La mediana de disponibilidad real de tus trackers es 66-88%. ¿Tu SCADA reporta 99%?",
+        "content": "La mediana de disponibilidad real de tus trackers es 66-88%. ¿Tu SCADA reporta 99%?\n\nEsa es la desconexión que nos hizo eliminar una métrica clave de nuestros dashboards: la \"disponibilidad agregada\" de trackers.\n\nLos datos lo confirmaron: la disponibilidad real en terreno es muy inferior al 99% que muchos vendors prometen (EPJ Photovoltaics 2026). Y un nuevo \"factor de pérdida\" emerge en terreno ondulado (PV Magazine 16-abr-2026).\n\nPara un portafolio de 100 MW, esa diferencia se traduce en una pérdida anual de entre 200.000 y 400.000 USD. Un coste que se acumula, día a día, sin que se disparen alarmas.\n\nEntendimos que la agregación de datos ocultaba la realidad. La \"foto\" global era una distorsión.\n\nNuestra solución fue clara: dejamos de promediar la verdad. Nos enfocamos en la granularidad. En el desempeño de cada \"tracker cojeando\" versus su \"gemelo\" en condiciones idénticas.\n\nAsí detectamos las pérdidas invisibles. Así se recupera energía y rentabilidad.\n\nAgenda una evaluación de disponibilidad de trackers. Te contactaremos con el link para agendarla y empezar a transformar esos datos en MWh recuperados."
+      }
+    ]
+  }
+]

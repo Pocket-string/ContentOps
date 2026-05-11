@@ -1,0 +1,36 @@
+{
+  "wed": {
+    "status": 500,
+    "error": "Error al parsear la respuesta de la IA. Intenta de nuevo.",
+    "variants": []
+  },
+  "fri": {
+    "status": 200,
+    "variants": [
+      {
+        "variant": "contrarian",
+        "chars": 1743,
+        "single": 1,
+        "double": 22,
+        "hook": "Tu SCADA muestra 99% de trackers activos. Y aun así, el 30% de ellos podría estar ciego, sin que nad",
+        "content": "Tu SCADA muestra 99% de trackers activos. Y aun así, el 30% de ellos podría estar ciego, sin que nadie lo note.\n\nPor eso, hoy en Bitalize, hemos tomado una decisión difícil y radical.\n\nEliminamos la métrica de \"disponibilidad agregada de trackers\" de nuestros dashboards.\n\nEsa cifra era un consuelo vacío. Un promedio que ocultaba el verdadero rendimiento de cada eje.\n\nTe daba una falsa sensación de control, un número \"verde\" que no reflejaba la cruda realidad del terreno.\n\nLa mediana de disponibilidad real de trackers en portafolios de 2 GW es del 66-88%, según EPJ Photovoltaics 2026.\n\nUna brecha enorme con el 99% que la mayoría de SCADAs suelen reportar como \"disponible\".\n\nUn tracker desalineado o parado solo 2 horas al día, especialmente en terreno ondulado (como destaca PV Magazine 16-abr-2026), se traduce en hasta US$400k anuales regalados por cada 100 MW de capacidad.\n\nEse \"agregado\" no solo tapaba el problema; lo hacía invisible. Una parálisis por análisis ante miles de datos aparentemente correctos.\n\nAprendimos que la verdad está en la granularidad. En el detalle. En la comparación directa de \"gemelos\".\n\nNo se trata de saber si el tracker \"gira\", sino si \"apunta bien\" y \"sigue al sol\" con la precisión que tu inversión merece.\n\nAhora, nuestro foco es la detección de \"outliers\" de rendimiento.\n\nComparamos cada tracker con sus \"gemelos\" para encontrar desviaciones sutiles que roban energía en silencio. Es el primer paso de nuestra nueva vista por \"outliers vs gemelos\".\n\nEstamos buscando 3-5 plantas piloto en LATAM para validar esta nueva aproximación. Queremos demostrar el impacto real en ingresos.\n\nComenta 'TRACKER' y te envío el checklist que usamos para detectar estos fallos ocultos. Sin alarmas, solo datos."
+      },
+      {
+        "variant": "story",
+        "chars": 1573,
+        "single": 1,
+        "double": 18,
+        "hook": "La factura de un tracker \"disponible\" que en realidad no sigue al sol: hasta US$400k/año por cada 10",
+        "content": "La factura de un tracker \"disponible\" que en realidad no sigue al sol: hasta US$400k/año por cada 100 MW.\n\nPor esa cifra, y para ser brutalmente honestos con los datos, hemos \"matado\" una feature en Bitalize.\n\nEliminamos la \"disponibilidad agregada de trackers\" del dashboard.\n\nEra una métrica cómoda. Agregaba la disponibilidad de todos tus trackers y daba un 99% casi siempre.\n\nParecía que todo iba bien, que tu equipo de O&M tenía el control.\n\nPero esa \"disponibilidad\" no capturaba el rendimiento real. Ocultaba que la mediana de operación efectiva de trackers es solo del 66-88% en 2 GW de plantas (EPJ Photovoltaics 2026).\n\nLo que el SCADA no muestra, el cash flow lo siente.\n\nImagina un Asset Manager, revisando su reporte mensual. Números \"verdes\" en la pantalla. Pero en el back office, la proyección no cuadra. Esa tensión es real.\n\nAprendimos que esta diferencia, este \"loss factor\" en terreno ondulado (PV Magazine 16-abr-2026), es una hemorragia silenciosa.\n\nNo basta con que un tracker se \"mueva\"; debe hacerlo con precisión milimétrica. La inercia del monitoreo general nos hacía cómplices de la pérdida.\n\nPor eso, reemplazamos esa métrica con una vista que detecta \"outliers\" de manera inteligente.\n\nAhora comparamos cada tracker individualmente, buscando desviaciones sutiles en su seguimiento.\n\nEsta vista de \"outliers vs gemelos\" es nuestra nueva promesa, y estamos buscando 3-5 plantas piloto para implementarla.\n\nEscribeme por DM: 'TRACKER'. Te respondo en 24h con un análisis preliminar de cómo tu portafolio podría estar perdiendo dinero en trackers."
+      },
+      {
+        "variant": "data_driven",
+        "chars": 1522,
+        "single": 1,
+        "double": 8,
+        "hook": "Tu métrica de \"disponibilidad de trackers\" es un espejismo. Nosotros la eliminamos de nuestro produc",
+        "content": "Tu métrica de \"disponibilidad de trackers\" es un espejismo. Nosotros la eliminamos de nuestro producto.\n\nSí, hemos quitado la \"disponibilidad agregada de trackers\" del dashboard de Bitalize.\n\nFue una decisión clave en nuestro camino de construir soluciones que entreguen valor real.\n\nEra una métrica universal, un estándar. Sumaba todos los trackers reportando y mostraba un alto porcentaje.\n\nServía como un indicador básico, pero no era suficiente para el Asset Manager que busca optimizar.\n\nLa data es clara: la disponibilidad real de trackers oscila entre el 66-88% en 2 GW de plantas, según EPJ Photovoltaics 2026.\n\nLos SCADAs comunes reportan casi el doble. Esa brecha es lo que buscamos eliminar.\n\nMantener una métrica que no refleja esta realidad es ocultar pérdidas de hasta US$400k/año por cada 100 MW, especialmente con el nuevo \"loss factor\" en terreno ondulado (PV Magazine 16-abr-2026).\n\nNuestra prioridad es darte la verdad del campo, no promedios maquillados.\n\nAprendimos que la clave está en el rendimiento relativo y en la identificación de desviaciones, no en un simple 'on/off'.\n\nReemplazamos esa visión agregada por una \"vista de outliers vs gemelos\".\n\nDetectamos trackers con comportamientos anómalos comparándolos con sus vecinos más cercanos.\n\nQueremos validar esta capacidad de detección y monetización del problema en 3-5 plantas piloto. Es el siguiente paso para afinar nuestra solución.\n\nAgenda una evaluación gratuita de rendimiento de trackers para tu portafolio. Link en el primer comentario."
+      }
+    ]
+  }
+}
