@@ -101,10 +101,12 @@ export async function upsertCarouselSlides(
 }
 
 /**
- * Delete all carousel_slides for a given visual_version_id. Used to clean up
- * orphan slides when an archetype switches from carousel to a non-carousel
- * archetype (e.g. screenshot_annotated) — without this, the editor keeps
- * rendering stale slide previews from earlier exploration sessions.
+ * Delete all carousel_slides for a given visual_version_id and reset the
+ * carousel-mode markers on the parent row (slide_count, concept_type).
+ *
+ * Used to clean up orphan state when an archetype switches from carousel to
+ * a non-carousel archetype (e.g. screenshot_annotated). Without this, the
+ * editor stays in carousel mode because isCarousel reads slide_count >= 2.
  */
 export async function deleteCarouselSlidesByVisualVersion(
   visualVersionId: string
@@ -117,6 +119,16 @@ export async function deleteCarouselSlidesByVisualVersion(
       .eq('visual_version_id', visualVersionId)
       .select('id')
     if (error) return { error: error.message }
+
+    // Reset carousel-mode markers so the editor renders the single composed image.
+    const { error: resetErr } = await supabase
+      .from('visual_versions')
+      .update({ slide_count: null, concept_type: null })
+      .eq('id', visualVersionId)
+    if (resetErr) {
+      console.error('[carousel-service] reset markers failed (non-fatal):', resetErr)
+    }
+
     return { data: { deletedCount: data?.length ?? 0 } }
   } catch (err) {
     console.error('[carousel-service] deleteCarouselSlidesByVisualVersion unexpected error', err)
