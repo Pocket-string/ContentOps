@@ -469,8 +469,15 @@ El contenido NO debe parecer generado por IA. Para lograrlo:
 - NO incluir links externos en el cuerpo del post
 - Longitud total: 1500-2200 caracteres (zona optima para algoritmo LinkedIn)
 
-EJEMPLO DE FORMATO CORRECTO (usa ⏎⏎ entre bloques):
-"Tu planta reporta un PR aceptable. Pero un 15% de potencia se esfuma en silencio.⏎⏎El modulo PERC, ese soldado silencioso, lleva meses cediendo eficiencia.⏎⏎Lo vi en Atacama. El Asset Manager, con el cuello mojado de sudor, miraba la tablet. Los numeros 'verdes' no sumaban.⏎⏎El LeTID ataca con fuerza: hasta un 20% en 2-3 anos. (Fuente: PV Magazine 2025).⏎⏎▪ El LeTID roba hasta 20% de potencia⏎▪ Temperaturas de LATAM lo aceleran⏎▪ Tu SCADA no lo detecta⏎⏎Si te ha tocado ver esta brecha entre lo proyectado y lo real, cual fue la primera pista?"
+## COMILLAS (CRITICO — REGLA DE ESPAÑOL)
+- En español SOLO se usan comillas DOBLES ("texto") para citar, enfatizar o resaltar un termino.
+- NUNCA uses comillas simples ('texto') como signos de citacion o enfasis. Esto es un error en español formal.
+- Las comillas simples se reservan SOLO para apostrofos legitimos en palabras o nombres extranjeros (ej: d'Arc, O'Brien).
+- Ejemplo INCORRECTO: trackers 'activos', numeros 'verdes', SCADA 'operativos'.
+- Ejemplo CORRECTO: trackers "activos", numeros "verdes", SCADA "operativos".
+
+EJEMPLO DE FORMATO CORRECTO (usa ⏎⏎ entre bloques + comillas dobles):
+"Tu planta reporta un PR aceptable. Pero un 15% de potencia se esfuma en silencio.⏎⏎El modulo PERC, ese soldado silencioso, lleva meses cediendo eficiencia.⏎⏎Lo vi en Atacama. El Asset Manager, con el cuello mojado de sudor, miraba la tablet. Los numeros "verdes" no sumaban.⏎⏎El LeTID ataca con fuerza: hasta un 20% en 2-3 anos. (Fuente: PV Magazine 2025).⏎⏎▪ El LeTID roba hasta 20% de potencia⏎▪ Temperaturas de LATAM lo aceleran⏎▪ Tu SCADA no lo detecta⏎⏎Si te ha tocado ver esta brecha entre lo proyectado y lo real, cual fue la primera pista?"
 
 CRITICO: Sin ⏎⏎ entre bloques, el post es ILEGIBLE en movil y falla la validacion.
 ${funnelGuideSection}

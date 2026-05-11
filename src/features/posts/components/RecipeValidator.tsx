@@ -364,6 +364,21 @@ export function runChecks(content: string, keyword?: string, funnelStage?: strin
       : `Detectadas ${totalBannedCount} frase(s) banned: ${bannedInBody.slice(0, 3).map(m => `"${m.phrase.display}"`).join(', ')}${bannedInBody.length > 3 ? ` y ${bannedInBody.length - 3} más` : ''}`,
   })
 
+  // PRP-012 #22: Comillas simples como citación (regla español: solo dobles)
+  // Detecta patrones tipo `palabra 'texto' palabra` (single quote rodeado de no-letras)
+  // No aplica a apóstrofos legítimos dentro de palabras (d'Arc, O'Brien)
+  const singleQuoteCitation = trimmed.match(/(?<=\s|^|[.,;:¿!¡])'[^']{1,80}'(?=\s|$|[.,;:?!])/g) ?? []
+  const hasSingleQuoteCitation = singleQuoteCitation.length === 0
+  checks.push({
+    id: 'comillas-dobles',
+    label: 'Comillas dobles (no simples)',
+    passed: hasSingleQuoteCitation,
+    severity: 'error',
+    detail: hasSingleQuoteCitation
+      ? 'Sin comillas simples usadas como citación'
+      : `Detectado uso de comillas simples como citación (${singleQuoteCitation.length}x): ${singleQuoteCitation.slice(0, 2).join(', ')}. En español SOLO se usan comillas dobles ("texto")`,
+  })
+
   return checks
 }
 

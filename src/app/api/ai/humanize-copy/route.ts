@@ -109,6 +109,12 @@ Reescribe el post para que suene humano, técnico-conversacional, propio de un f
 - NO hashtags (#).
 - NO links externos en el cuerpo.
 
+## COMILLAS (CRÍTICO — REGLA DE ESPAÑOL)
+- En español SOLO se usan comillas DOBLES ("texto") para citar, enfatizar o resaltar.
+- NUNCA uses comillas simples ('texto') como signos de citación o énfasis. Es un error en español formal.
+- Las comillas simples se reservan SOLO para apóstrofos en palabras/nombres extranjeros (d'Arc, O'Brien).
+- Si el borrador original tiene 'palabras' entre comillas simples, REEMPLÁZALAS por "palabras" en la versión humanizada.
+
 IMPORTANTE: Responde UNICAMENTE con un JSON válido, sin markdown, sin backticks, sin texto adicional.`
 
     const userPrompt = `Borrador a humanizar:${contextBlock}
