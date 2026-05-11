@@ -37,6 +37,11 @@ const inputSchema = z.object({
   archetype: z.enum(ARCHETYPE_SLUGS),
   post_content: z.string().min(1),
   format: z.enum(['1:1', '4:5', '16:9', '9:16']).default('1:1'),
+  // PRP-013 iter 1 hotfix: when true, skip Vision AI annotations (SVG text in sharp
+  // currently renders as tofu in prod Docker — font issue, Patch #9 backlog) and
+  // skip white-out top-left (avoid the white-patch artifact over dark dashboards).
+  // The base must already be cropped to exclude the source-product header.
+  skip_annotations: z.boolean().optional().default(false),
 })
 
 const annotationSchema = z.object({
@@ -71,7 +76,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: parsed.error.issues[0]?.message ?? 'Datos invalidos' }, { status: 400 })
   }
 
-  const { base_image_url, post_id, archetype, post_content, format } = parsed.data
+  const { base_image_url, post_id, archetype, post_content, format, skip_annotations } = parsed.data
   const workspaceId = await getWorkspaceId()
   const def = ARCHETYPE_REGISTRY[archetype]
 
@@ -79,10 +84,13 @@ export async function POST(request: Request): Promise<Response> {
   const dims = format === '4:5' ? { width: 1080, height: 1350 } : { width: 1080, height: 1080 }
 
   // ============================================
-  // 1. Vision AI suggests annotations
+  // 1. Vision AI suggests annotations (skipped when skip_annotations=true)
   // ============================================
-  let annotations: Annotation[]
-  try {
+  let annotations: Annotation[] = []
+  if (skip_annotations) {
+    // No-op: leave annotations empty, base + pill only
+  } else {
+    try {
     const model = await getModel('critic-visual', workspaceId)
     const visionPrompt = `Analiza esta imagen base (screenshot real de un producto Bitalize en lucvia o mantenimiento) y sugiere ${def.annotationsMax} anotaciones overlay que destaquen el insight del post.
 
@@ -150,12 +158,13 @@ Responde SOLO con JSON válido:
       style: (a.style ?? 'callout') as AnnotationStyle,
       color: (a.color ?? 'neutral') as AnnotationColor,
     }))
-  } catch (e) {
-    console.error('[compose-annotated] vision step error', e)
-    return Response.json(
-      { error: 'Vision AI no pudo sugerir anotaciones. ' + (e instanceof Error ? e.message : '') },
-      { status: 500 }
-    )
+    } catch (e) {
+      console.error('[compose-annotated] vision step error', e)
+      return Response.json(
+        { error: 'Vision AI no pudo sugerir anotaciones. ' + (e instanceof Error ? e.message : '') },
+        { status: 500 }
+      )
+    }
   }
 
   // ============================================
@@ -198,10 +207,11 @@ Responde SOLO con JSON válido:
   // 4. Compose overlay via sharp
   // ============================================
   // PRP-013 Patch #3: for capture-overlay archetypes the base is a real screenshot
-  // of lucvia.com or mantenimiento.jonadata.cloud whose top-left holds the source
-  // product logo. We white-out that region so the visual reads as Bitalize (only
-  // the bottom-right glass-pill remains as branding).
-  const whiteOutRegions = isCaptureOverlayArchetype(archetype)
+  // of lucvia.com / mantenimiento.jonadata.cloud whose top-left holds the source
+  // product logo. We white-out that region so the visual reads as Bitalize.
+  // When skip_annotations=true we expect the caller passed a pre-cropped base
+  // (no source header), so skip the white-out to avoid the ugly white patch.
+  const whiteOutRegions = isCaptureOverlayArchetype(archetype) && !skip_annotations
     ? [
         {
           x: 0,
