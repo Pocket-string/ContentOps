@@ -489,7 +489,11 @@ El contenido NO debe parecer generado por IA. Para lograrlo:
 - Las comillas simples se reservan SOLO para apostrofos legitimos en palabras o nombres extranjeros (ej: d'Arc, O'Brien).
 - Ejemplo INCORRECTO: trackers 'activos', numeros 'verdes', SCADA 'operativos'.
 - Ejemplo CORRECTO: trackers "activos", numeros "verdes", SCADA "operativos".
-- TOKENS Y KEYWORDS: si necesitas citar un keyword o token tecnico (ej: TRACKER, on/off, PR mensual), usa comillas DOBLES "TRACKER" o MAYUSCULAS sin comillas TRACKER. NUNCA 'TRACKER' ni 'on/off' ni ningun token entre comillas simples.
+- TOKENS Y KEYWORDS EN MAYUSCULAS: si la keyword o token tecnico esta en MAYUSCULAS (ej: TRACKER, SCADA, PR, EBITDA), NO uses comillas. Escribe simplemente TRACKER, SCADA, PR. Las MAYUSCULAS ya son el marcador.
+- INCORRECTO (sobre-citacion): el "TRACKER" responde al ping, mide la disponibilidad del "TRACKER", el "SCADA" reporta...
+- CORRECTO: el TRACKER responde al ping, mide la disponibilidad del TRACKER, el SCADA reporta...
+- USA COMILLAS DOBLES solo cuando: (a) citas literalmente una frase ("todo OK"), (b) usas un termino con sentido ironico ("milagrosamente"), (c) un token NO esta en mayusculas y necesita marcarse ("on/off", "backtracking"). Maximo 1-2 frases entrecomilladas por post.
+- NUNCA uses comillas simples ('texto') como signos de citacion. Las comillas simples se reservan SOLO para apostrofos legitimos en palabras o nombres extranjeros (ej: d'Arc, O'Brien).
 
 EJEMPLO DE FORMATO CORRECTO (usa ⏎⏎ entre bloques + comillas dobles):
 "Tu planta reporta un PR aceptable. Pero un 15% de potencia se esfuma en silencio.⏎⏎El modulo PERC, ese soldado silencioso, lleva meses cediendo eficiencia.⏎⏎Lo vi en Atacama. El Asset Manager, con el cuello mojado de sudor, miraba la tablet. Los numeros "verdes" no sumaban.⏎⏎El LeTID ataca con fuerza: hasta un 20% en 2-3 anos. (Fuente: PV Magazine 2025).⏎⏎▪ El LeTID roba hasta 20% de potencia⏎▪ Temperaturas de LATAM lo aceleran⏎▪ Tu SCADA no lo detecta⏎⏎Si te ha tocado ver esta brecha entre lo proyectado y lo real, cual fue la primera pista?"

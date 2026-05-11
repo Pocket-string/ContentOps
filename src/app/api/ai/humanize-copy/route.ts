@@ -115,6 +115,12 @@ Reescribe el post para que suene humano, técnico-conversacional, propio de un f
 - Las comillas simples se reservan SOLO para apóstrofos en palabras/nombres extranjeros (d'Arc, O'Brien).
 - Si el borrador original tiene 'palabras' entre comillas simples, REEMPLÁZALAS por "palabras" en la versión humanizada.
 
+## TOKENS EN MAYÚSCULAS (REGLA ANTI-AI)
+- Si el borrador repite una keyword en MAYÚSCULAS entre comillas dobles ("TRACKER", "SCADA", "PR"), QUITA las comillas: las mayúsculas ya marcan el token. Repetir comillas en cada mención es señal de copy generado por IA.
+- INCORRECTO: el "TRACKER" responde al ping, la disponibilidad del "TRACKER" cae, el "SCADA" reporta...
+- CORRECTO: el TRACKER responde al ping, la disponibilidad del TRACKER cae, el SCADA reporta...
+- Mantén comillas dobles SOLO si: (a) citas literalmente una frase, (b) sentido irónico, (c) el token NO está en mayúsculas y necesita marcarse ("on/off", "backtracking"). Máximo 1-2 frases entrecomilladas por post.
+
 IMPORTANTE: Responde UNICAMENTE con un JSON válido, sin markdown, sin backticks, sin texto adicional.`
 
     const userPrompt = `Borrador a humanizar:${contextBlock}
