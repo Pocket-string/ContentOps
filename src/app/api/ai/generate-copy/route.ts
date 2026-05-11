@@ -475,6 +475,7 @@ El contenido NO debe parecer generado por IA. Para lograrlo:
 - Las comillas simples se reservan SOLO para apostrofos legitimos en palabras o nombres extranjeros (ej: d'Arc, O'Brien).
 - Ejemplo INCORRECTO: trackers 'activos', numeros 'verdes', SCADA 'operativos'.
 - Ejemplo CORRECTO: trackers "activos", numeros "verdes", SCADA "operativos".
+- TOKENS Y KEYWORDS: si necesitas citar un keyword o token tecnico (ej: TRACKER, on/off, PR mensual), usa comillas DOBLES "TRACKER" o MAYUSCULAS sin comillas TRACKER. NUNCA 'TRACKER' ni 'on/off' ni ningun token entre comillas simples.
 
 EJEMPLO DE FORMATO CORRECTO (usa ⏎⏎ entre bloques + comillas dobles):
 "Tu planta reporta un PR aceptable. Pero un 15% de potencia se esfuma en silencio.⏎⏎El modulo PERC, ese soldado silencioso, lleva meses cediendo eficiencia.⏎⏎Lo vi en Atacama. El Asset Manager, con el cuello mojado de sudor, miraba la tablet. Los numeros "verdes" no sumaban.⏎⏎El LeTID ataca con fuerza: hasta un 20% en 2-3 anos. (Fuente: PV Magazine 2025).⏎⏎▪ El LeTID roba hasta 20% de potencia⏎▪ Temperaturas de LATAM lo aceleran⏎▪ Tu SCADA no lo detecta⏎⏎Si te ha tocado ver esta brecha entre lo proyectado y lo real, cual fue la primera pista?"
