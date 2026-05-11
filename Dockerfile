@@ -24,8 +24,8 @@ ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_SITE_URL
 
-# Limit memory for constrained VPS
-ENV NODE_OPTIONS="--max-old-space-size=512"
+# Limit memory for constrained VPS (PRP-012: bumped 512→1024 — heap OOM on bigger codebase)
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
 RUN pnpm run build
 
