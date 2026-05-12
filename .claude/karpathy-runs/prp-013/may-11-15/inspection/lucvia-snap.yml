@@ -1,0 +1,586 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - main [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - generic [ref=e17]:
+              - generic [ref=e18]: DEMO
+              - heading "ZALDIVIA — Dashboard Analitico" [level=1] [ref=e19]
+            - generic [ref=e20]:
+              - generic [ref=e22]:
+                - generic [ref=e23]: Fecha
+                - button "9 Mar 2026" [ref=e25] [cursor=pointer]:
+                  - img [ref=e26]
+                  - generic [ref=e28]: 9 Mar 2026
+                  - img [ref=e29]
+              - generic [ref=e31]: "2 intervalos · POA ≥ 1036 W/m² · 15:30 — 16:00 · Ref: P75 por grupo de modulo"
+          - generic [ref=e32]:
+            - link "PR" [ref=e33] [cursor=pointer]:
+              - /url: /demo/PLT_A/performance-ratio
+            - link "Heatmap" [ref=e34] [cursor=pointer]:
+              - /url: /demo/PLT_A/heatmap
+        - generic [ref=e35]:
+          - generic [ref=e37]:
+            - heading "Strings y su Rendimiento" [level=3] [ref=e38]
+            - generic [ref=e39]:
+              - img [ref=e41]:
+                - generic [ref=e46]: "693"
+                - generic [ref=e47]: strings
+              - generic [ref=e48]:
+                - generic [ref=e49]:
+                  - generic [ref=e51]: Optimo (≥95%)
+                  - generic [ref=e52]: "451"
+                  - generic [ref=e53]: (65.1%)
+                - generic [ref=e54]:
+                  - generic [ref=e56]: Media-alta (80–95%)
+                  - generic [ref=e57]: "205"
+                  - generic [ref=e58]: (29.6%)
+                - generic [ref=e59]:
+                  - generic [ref=e61]: Media-baja (60–80%)
+                  - generic [ref=e62]: "9"
+                  - generic [ref=e63]: (1.3%)
+                - generic [ref=e64]:
+                  - generic [ref=e66]: Bajo (<60%)
+                  - generic [ref=e67]: "28"
+                  - generic [ref=e68]: (4.0%)
+          - generic [ref=e70]:
+            - heading "Top 10 — Mayor desviacion (W)" [level=3] [ref=e72]
+            - table [ref=e74]:
+              - rowgroup [ref=e75]:
+                - row "Estado String Inversor P (W) P esperado Delta (W) Ratio Metodo" [ref=e76]:
+                  - columnheader "Estado" [ref=e77]
+                  - columnheader "String" [ref=e78]
+                  - columnheader "Inversor" [ref=e79]
+                  - columnheader "P (W)" [ref=e80]
+                  - columnheader "P esperado" [ref=e81]
+                  - columnheader "Delta (W)" [ref=e82]
+                  - columnheader "Ratio" [ref=e83]
+                  - columnheader "Metodo" [ref=e84]
+              - rowgroup [ref=e85]:
+                - row "CT2-INV 2-3-TRK2-S1 INV 2-3 6089 13165 7075 46.3% P75 modulo" [ref=e86]:
+                  - cell [ref=e87]
+                  - cell "CT2-INV 2-3-TRK2-S1" [ref=e89]:
+                    - link "CT2-INV 2-3-TRK2-S1" [ref=e90] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT2-INV%202-3-TRK2-S1
+                  - cell "INV 2-3" [ref=e91]
+                  - cell "6089" [ref=e92]
+                  - cell "13165" [ref=e93]
+                  - cell "7075" [ref=e94]
+                  - cell "46.3%" [ref=e95]
+                  - cell "P75 modulo" [ref=e96]
+                - row "CT2-INV 2-3-TRK2-S2 INV 2-3 6089 13165 7075 46.3% P75 modulo" [ref=e97]:
+                  - cell [ref=e98]
+                  - cell "CT2-INV 2-3-TRK2-S2" [ref=e100]:
+                    - link "CT2-INV 2-3-TRK2-S2" [ref=e101] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT2-INV%202-3-TRK2-S2
+                  - cell "INV 2-3" [ref=e102]
+                  - cell "6089" [ref=e103]
+                  - cell "13165" [ref=e104]
+                  - cell "7075" [ref=e105]
+                  - cell "46.3%" [ref=e106]
+                  - cell "P75 modulo" [ref=e107]
+                - row "CT3-INV 3-9-TRK4-S1 INV 3-9 5843 12504 6661 46.7% P75 modulo" [ref=e108]:
+                  - cell [ref=e109]
+                  - cell "CT3-INV 3-9-TRK4-S1" [ref=e111]:
+                    - link "CT3-INV 3-9-TRK4-S1" [ref=e112] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-9-TRK4-S1
+                  - cell "INV 3-9" [ref=e113]
+                  - cell "5843" [ref=e114]
+                  - cell "12504" [ref=e115]
+                  - cell "6661" [ref=e116]
+                  - cell "46.7%" [ref=e117]
+                  - cell "P75 modulo" [ref=e118]
+                - row "CT3-INV 3-9-TRK4-S2 INV 3-9 5843 12504 6661 46.7% P75 modulo" [ref=e119]:
+                  - cell [ref=e120]
+                  - cell "CT3-INV 3-9-TRK4-S2" [ref=e122]:
+                    - link "CT3-INV 3-9-TRK4-S2" [ref=e123] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-9-TRK4-S2
+                  - cell "INV 3-9" [ref=e124]
+                  - cell "5843" [ref=e125]
+                  - cell "12504" [ref=e126]
+                  - cell "6661" [ref=e127]
+                  - cell "46.7%" [ref=e128]
+                  - cell "P75 modulo" [ref=e129]
+                - row "CT3-INV 3-6-TRK1-S3 INV 3-6 5855 12504 6649 46.8% P75 modulo" [ref=e130]:
+                  - cell [ref=e131]
+                  - cell "CT3-INV 3-6-TRK1-S3" [ref=e133]:
+                    - link "CT3-INV 3-6-TRK1-S3" [ref=e134] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-6-TRK1-S3
+                  - cell "INV 3-6" [ref=e135]
+                  - cell "5855" [ref=e136]
+                  - cell "12504" [ref=e137]
+                  - cell "6649" [ref=e138]
+                  - cell "46.8%" [ref=e139]
+                  - cell "P75 modulo" [ref=e140]
+                - row "CT3-INV 3-6-TRK1-S4 INV 3-6 5855 12504 6649 46.8% P75 modulo" [ref=e141]:
+                  - cell [ref=e142]
+                  - cell "CT3-INV 3-6-TRK1-S4" [ref=e144]:
+                    - link "CT3-INV 3-6-TRK1-S4" [ref=e145] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-6-TRK1-S4
+                  - cell "INV 3-6" [ref=e146]
+                  - cell "5855" [ref=e147]
+                  - cell "12504" [ref=e148]
+                  - cell "6649" [ref=e149]
+                  - cell "46.8%" [ref=e150]
+                  - cell "P75 modulo" [ref=e151]
+                - row "CT3-INV 3-8-TRK2-S4 INV 3-8 5878 12504 6626 47.0% P75 modulo" [ref=e152]:
+                  - cell [ref=e153]
+                  - cell "CT3-INV 3-8-TRK2-S4" [ref=e155]:
+                    - link "CT3-INV 3-8-TRK2-S4" [ref=e156] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-8-TRK2-S4
+                  - cell "INV 3-8" [ref=e157]
+                  - cell "5878" [ref=e158]
+                  - cell "12504" [ref=e159]
+                  - cell "6626" [ref=e160]
+                  - cell "47.0%" [ref=e161]
+                  - cell "P75 modulo" [ref=e162]
+                - row "CT3-INV 3-8-TRK3-S1 INV 3-8 5878 12504 6626 47.0% P75 modulo" [ref=e163]:
+                  - cell [ref=e164]
+                  - cell "CT3-INV 3-8-TRK3-S1" [ref=e166]:
+                    - link "CT3-INV 3-8-TRK3-S1" [ref=e167] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-8-TRK3-S1
+                  - cell "INV 3-8" [ref=e168]
+                  - cell "5878" [ref=e169]
+                  - cell "12504" [ref=e170]
+                  - cell "6626" [ref=e171]
+                  - cell "47.0%" [ref=e172]
+                  - cell "P75 modulo" [ref=e173]
+                - row "CT3-INV 3-5-TRK2-S1 INV 3-5 5944 12504 6560 47.5% P75 modulo" [ref=e174]:
+                  - cell [ref=e175]
+                  - cell "CT3-INV 3-5-TRK2-S1" [ref=e177]:
+                    - link "CT3-INV 3-5-TRK2-S1" [ref=e178] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-5-TRK2-S1
+                  - cell "INV 3-5" [ref=e179]
+                  - cell "5944" [ref=e180]
+                  - cell "12504" [ref=e181]
+                  - cell "6560" [ref=e182]
+                  - cell "47.5%" [ref=e183]
+                  - cell "P75 modulo" [ref=e184]
+                - row "CT3-INV 3-5-TRK2-S2 INV 3-5 5944 12504 6560 47.5% P75 modulo" [ref=e185]:
+                  - cell [ref=e186]
+                  - cell "CT3-INV 3-5-TRK2-S2" [ref=e188]:
+                    - link "CT3-INV 3-5-TRK2-S2" [ref=e189] [cursor=pointer]:
+                      - /url: /demo/PLT_A/strings/CT3-INV%203-5-TRK2-S2
+                  - cell "INV 3-5" [ref=e190]
+                  - cell "5944" [ref=e191]
+                  - cell "12504" [ref=e192]
+                  - cell "6560" [ref=e193]
+                  - cell "47.5%" [ref=e194]
+                  - cell "P75 modulo" [ref=e195]
+        - generic [ref=e198]:
+          - heading "Resumen por inversor" [level=3] [ref=e200]
+          - table [ref=e202]:
+            - rowgroup [ref=e203]:
+              - row "Inversor Total Optimo Media-alta Media-baja Bajo Sin dato" [ref=e204]:
+                - columnheader "Inversor" [ref=e205]
+                - columnheader "Total" [ref=e206]
+                - columnheader "Optimo" [ref=e207]
+                - columnheader "Media-alta" [ref=e208]
+                - columnheader "Media-baja" [ref=e209]
+                - columnheader "Bajo" [ref=e210]
+                - columnheader "Sin dato" [ref=e211]
+            - rowgroup [ref=e212]:
+              - row "INV 1-1 16 8 8 — — —" [ref=e213]:
+                - cell "INV 1-1" [ref=e214]:
+                  - link "INV 1-1" [ref=e215] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-1?date=2026-03-09
+                - cell "16" [ref=e216]
+                - cell "8" [ref=e217]
+                - cell "8" [ref=e218]
+                - cell "—" [ref=e219]
+                - cell "—" [ref=e220]
+                - cell "—" [ref=e221]
+              - row "INV 1-2 16 11 5 — — —" [ref=e222]:
+                - cell "INV 1-2" [ref=e223]:
+                  - link "INV 1-2" [ref=e224] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-2?date=2026-03-09
+                - cell "16" [ref=e225]
+                - cell "11" [ref=e226]
+                - cell "5" [ref=e227]
+                - cell "—" [ref=e228]
+                - cell "—" [ref=e229]
+                - cell "—" [ref=e230]
+              - row "INV 1-3 16 8 8 — — —" [ref=e231]:
+                - cell "INV 1-3" [ref=e232]:
+                  - link "INV 1-3" [ref=e233] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-3?date=2026-03-09
+                - cell "16" [ref=e234]
+                - cell "8" [ref=e235]
+                - cell "8" [ref=e236]
+                - cell "—" [ref=e237]
+                - cell "—" [ref=e238]
+                - cell "—" [ref=e239]
+              - row "INV 1-4 16 12 4 — — —" [ref=e240]:
+                - cell "INV 1-4" [ref=e241]:
+                  - link "INV 1-4" [ref=e242] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-4?date=2026-03-09
+                - cell "16" [ref=e243]
+                - cell "12" [ref=e244]
+                - cell "4" [ref=e245]
+                - cell "—" [ref=e246]
+                - cell "—" [ref=e247]
+                - cell "—" [ref=e248]
+              - row "INV 1-5 20 12 8 — — —" [ref=e249]:
+                - cell "INV 1-5" [ref=e250]:
+                  - link "INV 1-5" [ref=e251] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-5?date=2026-03-09
+                - cell "20" [ref=e252]
+                - cell "12" [ref=e253]
+                - cell "8" [ref=e254]
+                - cell "—" [ref=e255]
+                - cell "—" [ref=e256]
+                - cell "—" [ref=e257]
+              - row "INV 1-6 20 16 4 — — —" [ref=e258]:
+                - cell "INV 1-6" [ref=e259]:
+                  - link "INV 1-6" [ref=e260] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-6?date=2026-03-09
+                - cell "20" [ref=e261]
+                - cell "16" [ref=e262]
+                - cell "4" [ref=e263]
+                - cell "—" [ref=e264]
+                - cell "—" [ref=e265]
+                - cell "—" [ref=e266]
+              - row "INV 1-7 20 12 8 — — —" [ref=e267]:
+                - cell "INV 1-7" [ref=e268]:
+                  - link "INV 1-7" [ref=e269] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-7?date=2026-03-09
+                - cell "20" [ref=e270]
+                - cell "12" [ref=e271]
+                - cell "8" [ref=e272]
+                - cell "—" [ref=e273]
+                - cell "—" [ref=e274]
+                - cell "—" [ref=e275]
+              - row "INV 1-8 20 11 9 — — —" [ref=e276]:
+                - cell "INV 1-8" [ref=e277]:
+                  - link "INV 1-8" [ref=e278] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-8?date=2026-03-09
+                - cell "20" [ref=e279]
+                - cell "11" [ref=e280]
+                - cell "9" [ref=e281]
+                - cell "—" [ref=e282]
+                - cell "—" [ref=e283]
+                - cell "—" [ref=e284]
+              - row "INV 1-9 16 12 4 — — —" [ref=e285]:
+                - cell "INV 1-9" [ref=e286]:
+                  - link "INV 1-9" [ref=e287] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-9?date=2026-03-09
+                - cell "16" [ref=e288]
+                - cell "12" [ref=e289]
+                - cell "4" [ref=e290]
+                - cell "—" [ref=e291]
+                - cell "—" [ref=e292]
+                - cell "—" [ref=e293]
+              - row "INV 1-10 16 13 3 — — —" [ref=e294]:
+                - cell "INV 1-10" [ref=e295]:
+                  - link "INV 1-10" [ref=e296] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-10?date=2026-03-09
+                - cell "16" [ref=e297]
+                - cell "13" [ref=e298]
+                - cell "3" [ref=e299]
+                - cell "—" [ref=e300]
+                - cell "—" [ref=e301]
+                - cell "—" [ref=e302]
+              - row "INV 1-11 16 10 6 — — —" [ref=e303]:
+                - cell "INV 1-11" [ref=e304]:
+                  - link "INV 1-11" [ref=e305] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-11?date=2026-03-09
+                - cell "16" [ref=e306]
+                - cell "10" [ref=e307]
+                - cell "6" [ref=e308]
+                - cell "—" [ref=e309]
+                - cell "—" [ref=e310]
+                - cell "—" [ref=e311]
+              - row "INV 1-12 16 13 3 — — —" [ref=e312]:
+                - cell "INV 1-12" [ref=e313]:
+                  - link "INV 1-12" [ref=e314] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-12?date=2026-03-09
+                - cell "16" [ref=e315]
+                - cell "13" [ref=e316]
+                - cell "3" [ref=e317]
+                - cell "—" [ref=e318]
+                - cell "—" [ref=e319]
+                - cell "—" [ref=e320]
+              - row "INV 1-13 16 12 4 — — —" [ref=e321]:
+                - cell "INV 1-13" [ref=e322]:
+                  - link "INV 1-13" [ref=e323] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%201-13?date=2026-03-09
+                - cell "16" [ref=e324]
+                - cell "12" [ref=e325]
+                - cell "4" [ref=e326]
+                - cell "—" [ref=e327]
+                - cell "—" [ref=e328]
+                - cell "—" [ref=e329]
+              - row "INV 2-1 17 16 1 — — —" [ref=e330]:
+                - cell "INV 2-1" [ref=e331]:
+                  - link "INV 2-1" [ref=e332] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-1?date=2026-03-09
+                - cell "17" [ref=e333]
+                - cell "16" [ref=e334]
+                - cell "1" [ref=e335]
+                - cell "—" [ref=e336]
+                - cell "—" [ref=e337]
+                - cell "—" [ref=e338]
+              - row "INV 2-2 16 12 4 — — —" [ref=e339]:
+                - cell "INV 2-2" [ref=e340]:
+                  - link "INV 2-2" [ref=e341] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-2?date=2026-03-09
+                - cell "16" [ref=e342]
+                - cell "12" [ref=e343]
+                - cell "4" [ref=e344]
+                - cell "—" [ref=e345]
+                - cell "—" [ref=e346]
+                - cell "—" [ref=e347]
+              - row "INV 2-3 20 8 10 — 2 —" [ref=e348]:
+                - cell "INV 2-3" [ref=e349]:
+                  - link "INV 2-3" [ref=e350] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-3?date=2026-03-09
+                - cell "20" [ref=e351]
+                - cell "8" [ref=e352]
+                - cell "10" [ref=e353]
+                - cell "—" [ref=e354]
+                - cell "2" [ref=e355]
+                - cell "—" [ref=e356]
+              - row "INV 2-4 16 13 3 — — —" [ref=e357]:
+                - cell "INV 2-4" [ref=e358]:
+                  - link "INV 2-4" [ref=e359] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-4?date=2026-03-09
+                - cell "16" [ref=e360]
+                - cell "13" [ref=e361]
+                - cell "3" [ref=e362]
+                - cell "—" [ref=e363]
+                - cell "—" [ref=e364]
+                - cell "—" [ref=e365]
+              - row "INV 2-5 20 12 8 — — —" [ref=e366]:
+                - cell "INV 2-5" [ref=e367]:
+                  - link "INV 2-5" [ref=e368] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-5?date=2026-03-09
+                - cell "20" [ref=e369]
+                - cell "12" [ref=e370]
+                - cell "8" [ref=e371]
+                - cell "—" [ref=e372]
+                - cell "—" [ref=e373]
+                - cell "—" [ref=e374]
+              - row "INV 2-6 20 10 7 3 — —" [ref=e375]:
+                - cell "INV 2-6" [ref=e376]:
+                  - link "INV 2-6" [ref=e377] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-6?date=2026-03-09
+                - cell "20" [ref=e378]
+                - cell "10" [ref=e379]
+                - cell "7" [ref=e380]
+                - cell "3" [ref=e381]
+                - cell "—" [ref=e382]
+                - cell "—" [ref=e383]
+              - row "INV 2-7 20 15 5 — — —" [ref=e384]:
+                - cell "INV 2-7" [ref=e385]:
+                  - link "INV 2-7" [ref=e386] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-7?date=2026-03-09
+                - cell "20" [ref=e387]
+                - cell "15" [ref=e388]
+                - cell "5" [ref=e389]
+                - cell "—" [ref=e390]
+                - cell "—" [ref=e391]
+                - cell "—" [ref=e392]
+              - row "INV 2-8 20 15 5 — — —" [ref=e393]:
+                - cell "INV 2-8" [ref=e394]:
+                  - link "INV 2-8" [ref=e395] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-8?date=2026-03-09
+                - cell "20" [ref=e396]
+                - cell "15" [ref=e397]
+                - cell "5" [ref=e398]
+                - cell "—" [ref=e399]
+                - cell "—" [ref=e400]
+                - cell "—" [ref=e401]
+              - row "INV 2-9 16 11 5 — — —" [ref=e402]:
+                - cell "INV 2-9" [ref=e403]:
+                  - link "INV 2-9" [ref=e404] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-9?date=2026-03-09
+                - cell "16" [ref=e405]
+                - cell "11" [ref=e406]
+                - cell "5" [ref=e407]
+                - cell "—" [ref=e408]
+                - cell "—" [ref=e409]
+                - cell "—" [ref=e410]
+              - row "INV 2-10 16 12 4 — — —" [ref=e411]:
+                - cell "INV 2-10" [ref=e412]:
+                  - link "INV 2-10" [ref=e413] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-10?date=2026-03-09
+                - cell "16" [ref=e414]
+                - cell "12" [ref=e415]
+                - cell "4" [ref=e416]
+                - cell "—" [ref=e417]
+                - cell "—" [ref=e418]
+                - cell "—" [ref=e419]
+              - row "INV 2-11 16 13 3 — — —" [ref=e420]:
+                - cell "INV 2-11" [ref=e421]:
+                  - link "INV 2-11" [ref=e422] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-11?date=2026-03-09
+                - cell "16" [ref=e423]
+                - cell "13" [ref=e424]
+                - cell "3" [ref=e425]
+                - cell "—" [ref=e426]
+                - cell "—" [ref=e427]
+                - cell "—" [ref=e428]
+              - row "INV 2-12 16 9 7 — — —" [ref=e429]:
+                - cell "INV 2-12" [ref=e430]:
+                  - link "INV 2-12" [ref=e431] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-12?date=2026-03-09
+                - cell "16" [ref=e432]
+                - cell "9" [ref=e433]
+                - cell "7" [ref=e434]
+                - cell "—" [ref=e435]
+                - cell "—" [ref=e436]
+                - cell "—" [ref=e437]
+              - row "INV 2-13 16 9 7 — — —" [ref=e438]:
+                - cell "INV 2-13" [ref=e439]:
+                  - link "INV 2-13" [ref=e440] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%202-13?date=2026-03-09
+                - cell "16" [ref=e441]
+                - cell "9" [ref=e442]
+                - cell "7" [ref=e443]
+                - cell "—" [ref=e444]
+                - cell "—" [ref=e445]
+                - cell "—" [ref=e446]
+              - row "INV 3-1 16 11 5 — — —" [ref=e447]:
+                - cell "INV 3-1" [ref=e448]:
+                  - link "INV 3-1" [ref=e449] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-1?date=2026-03-09
+                - cell "16" [ref=e450]
+                - cell "11" [ref=e451]
+                - cell "5" [ref=e452]
+                - cell "—" [ref=e453]
+                - cell "—" [ref=e454]
+                - cell "—" [ref=e455]
+              - row "INV 3-2 16 9 6 1 — —" [ref=e456]:
+                - cell "INV 3-2" [ref=e457]:
+                  - link "INV 3-2" [ref=e458] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-2?date=2026-03-09
+                - cell "16" [ref=e459]
+                - cell "9" [ref=e460]
+                - cell "6" [ref=e461]
+                - cell "1" [ref=e462]
+                - cell "—" [ref=e463]
+                - cell "—" [ref=e464]
+              - row "INV 3-3 16 4 12 — — —" [ref=e465]:
+                - cell "INV 3-3" [ref=e466]:
+                  - link "INV 3-3" [ref=e467] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-3?date=2026-03-09
+                - cell "16" [ref=e468]
+                - cell "4" [ref=e469]
+                - cell "12" [ref=e470]
+                - cell "—" [ref=e471]
+                - cell "—" [ref=e472]
+                - cell "—" [ref=e473]
+              - row "INV 3-4 16 16 — — — —" [ref=e474]:
+                - cell "INV 3-4" [ref=e475]:
+                  - link "INV 3-4" [ref=e476] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-4?date=2026-03-09
+                - cell "16" [ref=e477]
+                - cell "16" [ref=e478]
+                - cell "—" [ref=e479]
+                - cell "—" [ref=e480]
+                - cell "—" [ref=e481]
+                - cell "—" [ref=e482]
+              - row "INV 3-5 16 10 4 — 2 —" [ref=e483]:
+                - cell "INV 3-5" [ref=e484]:
+                  - link "INV 3-5" [ref=e485] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-5?date=2026-03-09
+                - cell "16" [ref=e486]
+                - cell "10" [ref=e487]
+                - cell "4" [ref=e488]
+                - cell "—" [ref=e489]
+                - cell "2" [ref=e490]
+                - cell "—" [ref=e491]
+              - row "INV 3-6 20 11 1 — 8 —" [ref=e492]:
+                - cell "INV 3-6" [ref=e493]:
+                  - link "INV 3-6" [ref=e494] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-6?date=2026-03-09
+                - cell "20" [ref=e495]
+                - cell "11" [ref=e496]
+                - cell "1" [ref=e497]
+                - cell "—" [ref=e498]
+                - cell "8" [ref=e499]
+                - cell "—" [ref=e500]
+              - row "INV 3-7 20 11 8 1 — —" [ref=e501]:
+                - cell "INV 3-7" [ref=e502]:
+                  - link "INV 3-7" [ref=e503] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-7?date=2026-03-09
+                - cell "20" [ref=e504]
+                - cell "11" [ref=e505]
+                - cell "8" [ref=e506]
+                - cell "1" [ref=e507]
+                - cell "—" [ref=e508]
+                - cell "—" [ref=e509]
+              - row "INV 3-8 20 8 4 — 8 —" [ref=e510]:
+                - cell "INV 3-8" [ref=e511]:
+                  - link "INV 3-8" [ref=e512] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-8?date=2026-03-09
+                - cell "20" [ref=e513]
+                - cell "8" [ref=e514]
+                - cell "4" [ref=e515]
+                - cell "—" [ref=e516]
+                - cell "8" [ref=e517]
+                - cell "—" [ref=e518]
+              - row "INV 3-9 20 10 2 — 8 —" [ref=e519]:
+                - cell "INV 3-9" [ref=e520]:
+                  - link "INV 3-9" [ref=e521] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-9?date=2026-03-09
+                - cell "20" [ref=e522]
+                - cell "10" [ref=e523]
+                - cell "2" [ref=e524]
+                - cell "—" [ref=e525]
+                - cell "8" [ref=e526]
+                - cell "—" [ref=e527]
+              - row "INV 3-10 16 7 9 — — —" [ref=e528]:
+                - cell "INV 3-10" [ref=e529]:
+                  - link "INV 3-10" [ref=e530] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-10?date=2026-03-09
+                - cell "16" [ref=e531]
+                - cell "7" [ref=e532]
+                - cell "9" [ref=e533]
+                - cell "—" [ref=e534]
+                - cell "—" [ref=e535]
+                - cell "—" [ref=e536]
+              - row "INV 3-11 16 16 — — — —" [ref=e537]:
+                - cell "INV 3-11" [ref=e538]:
+                  - link "INV 3-11" [ref=e539] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-11?date=2026-03-09
+                - cell "16" [ref=e540]
+                - cell "16" [ref=e541]
+                - cell "—" [ref=e542]
+                - cell "—" [ref=e543]
+                - cell "—" [ref=e544]
+                - cell "—" [ref=e545]
+              - row "INV 3-12 16 9 7 — — —" [ref=e546]:
+                - cell "INV 3-12" [ref=e547]:
+                  - link "INV 3-12" [ref=e548] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-12?date=2026-03-09
+                - cell "16" [ref=e549]
+                - cell "9" [ref=e550]
+                - cell "7" [ref=e551]
+                - cell "—" [ref=e552]
+                - cell "—" [ref=e553]
+                - cell "—" [ref=e554]
+              - row "INV 3-13 16 12 — 4 — —" [ref=e555]:
+                - cell "INV 3-13" [ref=e556]:
+                  - link "INV 3-13" [ref=e557] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-13?date=2026-03-09
+                - cell "16" [ref=e558]
+                - cell "12" [ref=e559]
+                - cell "—" [ref=e560]
+                - cell "4" [ref=e561]
+                - cell "—" [ref=e562]
+                - cell "—" [ref=e563]
+              - row "INV 3-14 16 12 4 — — —" [ref=e564]:
+                - cell "INV 3-14" [ref=e565]:
+                  - link "INV 3-14" [ref=e566] [cursor=pointer]:
+                    - /url: /demo/PLT_A/inverter/INV%203-14?date=2026-03-09
+                - cell "16" [ref=e567]
+                - cell "12" [ref=e568]
+                - cell "4" [ref=e569]
+                - cell "—" [ref=e570]
+                - cell "—" [ref=e571]
+                - cell "—" [ref=e572]
+    - button "Abrir asistente LUCIA" [ref=e573] [cursor=pointer]:
+      - img [ref=e574]
+  - alert [ref=e576]
