@@ -53,6 +53,7 @@ Thumbs.db
 # Claude Code / MCP
 .claude/skills/**/node_modules
 .claude/plugins
+.claude/scheduled_tasks.lock
 *.mcp.json
 !example.mcp.json
 settings.local.json
