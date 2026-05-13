@@ -38,7 +38,7 @@ const demographicEntrySchema = z.object({
 
 const importOutputSchema = z.object({
   performance: performanceSchema,
-  highlights: highlightsSchema,
+  highlights: highlightsSchema.nullable(),
   demographics: z.record(z.string(), z.array(demographicEntrySchema)),
 })
 
@@ -82,6 +82,25 @@ function toPercentage(value: unknown): number {
   const n = Number(value)
   if (!isFinite(n)) return 0
   return Math.min(1, Math.max(0, n))
+}
+
+// Accepts both legacy decimal (0.36) and the 2026 string format ("36 %" with
+// non-breaking space). Numbers ≤1 stay as decimals; numbers >1 (or strings
+// containing %) are treated as whole-percent and divided by 100.
+function toPercentageFlexible(value: unknown): number {
+  if (value === null || value === undefined || value === '') return 0
+  if (typeof value === 'number') {
+    if (!isFinite(value)) return 0
+    return Math.min(1, Math.max(0, value <= 1 ? value : value / 100))
+  }
+  const raw = String(value)
+  const hasPercent = raw.includes('%')
+  // \s in JS regex matches both regular space and NBSP (U+00A0) which LinkedIn uses
+  const cleaned = raw.replace(/[%\s]/g, '').replace(',', '.')
+  const n = Number(cleaned)
+  if (!isFinite(n)) return 0
+  const decimal = hasPercent || n > 1 ? n / 100 : n
+  return Math.min(1, Math.max(0, decimal))
 }
 
 // ============================================
@@ -254,6 +273,86 @@ function parseInformacionDetallada(
   return demographics
 }
 
+interface ParseUnifiedResult {
+  performance: z.infer<typeof performanceSchema>
+  highlights: null
+  demographics: Record<string, Array<z.infer<typeof demographicEntrySchema>>>
+}
+
+/**
+ * Parse the 2026 LinkedIn export: a single sheet "Análisis de la publicación"
+ * that concatenates performance metrics (key-value cols A:B) and demographics
+ * (3-col table A:B:C) into one workbook page.
+ *
+ * The transition is marked by a header row where col A = "Categoría", col B =
+ * "Valor", col C = "%". Above the marker → performance metrics. Below → grouped
+ * demographics with percentage strings like "36 %" (NBSP between number and %).
+ *
+ * The new export removes the "Datos destacados" highlights section, so we
+ * return highlights: null. Section labels ("Rendimiento del anuncio",
+ * "Actividad del perfil", "Interacción", "Información detallada…") and unmapped
+ * 2026 fields (Interacciones sociales, Interacciones con el enlace,
+ * Interacciones con el botón personalizado Premium, Hora de publicación) are
+ * silently ignored.
+ */
+function parseUnifiedSheet(sheet: XLSX.WorkSheet, xlsx: typeof XLSX): ParseUnifiedResult {
+  const rows = xlsx.utils.sheet_to_json<[unknown, unknown, unknown]>(sheet, {
+    header: 1,
+    defval: null,
+  }) as Array<[unknown, unknown, unknown]>
+
+  const performance: z.infer<typeof performanceSchema> = {
+    impressions: 0,
+    comments: 0,
+    saves: 0,
+    shares: 0,
+    reactions: 0,
+    members_reached: 0,
+    followers_gained: 0,
+    profile_views: 0,
+    sends: 0,
+    post_url: null,
+    publish_date: null,
+  }
+  const demographics: Record<string, Array<z.infer<typeof demographicEntrySchema>>> = {}
+  let mode: 'metrics' | 'demographics' = 'metrics'
+
+  for (const row of rows) {
+    const a = row?.[0] ?? null
+    const b = row?.[1] ?? null
+    const c = row?.[2] ?? null
+
+    if (a === null) continue
+    const keyA = String(a).trim()
+    if (!keyA) continue
+
+    if (mode === 'metrics') {
+      if (keyA === 'Categoría' && b !== null && String(b).trim() === 'Valor') {
+        mode = 'demographics'
+        continue
+      }
+      const perfField = PERFORMANCE_KEY_MAP[keyA]
+      if (perfField === undefined) continue
+      if (perfField === 'post_url' || perfField === 'publish_date') {
+        performance[perfField] = toStringOrNull(b)
+      } else {
+        ;(performance[perfField] as number) = toInt(b)
+      }
+    } else {
+      const category = toStringOrNull(a)
+      const value = toStringOrNull(b)
+      if (!category || !value) continue
+      const percentage = toPercentageFlexible(c)
+      if (!demographics[category]) {
+        demographics[category] = []
+      }
+      demographics[category].push({ value, percentage })
+    }
+  }
+
+  return { performance, highlights: null, demographics }
+}
+
 // ============================================
 // Route handler
 // ============================================
@@ -308,20 +407,18 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // Locate required sheets by name
+  // Locate sheets by name. LinkedIn 2026 ships a single unified sheet; the
+  // pre-2026 format had two separate sheets. Support both.
+  const unifiedSheet = workbook.Sheets['Análisis de la publicación']
   const rendimientoSheet = workbook.Sheets['RENDIMIENTO']
   const detalladaSheet = workbook.Sheets['INFORMACIÓN DETALLADA PRINCIPAL']
 
-  if (!rendimientoSheet) {
+  if (!unifiedSheet && !(rendimientoSheet && detalladaSheet)) {
     return Response.json(
-      { error: 'Hoja "RENDIMIENTO" no encontrada. Verifica que el archivo sea el export correcto de LinkedIn.' },
-      { status: 422 }
-    )
-  }
-
-  if (!detalladaSheet) {
-    return Response.json(
-      { error: 'Hoja "INFORMACIÓN DETALLADA PRINCIPAL" no encontrada. Verifica que el archivo sea el export correcto de LinkedIn.' },
+      {
+        error:
+          'No se reconocio el formato del archivo. Se esperaba la hoja "Analisis de la publicacion" (formato 2026) o "RENDIMIENTO" + "INFORMACION DETALLADA PRINCIPAL" (formato anterior). Verifica que sea el export correcto de LinkedIn.',
+      },
       { status: 422 }
     )
   }
@@ -329,10 +426,14 @@ export async function POST(request: Request): Promise<Response> {
   let parsed: ImportXlsxOutput
 
   try {
-    const { performance, highlights } = parseRendimiento(rendimientoSheet, xlsx)
-    const demographics = parseInformacionDetallada(detalladaSheet, xlsx)
-
-    const raw = { performance, highlights, demographics }
+    let raw: { performance: z.infer<typeof performanceSchema>; highlights: z.infer<typeof highlightsSchema> | null; demographics: Record<string, Array<z.infer<typeof demographicEntrySchema>>> }
+    if (unifiedSheet) {
+      raw = parseUnifiedSheet(unifiedSheet, xlsx)
+    } else {
+      const { performance, highlights } = parseRendimiento(rendimientoSheet!, xlsx)
+      const demographics = parseInformacionDetallada(detalladaSheet!, xlsx)
+      raw = { performance, highlights, demographics }
+    }
 
     const validated = importOutputSchema.safeParse(raw)
 
