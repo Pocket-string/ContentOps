@@ -11,7 +11,7 @@ COMPOSICION:
 - UNA SOLA idea central por pieza. No mezclar multiples conceptos.
 - Maximo 2 columnas de layout. Preferir 1 columna centrada.
 - Jerarquia visual clara: headline > subtitle > body > footer.
-- Zona inferior reservada para banda blanca con logo + firma.
+- NO reservar zona inferior. El logo se composita automaticamente como pill en esquina inferior derecha.
 
 TEXTO:
 - Headline: MAXIMO 8 palabras. Impactante y legible a distancia.
@@ -26,8 +26,8 @@ LEGIBILIDAD MOVIL:
 - Evitar textos en diagonal, curvos o con efectos que dificulten lectura.
 
 BRANDING:
-- Logo Bitalize en banda blanca inferior (12% del alto).
-- Firma "Jonathan Navarrete — Bitalize" visible.
+- Logo Bitalize: composited automaticamente como pill glass-morphism en esquina inferior derecha (NO dibujar).
+- Firma "Jonathan Navarrete | Bitalize" composited automaticamente junto al logo pill.
 - Colores de marca: primary (#1E3A5F), secondary (#F97316), accent (#10B981).
 - NO inventar colores fuera de la paleta de marca.
 

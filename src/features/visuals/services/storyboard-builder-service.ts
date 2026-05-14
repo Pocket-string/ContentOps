@@ -73,7 +73,7 @@ REGLAS DE CONSISTENCIA VISUAL:
 - Todos los slides deben usar el MISMO tipo de tipografia y jerarquia
 - El visual_direction de CADA slide debe especificar explicitamente el estilo compartido
 - NO mezclar estilos: si slide 1 es "editorial periodico", TODOS deben ser "editorial periodico"
-- El bottom 12% de cada slide debe quedar limpio (blanco) para el logo real que se agrega despues
+- Usar el canvas COMPLETO para contenido. NO dejar bandas blancas ni zonas reservadas. El logo real se agrega automaticamente en post-procesamiento como pill en la esquina inferior derecha.
 - NO incluir logo ni firma en el visual_direction — se agregan automaticamente post-generacion
 
 Responde UNICAMENTE con JSON valido (sin markdown, sin backticks):

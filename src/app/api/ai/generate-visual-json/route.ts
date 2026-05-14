@@ -84,17 +84,14 @@ El modelo de imagen interpreta CUALQUIER texto tecnico como texto a renderizar:
 
 Si prompt_overall esta vago o generico, la imagen sera mala. Se PRECISO pero VISUAL, no tecnico.
 
-## LOGO — BANDA BLANCA INFERIOR (OBLIGATORIO)
+## LOGO — POST-PROCESADO AUTOMATICO (NO DIBUJAR)
 
-El logo real de la marca se composita automaticamente en post-procesamiento sobre la banda blanca. NO describas el logo en prompt_overall — el modelo de imagen no puede reproducirlo con precision. En cambio, SIEMPRE reserva el espacio:
+El logo real de Bitalize se composita automaticamente en post-procesamiento como un pill semi-transparente en la esquina inferior derecha. NO describas ningun logo en prompt_overall. NO reserves espacio, bandas, ni zonas blancas para el logo.
 
-**Reglas de banda blanca:**
-- Dejar una banda blanca solida en la parte inferior de la imagen
-- La banda blanca mide exactamente el 12% del alto total de la imagen
-- La banda blanca ocupa el 100% del ancho de la imagen
-- El fondo de la banda es blanco puro (#FFFFFF)
-- En prompt_overall incluir siempre: "solid white band at the bottom (12% height) reserved for logo placement — keep this area completely white and clear"
-- NO dibujar ningun logo ni texto en esta banda — el logo se agrega en post-processing
+**Reglas:**
+- Usar el canvas COMPLETO para contenido (sin bandas blancas, sin zonas reservadas)
+- En prompt_overall incluir siempre: "DO NOT draw any logo, brand mark, or signature. Use the FULL canvas for content (no blank bands, no reserved zones). The real Bitalize logo is composited automatically as a small pill in the bottom-right corner after generation."
+- Mantener la esquina inferior derecha (~22% ancho x 10% alto) relativamente limpia (sin contenido critico ahi)
 
 ## FIRMA DEL AUTOR
 
@@ -172,9 +169,8 @@ Usa ratios numericos, NO descripciones vagas:
 - Estilo: rounded pill con color ${colors.secondary} y texto blanco
 
 **Logo + firma:**
-- Banda blanca inferior: 12% del alto total
-- Logo: bottom-left, 20% width max
-- Firma: junto al logo, mas pequena
+- Logo y firma se compositan automaticamente en post-procesamiento (pill glass-morphism bottom-right)
+- NO dibujar logo ni reservar banda blanca — usar canvas completo
 
 ## ESTETICA DEFAULT
 
@@ -283,15 +279,13 @@ Distribuye los slides asi:
 - **Slide N-1 (solution)**: Resumen de la solucion o takeaway principal.
 - **Slide N (cta_close)**: Call to action claro. "Comenta", "Sigue", "DM", etc.
 
-## LOGO — BANDA BLANCA INFERIOR (OBLIGATORIO EN CADA SLIDE)
+## LOGO — POST-PROCESADO AUTOMATICO (NO DIBUJAR EN NINGUN SLIDE)
 
-El logo real se composita automaticamente en post-procesamiento. NO describas el logo — reserva el espacio en cada slide:
+El logo real se composita automaticamente en post-procesamiento como pill glass-morphism en la esquina inferior derecha.
 
-- Dejar banda blanca solida en la parte inferior de CADA slide (12% del alto)
-- Banda blanca de 100% del ancho, fondo blanco puro (#FFFFFF)
-- En cada prompt_overall incluir: "solid white band at the bottom (12% height) reserved for logo — keep completely white and clear"
-- NO dibujar ningun logo ni texto en esta banda
-- Esquina inferior derecha SIEMPRE vacia
+- Usar el canvas COMPLETO para contenido en CADA slide (sin bandas blancas, sin zonas reservadas)
+- En cada prompt_overall incluir: "DO NOT draw any logo, brand mark, or signature. Use the FULL canvas for content (no blank bands, no reserved zones)."
+- Mantener esquina inferior derecha (~22% x 10%) relativamente limpia (sin contenido critico)
 
 ## FIRMA DEL AUTOR
 

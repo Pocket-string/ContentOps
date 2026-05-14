@@ -101,7 +101,7 @@ export const BRAND_LOGO_DESCRIPTION = {
     'with a geometric icon to the left made of four vertical bars of increasing height in brand blue (#1E3A5F), ' +
     'resembling a bar chart or data growth icon. Below the name is the tagline "DATA-DRIVEN GROWTH, REVITALIZED" ' +
     'in small uppercase letters. The text is dark navy (#1E3A5F) on light backgrounds or white on dark backgrounds.',
-  default_placement: 'bottom_left_on_white_band',
+  default_placement: 'none_composited_post_processing',
   default_scale: 0.2,
   default_band: {
     use_band: false,

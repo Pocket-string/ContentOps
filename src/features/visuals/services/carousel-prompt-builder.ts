@@ -101,9 +101,8 @@ function buildFromCarouselPlan(
     parts.push(`Body text: "${bodyText}".`)
   }
 
-  // Logo and signature are composited post-generation by sharp (PRP-011 fix).
-  // Do NOT instruct the AI to draw them — it produces inaccurate logos.
-  // Instead, reserve the bottom 12% as a clean white band for compositing.
+  // Logo and signature are composited post-generation by sharp as glass-morphism pill (bottom-right).
+  // Do NOT instruct the AI to draw any logo or reserve any band — use full canvas.
   parts.push('IMPORTANT: Do NOT draw any logo, brand mark, or signature text in the image. Use the FULL canvas for content (no blank bands, no reserved zones). The real Bitalize logo is composited automatically as a small pill overlay in the bottom-right corner after generation.')
 
   // Format

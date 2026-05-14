@@ -30,14 +30,12 @@ const iterateInputSchema = z.object({
 
 // Shared brand identity block for system prompts
 function buildBrandIdentityBlock(sigText: string, logoDesc: string): string {
-  return `## LOGO — OBLIGATORIO
+  return `## LOGO — POST-PROCESADO (NO DIBUJAR)
 
-${logoDesc}
-
-- Ubicacion por defecto: esquina inferior izquierda sobre banda blanca solida
-- Banda blanca: ~12% del alto total
-- Logo: maximo 20% del ancho
-- Siempre \`use_logo: true\`
+El logo real se composita automaticamente en post-procesamiento como pill glass-morphism en la esquina inferior derecha.
+- NO dibujar logo, banda blanca, ni reservar espacio
+- Usar el canvas COMPLETO para contenido
+- Mantener esquina inferior derecha (~22% x 10%) relativamente limpia
 
 ## FIRMA DEL AUTOR
 

@@ -79,15 +79,15 @@ export function buildArchetypePromptJson(input: BuildArchetypePromptInput): Visu
     },
     brand: {
       logo: {
-        use_logo: true,
-        placement: 'bottom_left_on_white_band',
+        use_logo: false,
+        placement: 'none_composited_post_processing',
         background_band: {
-          use_band: true,
-          band_color: BRAND_LOGO_DESCRIPTION.default_band.band_color,
-          band_height_ratio: BRAND_LOGO_DESCRIPTION.default_band.band_height_ratio,
+          use_band: false,
+          band_color: '#FFFFFF',
+          band_height_ratio: 0,
         },
-        scale_relative_width: BRAND_LOGO_DESCRIPTION.default_scale,
-        reference_description: BRAND_LOGO_DESCRIPTION.reference_description,
+        scale_relative_width: 0,
+        reference_description: 'Logo composited automatically in post-processing as glass-morphism pill bottom-right',
       },
       colors: {
         primary: BRAND_COLORS_SEMANTIC.primary,

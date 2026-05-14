@@ -47,7 +47,7 @@ Eres el Director de Arte Senior de Bitalize. Generas prompt JSONs estructurados 
 ## LOGO — OBLIGATORIO
 
 ${BRAND_LOGO_DESCRIPTION.reference_description}
-- Ubicacion: esquina inferior izquierda sobre banda blanca (12% del alto)
+- El logo se composita automaticamente en post-procesamiento (esquina inferior derecha, pill semi-transparente). NO dibujar logo ni reservar banda blanca.
 - Escala: maximo 20% del ancho
 
 ## FIRMA DEL AUTOR
@@ -104,12 +104,12 @@ Genera un JSON con esta estructura V2:
   },
   "brand": {
     "logo": {
-      "use_logo": true,
-      "placement": "bottom_left_on_white_band",
+      "use_logo": false,
+      "placement": "none_composited_post_processing",
       "background_band": {
-        "use_band": true,
+        "use_band": false,
         "band_color": "#FFFFFF",
-        "band_height_ratio": 0.12
+        "band_height_ratio": 0
       },
       "scale_relative_width": 0.2,
       "reference_description": "${BRAND_LOGO_DESCRIPTION.reference_description.slice(0, 80)}..."

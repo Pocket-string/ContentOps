@@ -37,7 +37,7 @@ export const visualPromptSchemaV2 = z.object({
   brand: z.object({
     logo: z.object({
       use_logo: z.boolean().describe('Whether to include the logo'),
-      placement: z.string().describe('Precise placement: e.g. "bottom_left_on_white_band"'),
+      placement: z.string().describe('Logo placement: e.g. "none_composited_post_processing"'),
       background_band: z.object({
         use_band: z.boolean().describe('Whether to use a solid band behind the logo'),
         band_color: z.string().describe('Hex color of the band'),

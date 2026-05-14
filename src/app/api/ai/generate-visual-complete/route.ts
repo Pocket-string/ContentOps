@@ -80,7 +80,7 @@ Reglas para prompt_overall:
 - Incluir texto EXACTO a renderizar (entre comillas dentro del prompt)
 - Describir colores naturalmente (no CSS hex en prompt_overall)
 - Layout con porcentajes/ratios
-- Incluir: "solid white band at the bottom (12% height) reserved for logo"
+- Incluir: "DO NOT draw any logo or white band. Use FULL canvas. The real logo is composited automatically as a pill in the bottom-right corner."
 - Firma del autor: "${sigText}"
 - NUNCA incluir specs tecnicos como "Inter Bold 48px #FFFFFF" — el modelo los renderiza literalmente
 - Ser PRECISO pero VISUAL, no tecnico
