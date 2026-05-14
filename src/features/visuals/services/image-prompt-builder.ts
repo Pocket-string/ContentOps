@@ -95,7 +95,7 @@ function buildFromPromptOverall(json: Record<string, unknown>, format: VisualFor
 
   // Logo handling: real Bitalize logo is composited in post-processing as a small
   // glass-morphism pill in the bottom-right corner. AI must NOT draw a logo.
-  parts.push(`DO NOT draw any logo, brand mark, or text signature — the real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% × 10% area relatively quiet (no critical content there). Brand reference (for color/tone context only, not to render): ${logoDesc}`)
+  parts.push(`DO NOT draw any logo, brand mark, or text signature. Use the FULL canvas for content (no blank bands). The real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% x 10% area relatively quiet (no critical content there). Brand reference (for color/tone context only, not to render): ${logoDesc}`)
 
   // ALWAYS inject author signature if not mentioned
   const sigLower = sigText.toLowerCase().slice(0, 15)
@@ -172,7 +172,7 @@ function buildFromV2Fields(p: VisualPromptJsonV2, format: VisualFormat, logoDesc
   parts.push(`Typography: titles in ${p.brand.typography.title_font} ${p.brand.typography.title_style}, body in ${p.brand.typography.body_font} ${p.brand.typography.body_style}.`)
 
   // Logo: composited in post-processing as a glass-morphism pill (bottom-right). AI must NOT draw it.
-  parts.push(`DO NOT draw any logo, brand mark, or text signature — the real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% × 10% area relatively quiet (no critical content there). Brand reference (for tone/color context only): ${p.brand.logo.reference_description || logoDesc}`)
+  parts.push(`DO NOT draw any logo, brand mark, or text signature. Use the FULL canvas for content (no blank bands). The real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% x 10% area relatively quiet (no critical content there). Brand reference (for tone/color context only): ${p.brand.logo.reference_description || logoDesc}`)
 
   // Signature
   if (p.content.signature?.use_signature) {
@@ -230,7 +230,7 @@ function buildFromFields(p: VisualPromptJsonV1, format: VisualFormat, logoDesc: 
 
   // Brand — logo composited in post-processing as glass-pill (bottom-right)
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
-  parts.push(`DO NOT draw any logo, brand mark, or text signature — the real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% × 10% area relatively quiet (no critical content there). Brand reference (for tone/color context only): ${logoDesc}`)
+  parts.push(`DO NOT draw any logo, brand mark, or text signature. Use the FULL canvas for content (no blank bands). The real Bitalize logo is composited automatically in post-processing as a small pill in the bottom-right corner. Keep the bottom-right ~22% x 10% area relatively quiet (no critical content there). Brand reference (for tone/color context only): ${logoDesc}`)
 
   // Style anchors
   for (const anchor of DEFAULT_STYLE_ANCHORS) {

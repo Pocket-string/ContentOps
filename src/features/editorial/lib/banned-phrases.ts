@@ -152,6 +152,14 @@ export const BANNED_PHRASES: BannedPhrase[] = [
     substitution: 'Lo opuesto: lo que TODOS dan por hecho pero NO siempre es cierto',
   },
 
+  // ====== AI formatting indicators ======
+  {
+    pattern: '\u2014',
+    display: 'Guion largo (\u2014)',
+    category: 'ai-cliche',
+    substitution: 'Usar punto seguido, coma, o dos puntos. El guion largo es indicador de IA',
+  },
+
   // ====== Filler ======
   {
     pattern: 'en conclusion',

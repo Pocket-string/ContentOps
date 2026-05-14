@@ -47,6 +47,9 @@ export function ensureParagraphBreaks(content: string): string {
   // Normalize existing line breaks
   let text = content.replace(/\r\n/g, '\n')
 
+  // Replace em-dashes (AI indicator) with simple dash
+  text = text.replace(/\s*\u2014\s*/g, ' - ')
+
   // Step 0: Convert UNICODE paragraph markers to actual newlines
   // Gemini respects ⏎⏎ as a visible token better than \n\n
   text = text.replace(/⏎⏎/g, '\n\n')

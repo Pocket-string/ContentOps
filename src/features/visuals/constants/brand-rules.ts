@@ -104,15 +104,15 @@ export const BRAND_LOGO_DESCRIPTION = {
   default_placement: 'bottom_left_on_white_band',
   default_scale: 0.2,
   default_band: {
-    use_band: true,
+    use_band: false,
     band_color: '#FFFFFF',
-    band_height_ratio: 0.12,
+    band_height_ratio: 0,
   },
 } as const
 
 /** Author signature defaults. */
 export const BRAND_SIGNATURE = {
-  text: 'Jonathan Navarrete — Bitalize',
+  text: 'Jonathan Navarrete | Bitalize',
   default_placement: 'bottom-left, small 10px, text color #94A3B8',
 } as const
 
@@ -181,11 +181,11 @@ export interface CarouselSlideRuleset {
 
 export const CAROUSEL_BRAND_RULES: Record<string, CarouselSlideRuleset> = {
   cover: {
-    logoPlacement: 'center-bottom',
-    signatureVisible: true,
+    logoPlacement: 'none',
+    signatureVisible: false,
     accentColorProminent: true,
     maxTextDensity: 'low',
-    promptSuffix: 'Cover slide: bold headline, high visual impact, logo prominent at bottom center, signature visible. Accent color (#F97316) used for emphasis.',
+    promptSuffix: 'Cover slide: bold headline, high visual impact. Accent color (#F97316) used for emphasis. NO logo in the image (composited automatically).',
   },
   context: {
     logoPlacement: 'bottom-right-small',
@@ -216,10 +216,10 @@ export const CAROUSEL_BRAND_RULES: Record<string, CarouselSlideRuleset> = {
     promptSuffix: 'Method slide: framework or step-by-step layout, numbered items, clean structure, small logo bottom-right.',
   },
   cta_close: {
-    logoPlacement: 'center-bottom',
-    signatureVisible: true,
+    logoPlacement: 'none',
+    signatureVisible: false,
     accentColorProminent: true,
     maxTextDensity: 'low',
-    promptSuffix: 'CTA closing slide: clear call-to-action, logo prominent at bottom center, signature visible. Accent color (#F97316) for CTA button/text.',
+    promptSuffix: 'CTA closing slide: clear call-to-action. Accent color (#F97316) for CTA button/text. NO logo in the image (composited automatically).',
   },
 }

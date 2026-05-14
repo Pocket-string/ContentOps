@@ -104,7 +104,7 @@ function buildFromCarouselPlan(
   // Logo and signature are composited post-generation by sharp (PRP-011 fix).
   // Do NOT instruct the AI to draw them — it produces inaccurate logos.
   // Instead, reserve the bottom 12% as a clean white band for compositing.
-  parts.push('IMPORTANT: Leave the bottom 12% of the image completely clean (solid white or very light background). Do NOT draw any logo, brand mark, or signature text in the image. The real logo will be added automatically after generation.')
+  parts.push('IMPORTANT: Do NOT draw any logo, brand mark, or signature text in the image. Use the FULL canvas for content (no blank bands, no reserved zones). The real Bitalize logo is composited automatically as a small pill overlay in the bottom-right corner after generation.')
 
   // Format
   if (!promptLower.includes('1080x1350') && !promptLower.includes('4:5')) {
@@ -196,7 +196,7 @@ function buildFromLegacyFields(
   // Brand consistency (logo/signature composited post-generation — do NOT draw them)
   parts.push(`Brand: ${BRAND_STYLE.name}, ${BRAND_STYLE.domain}. ${BRAND_STYLE.tone}.`)
   parts.push(`Colors: primary ${BRAND_STYLE.colors.primary}, accent ${BRAND_STYLE.colors.secondary}.`)
-  parts.push('IMPORTANT: Leave the bottom 12% of the image completely clean (solid white or very light background). Do NOT draw any logo, brand mark, or signature text. The real logo will be added automatically after generation.')
+  parts.push('IMPORTANT: Do NOT draw any logo, brand mark, or signature text in the image. Use the FULL canvas for content (no blank bands, no reserved zones). The real Bitalize logo is composited automatically as a small pill overlay in the bottom-right corner after generation.')
 
   // Format
   parts.push('Format: 4:5 vertical (1080x1350) for LinkedIn carousel.')
